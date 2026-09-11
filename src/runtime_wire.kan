@@ -1,0 +1,36 @@
+def runtimeOutcomeEncode : RuntimeOutcome -> Value := fun (o : RuntimeOutcome) => match o as self in RuntimeOutcome return Value with
+  | runtimeReconciled => jsonString b"reconciled" | runtimeErrored => jsonString b"errored"
+  | runtimeIncomplete n => jsonObject (jsonObjectCons b"incomplete" (jsonInt n) jsonObjectNil)
+def runtimeProgramDecode : Value -> Result ControllerProgram := fun (j : Value) => resultBind Bytes ControllerProgram (jsonGetString j) (fun (name : Bytes) =>
+  case (bytesEqual name b"vrs") with | 1 (u : Unit) => ok ControllerProgram vrsProgram
+  | 0 (u : Unit) => (case (bytesEqual name b"deployment") with | 1 (u : Unit) => ok ControllerProgram deploymentProgram
+  | 0 (u : Unit) => (case (bytesEqual name b"stateful") with | 1 (u : Unit) => ok ControllerProgram statefulProgram
+  | 0 (u : Unit) => err ControllerProgram (decodeError b"program" name))))
+def runtimeResultsEncode : RuntimeResults -> Value := fun (r : RuntimeResults) => jsonSequenceEncode (prod (CommonObjectRef, RuntimeOutcome))
+  (fun (e : prod (CommonObjectRef, RuntimeOutcome)) => jsonObject (jsonObjectCons b"key" (commonObjectRefEncode e.0) (jsonObjectCons b"outcome" (runtimeOutcomeEncode e.1) jsonObjectNil))) r
+def runtimeFixpointEncode : RuntimeFixpoint -> Value := fun (r : RuntimeFixpoint) => jsonObject (jsonObjectCons b"rounds" (jsonInt r.0) (jsonObjectCons b"converged" (jsonBool r.1) jsonObjectNil))
+def execResultEncode : (0 A : Type 0) -> (A -> Value) -> ClientResult ExecServer A -> Value := fun (0 A : Type 0) (encode : A -> Value) (r : ClientResult ExecServer A) =>
+  jsonObject (jsonObjectCons b"state" (apiStateEncode r.0.0) (jsonObjectCons b"rpc" (jsonInt r.0.1) (jsonObjectCons b"checks" (jsonSequenceEncode Bool (fun (b : Bool) => jsonBool b) r.0.2)
+    (jsonObjectCons b"result" (proofResultEncode A encode r.1) jsonObjectNil))))
+def runtimeInvoke : Value -> Result Value := fun (input : Value) =>
+  resultBind InstalledTypes Value (jsonField InstalledTypes input b"policy" apiFixturePolicy) (fun (it : InstalledTypes) =>
+  resultBind ApiState Value (jsonField ApiState input b"state" apiStateDecode) (fun (state : ApiState) =>
+  resultBind Bytes Value (jsonField Bytes input b"mode" jsonGetString) (fun (mode : Bytes) =>
+  resultBind (Sequence ControllerProgram) Value (jsonField (Sequence ControllerProgram) input b"models" (jsonSequenceDecode ControllerProgram runtimeProgramDecode)) (fun (models : Sequence ControllerProgram) =>
+  resultBind Int Value (jsonField Int input b"fuel" jsonGetInt) (fun (fuel : Int) =>
+  resultBind Int Value (jsonField Int input b"rounds" jsonGetInt) (fun (rounds : Int) =>
+  resultBind Bytes Value (jsonField Bytes input b"namespace" jsonGetString) (fun (ns : Bytes) =>
+  let s : ExecServer := tuple (state, nonnegative 0, sequenceEmpty Bool) in
+  let client : Client ExecServer := execRequest it true in
+  let model : ControllerProgram := optionValue ControllerProgram vrsProgram (models.1 0) in
+  case (bytesEqual mode b"fixpoint") with | 1 (u : Unit) => ok Value (execResultEncode RuntimeFixpoint runtimeFixpointEncode (runtimeRunToFixpoint ExecServer client models ns (fun (s : ExecServer) => s.0.2) fuel rounds s))
+  | 0 (u : Unit) => (case (bytesEqual mode b"controller") with
+    | 1 (u : Unit) => resultMap (Sequence CommonObjectRef) Value (fun (queue : Sequence CommonObjectRef) => execResultEncode RuntimeResults runtimeResultsEncode (runtimeRunController ExecServer client model queue fuel rounds s))
+      (jsonField (Sequence CommonObjectRef) input b"queue" (jsonSequenceDecode CommonObjectRef commonObjectRefDecode))
+    | 0 (u : Unit) => (case (bytesEqual mode b"reconcile") with
+      | 1 (u : Unit) => resultMap DynamicObjectT Value (fun (cr : DynamicObjectT) => execResultEncode RuntimeOutcome runtimeOutcomeEncode (runtimeReconcile ExecServer client model cr fuel s)) (jsonField DynamicObjectT input b"cr" dynamicObjectTDecode)
+      | 0 (u : Unit) => err Value (decodeError b"runtime mode" mode))))))))))
+def runtimeRender : Value -> Bytes := fun (input : Value) => case (runtimeInvoke input) with | 0 (e : Error) => bytesAppend b"error: " (errorText e) | 1 (j : Value) => valueRender j
+def execCreateInvoke : Value -> Result Value := fun (input : Value) => resultBind InstalledTypes Value (jsonField InstalledTypes input b"policy" apiFixturePolicy) (fun (it : InstalledTypes) =>
+  resultMap (Sequence DynamicObjectT) Value (fun (seed : Sequence DynamicObjectT) => proofResultEncode ExecServer (fun (s : ExecServer) => apiStateEncode s.0) (execCreate it seed)) (jsonField (Sequence DynamicObjectT) input b"seed" (jsonSequenceDecode DynamicObjectT dynamicObjectTDecode)))
+def execCreateRender : Value -> Bytes := fun (input : Value) => case (execCreateInvoke input) with | 0 (e : Error) => bytesAppend b"error: " (errorText e) | 1 (j : Value) => valueRender j

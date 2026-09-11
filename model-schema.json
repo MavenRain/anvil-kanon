@@ -1,0 +1,614 @@
+[
+  {
+    "source": "lib/k8s_objects/affinity.ml",
+    "module": "affinity",
+    "type": "t",
+    "body": "unit"
+  },
+  {
+    "source": "lib/k8s_objects/api_method.ml",
+    "module": "api_method",
+    "type": "api_error",
+    "body": "| Bad_request | Conflict | Forbidden | Invalid | Object_not_found | Object_already_exists | Not_supported | Internal_error | Timeout | Server_timeout | Transaction_abort | Other"
+  },
+  {
+    "source": "lib/k8s_objects/api_method.ml",
+    "module": "api_method",
+    "type": "preconditions",
+    "body": "{ uid : Common.Uid.t option; resource_version : Common.Resource_version.t option; }"
+  },
+  {
+    "source": "lib/k8s_objects/api_method.ml",
+    "module": "api_method",
+    "type": "api_resource",
+    "body": "{ kind : Common.kind }"
+  },
+  {
+    "source": "lib/k8s_objects/api_method.ml",
+    "module": "api_method",
+    "type": "get_request",
+    "body": "{ key : Common.object_ref }"
+  },
+  {
+    "source": "lib/k8s_objects/api_method.ml",
+    "module": "api_method",
+    "type": "list_request",
+    "body": "{ kind : Common.kind; namespace : string }"
+  },
+  {
+    "source": "lib/k8s_objects/api_method.ml",
+    "module": "api_method",
+    "type": "create_request",
+    "body": "{ namespace : string; obj : Dynamic_object.t }"
+  },
+  {
+    "source": "lib/k8s_objects/api_method.ml",
+    "module": "api_method",
+    "type": "delete_request",
+    "body": "{ key : Common.object_ref; preconditions : preconditions option; }"
+  },
+  {
+    "source": "lib/k8s_objects/api_method.ml",
+    "module": "api_method",
+    "type": "update_request",
+    "body": "{ namespace : string; name : string; obj : Dynamic_object.t; }"
+  },
+  {
+    "source": "lib/k8s_objects/api_method.ml",
+    "module": "api_method",
+    "type": "update_status_request",
+    "body": "{ namespace : string; name : string; obj : Dynamic_object.t; }"
+  },
+  {
+    "source": "lib/k8s_objects/api_method.ml",
+    "module": "api_method",
+    "type": "get_then_delete_request",
+    "body": "{ key : Common.object_ref; owner_ref : Owner_reference.t; }"
+  },
+  {
+    "source": "lib/k8s_objects/api_method.ml",
+    "module": "api_method",
+    "type": "get_then_update_request",
+    "body": "{ namespace : string; name : string; owner_ref : Owner_reference.t; obj : Dynamic_object.t; }"
+  },
+  {
+    "source": "lib/k8s_objects/api_method.ml",
+    "module": "api_method",
+    "type": "get_then_update_status_request",
+    "body": "{ namespace : string; name : string; owner_ref : Owner_reference.t; obj : Dynamic_object.t; }"
+  },
+  {
+    "source": "lib/k8s_objects/api_method.ml",
+    "module": "api_method",
+    "type": "api_request",
+    "body": "| Get_request of get_request | List_request of list_request | Create_request of create_request | Delete_request of delete_request | Update_request of update_request | Update_status_request of update_status_request | Get_then_delete_request of get_then_delete_request | Get_then_update_request of get_then_update_request | Get_then_update_status_request of get_then_update_status_request"
+  },
+  {
+    "source": "lib/k8s_objects/api_method.ml",
+    "module": "api_method",
+    "type": "get_response",
+    "body": "{ res : (Dynamic_object.t, api_error) result }"
+  },
+  {
+    "source": "lib/k8s_objects/api_method.ml",
+    "module": "api_method",
+    "type": "list_response",
+    "body": "{ res : (Dynamic_object.t list, api_error) result }"
+  },
+  {
+    "source": "lib/k8s_objects/api_method.ml",
+    "module": "api_method",
+    "type": "create_response",
+    "body": "{ res : (Dynamic_object.t, api_error) result }"
+  },
+  {
+    "source": "lib/k8s_objects/api_method.ml",
+    "module": "api_method",
+    "type": "delete_response",
+    "body": "{ res : (unit, api_error) result }"
+  },
+  {
+    "source": "lib/k8s_objects/api_method.ml",
+    "module": "api_method",
+    "type": "update_response",
+    "body": "{ res : (Dynamic_object.t, api_error) result }"
+  },
+  {
+    "source": "lib/k8s_objects/api_method.ml",
+    "module": "api_method",
+    "type": "update_status_response",
+    "body": "{ res : (Dynamic_object.t, api_error) result }"
+  },
+  {
+    "source": "lib/k8s_objects/api_method.ml",
+    "module": "api_method",
+    "type": "get_then_delete_response",
+    "body": "{ res : (unit, api_error) result }"
+  },
+  {
+    "source": "lib/k8s_objects/api_method.ml",
+    "module": "api_method",
+    "type": "get_then_update_response",
+    "body": "{ res : (Dynamic_object.t, api_error) result }"
+  },
+  {
+    "source": "lib/k8s_objects/api_method.ml",
+    "module": "api_method",
+    "type": "get_then_update_status_response",
+    "body": "{ res : (Dynamic_object.t, api_error) result; }"
+  },
+  {
+    "source": "lib/k8s_objects/api_method.ml",
+    "module": "api_method",
+    "type": "api_response",
+    "body": "| Get_response of get_response | List_response of list_response | Create_response of create_response | Delete_response of delete_response | Update_response of update_response | Update_status_response of update_status_response | Get_then_delete_response of get_then_delete_response | Get_then_update_response of get_then_update_response | Get_then_update_status_response of get_then_update_status_response"
+  },
+  {
+    "source": "lib/k8s_objects/common.ml",
+    "module": "common",
+    "type": "kind",
+    "body": "| Config_map | Custom_resource of string | Daemon_set | Persistent_volume_claim | Pod | Role | Role_binding | Stateful_set | Service | Service_account | Secret"
+  },
+  {
+    "source": "lib/k8s_objects/common.ml",
+    "module": "common",
+    "type": "object_ref",
+    "body": "{ kind : kind; name : string; namespace : string }"
+  },
+  {
+    "source": "lib/k8s_objects/container.ml",
+    "module": "container",
+    "type": "exec_action",
+    "body": "{ command : string list option }"
+  },
+  {
+    "source": "lib/k8s_objects/container.ml",
+    "module": "container",
+    "type": "tcp_socket_action",
+    "body": "{ host : string option; port : int }"
+  },
+  {
+    "source": "lib/k8s_objects/container.ml",
+    "module": "container",
+    "type": "lifecycle_handler",
+    "body": "{ exec_ : exec_action option }"
+  },
+  {
+    "source": "lib/k8s_objects/container.ml",
+    "module": "container",
+    "type": "lifecycle",
+    "body": "{ pre_stop : lifecycle_handler option }"
+  },
+  {
+    "source": "lib/k8s_objects/container.ml",
+    "module": "container",
+    "type": "container_port",
+    "body": "{ container_port : int; name : string option; protocol : string option; }"
+  },
+  {
+    "source": "lib/k8s_objects/container.ml",
+    "module": "container",
+    "type": "volume_mount",
+    "body": "{ mount_path : string; name : string; read_only : bool option; sub_path : string option; mount_propagation : string option; }"
+  },
+  {
+    "source": "lib/k8s_objects/container.ml",
+    "module": "container",
+    "type": "env_var_source",
+    "body": "{ field_ref : Object_field_selector.t option }"
+  },
+  {
+    "source": "lib/k8s_objects/container.ml",
+    "module": "container",
+    "type": "env_var",
+    "body": "{ name : string; value : string option; value_from : env_var_source option; }"
+  },
+  {
+    "source": "lib/k8s_objects/container.ml",
+    "module": "container",
+    "type": "probe",
+    "body": "{ exec_ : exec_action option; failure_threshold : int option; initial_delay_seconds : int option; period_seconds : int option; success_threshold : int option; tcp_socket : tcp_socket_action option; timeout_seconds : int option; }"
+  },
+  {
+    "source": "lib/k8s_objects/container.ml",
+    "module": "container",
+    "type": "security_context",
+    "body": "unit"
+  },
+  {
+    "source": "lib/k8s_objects/container.ml",
+    "module": "container",
+    "type": "t",
+    "body": "{ env : env_var list option; image : string option; name : string; ports : container_port list option; volume_mounts : volume_mount list option; lifecycle : lifecycle option; resources : Resource_requirements.t option; readiness_probe : probe option; liveness_probe : probe option; command : string list option; image_pull_policy : string option; args : string list option; security_context : security_context option; }"
+  },
+  {
+    "source": "lib/k8s_objects/deployment_strategy.ml",
+    "module": "deployment_strategy",
+    "type": "strategy_type",
+    "body": "| Recreate | Rolling_update"
+  },
+  {
+    "source": "lib/k8s_objects/deployment_strategy.ml",
+    "module": "deployment_strategy",
+    "type": "rolling_update",
+    "body": "{ max_surge : int option; max_unavailable : int option; }"
+  },
+  {
+    "source": "lib/k8s_objects/deployment_strategy.ml",
+    "module": "deployment_strategy",
+    "type": "t",
+    "body": "{ type_ : strategy_type option; rolling_update : rolling_update option; }"
+  },
+  {
+    "source": "lib/k8s_objects/dynamic_object.ml",
+    "module": "dynamic_object",
+    "type": "t",
+    "body": "{ kind : Common.kind; metadata : Object_meta.t; spec : Value.t; status : Value.t; }"
+  },
+  {
+    "source": "lib/k8s_objects/label_selector.ml",
+    "module": "label_selector",
+    "type": "t",
+    "body": "{ match_labels : string Smap.t option }"
+  },
+  {
+    "source": "lib/k8s_objects/local_object_reference.ml",
+    "module": "local_object_reference",
+    "type": "t",
+    "body": "unit"
+  },
+  {
+    "source": "lib/k8s_objects/object_field_selector.ml",
+    "module": "object_field_selector",
+    "type": "t",
+    "body": "{ field_path : string; api_version : string option }"
+  },
+  {
+    "source": "lib/k8s_objects/object_meta.ml",
+    "module": "object_meta",
+    "type": "t",
+    "body": "{ name : string option; generate_name : string option; namespace : string option; resource_version : Common.Resource_version.t option; uid : Common.Uid.t option; labels : string Smap.t option; annotations : string Smap.t option; owner_references : Owner_reference.t list option; finalizers : string list option; deletion_timestamp : string option; }"
+  },
+  {
+    "source": "lib/k8s_objects/owner_reference.ml",
+    "module": "owner_reference",
+    "type": "t",
+    "body": "{ block_owner_deletion : bool option; controller : bool option; kind : Common.kind; name : string; uid : Common.Uid.t; }"
+  },
+  {
+    "source": "lib/k8s_objects/persistent_volume_claim.ml",
+    "module": "persistent_volume_claim",
+    "type": "spec",
+    "body": "{ storage_class_name : string option; access_modes : string list option; resources : Volume_resource_requirements.t option; }"
+  },
+  {
+    "source": "lib/k8s_objects/persistent_volume_claim.ml",
+    "module": "persistent_volume_claim",
+    "type": "status",
+    "body": "unit"
+  },
+  {
+    "source": "lib/k8s_objects/persistent_volume_claim.ml",
+    "module": "persistent_volume_claim",
+    "type": "t",
+    "body": "{ metadata : Object_meta.t; spec : spec option; status : status option; }"
+  },
+  {
+    "source": "lib/k8s_objects/pod_security_context.ml",
+    "module": "pod_security_context",
+    "type": "t",
+    "body": "unit"
+  },
+  {
+    "source": "lib/k8s_objects/pod_spec.ml",
+    "module": "pod_spec",
+    "type": "t",
+    "body": "{ affinity : Affinity.t option; containers : Container.t list; volumes : Volume.t list option; init_containers : Container.t list option; service_account_name : string option; tolerations : Toleration.t list option; node_selector : string Smap.t option; runtime_class_name : string option; dns_policy : string option; priority_class_name : string option; scheduler_name : string option; security_context : Pod_security_context.t option; host_network : bool option; termination_grace_period_seconds : int option; image_pull_secrets : Local_object_reference.t list option; hostname : string option; subdomain : string option; }"
+  },
+  {
+    "source": "lib/k8s_objects/pod_template_spec.ml",
+    "module": "pod_template_spec",
+    "type": "t",
+    "body": "{ metadata : Object_meta.t option; spec : Pod_spec.t option; }"
+  },
+  {
+    "source": "lib/k8s_objects/resource_requirements.ml",
+    "module": "resource_requirements",
+    "type": "t",
+    "body": "{ limits : string Smap.t option; requests : string Smap.t option; }"
+  },
+  {
+    "source": "lib/k8s_objects/toleration.ml",
+    "module": "toleration",
+    "type": "t",
+    "body": "unit"
+  },
+  {
+    "source": "lib/k8s_objects/value.ml",
+    "module": "value",
+    "type": "t",
+    "body": "Yojson.Safe.t"
+  },
+  {
+    "source": "lib/k8s_objects/views/config_map.ml",
+    "module": "config_map",
+    "type": "t",
+    "body": "{ metadata : Object_meta.t; data : string Smap.t option }"
+  },
+  {
+    "source": "lib/k8s_objects/views/config_map.ml",
+    "module": "config_map",
+    "type": "spec",
+    "body": "string Smap.t option"
+  },
+  {
+    "source": "lib/k8s_objects/views/config_map.ml",
+    "module": "config_map",
+    "type": "status",
+    "body": "unit"
+  },
+  {
+    "source": "lib/k8s_objects/views/pod.ml",
+    "module": "pod",
+    "type": "t",
+    "body": "{ metadata : Object_meta.t; spec : Pod_spec.t option; status : unit option; }"
+  },
+  {
+    "source": "lib/k8s_objects/views/pod.ml",
+    "module": "pod",
+    "type": "spec",
+    "body": "Pod_spec.t option"
+  },
+  {
+    "source": "lib/k8s_objects/views/pod.ml",
+    "module": "pod",
+    "type": "status",
+    "body": "unit option"
+  },
+  {
+    "source": "lib/k8s_objects/views/stateful_set.ml",
+    "module": "stateful_set",
+    "type": "ordinals",
+    "body": "{ start : int option }"
+  },
+  {
+    "source": "lib/k8s_objects/views/stateful_set.ml",
+    "module": "stateful_set",
+    "type": "rolling_update",
+    "body": "{ partition : int option; max_unavailable : int option }"
+  },
+  {
+    "source": "lib/k8s_objects/views/stateful_set.ml",
+    "module": "stateful_set",
+    "type": "update_strategy",
+    "body": "{ type_ : string option; rolling_update : rolling_update option; }"
+  },
+  {
+    "source": "lib/k8s_objects/views/stateful_set.ml",
+    "module": "stateful_set",
+    "type": "retention_policy",
+    "body": "{ when_deleted : string option; when_scaled : string option; }"
+  },
+  {
+    "source": "lib/k8s_objects/views/stateful_set.ml",
+    "module": "stateful_set",
+    "type": "ss_spec",
+    "body": "{ min_ready_seconds : int option; ordinals : ordinals option; persistent_volume_claim_retention_policy : retention_policy option; pod_management_policy : string option; replicas : int option; revision_history_limit : int option; selector : Label_selector.t; service_name : string; template : Pod_template_spec.t; update_strategy : update_strategy option; volume_claim_templates : Persistent_volume_claim.t list option; }"
+  },
+  {
+    "source": "lib/k8s_objects/views/stateful_set.ml",
+    "module": "stateful_set",
+    "type": "ss_status",
+    "body": "{ ready_replicas : int option }"
+  },
+  {
+    "source": "lib/k8s_objects/views/stateful_set.ml",
+    "module": "stateful_set",
+    "type": "t",
+    "body": "{ metadata : Object_meta.t; spec : ss_spec option; status : ss_status option; }"
+  },
+  {
+    "source": "lib/k8s_objects/views/stateful_set.ml",
+    "module": "stateful_set",
+    "type": "spec",
+    "body": "ss_spec option"
+  },
+  {
+    "source": "lib/k8s_objects/views/stateful_set.ml",
+    "module": "stateful_set",
+    "type": "status",
+    "body": "ss_status option"
+  },
+  {
+    "source": "lib/k8s_objects/volume.ml",
+    "module": "volume",
+    "type": "key_to_path",
+    "body": "{ key : string; path : string }"
+  },
+  {
+    "source": "lib/k8s_objects/volume.ml",
+    "module": "volume",
+    "type": "config_map_projection",
+    "body": "{ items : key_to_path list option; name : string option; }"
+  },
+  {
+    "source": "lib/k8s_objects/volume.ml",
+    "module": "volume",
+    "type": "secret_projection",
+    "body": "{ items : key_to_path list option; name : string option; }"
+  },
+  {
+    "source": "lib/k8s_objects/volume.ml",
+    "module": "volume",
+    "type": "volume_projection",
+    "body": "{ config_map : config_map_projection option; secret : secret_projection option; }"
+  },
+  {
+    "source": "lib/k8s_objects/volume.ml",
+    "module": "volume",
+    "type": "projected_volume_source",
+    "body": "{ sources : volume_projection list option }"
+  },
+  {
+    "source": "lib/k8s_objects/volume.ml",
+    "module": "volume",
+    "type": "downward_api_volume_file",
+    "body": "{ field_ref : Object_field_selector.t option; path : string; }"
+  },
+  {
+    "source": "lib/k8s_objects/volume.ml",
+    "module": "volume",
+    "type": "downward_api_volume_source",
+    "body": "{ items : downward_api_volume_file list option; }"
+  },
+  {
+    "source": "lib/k8s_objects/volume.ml",
+    "module": "volume",
+    "type": "host_path_volume_source",
+    "body": "{ path : string }"
+  },
+  {
+    "source": "lib/k8s_objects/volume.ml",
+    "module": "volume",
+    "type": "config_map_volume_source",
+    "body": "{ name : string option }"
+  },
+  {
+    "source": "lib/k8s_objects/volume.ml",
+    "module": "volume",
+    "type": "secret_volume_source",
+    "body": "{ secret_name : string option }"
+  },
+  {
+    "source": "lib/k8s_objects/volume.ml",
+    "module": "volume",
+    "type": "empty_dir_volume_source",
+    "body": "{ medium : string option; size_limit : string option; }"
+  },
+  {
+    "source": "lib/k8s_objects/volume.ml",
+    "module": "volume",
+    "type": "persistent_volume_claim_volume_source",
+    "body": "{ claim_name : string; read_only : bool option; }"
+  },
+  {
+    "source": "lib/k8s_objects/volume.ml",
+    "module": "volume",
+    "type": "t",
+    "body": "{ host_path : host_path_volume_source option; config_map : config_map_volume_source option; name : string; projected : projected_volume_source option; secret : secret_volume_source option; downward_api : downward_api_volume_source option; empty_dir : empty_dir_volume_source option; persistent_volume_claim : persistent_volume_claim_volume_source option; }"
+  },
+  {
+    "source": "lib/k8s_objects/volume_resource_requirements.ml",
+    "module": "volume_resource_requirements",
+    "type": "t",
+    "body": "{ limits : string Smap.t option; requests : string Smap.t option; }"
+  },
+  {
+    "source": "lib/controllers/v_deployment.ml",
+    "module": "v_deployment",
+    "type": "vd_spec",
+    "body": "{ replicas : int option; selector : Label_selector.t; template : Pod_template_spec.t; min_ready_seconds : int option; progress_deadline_seconds : int option; strategy : Deployment_strategy.t option; revision_history_limit : int option; paused : bool option; }"
+  },
+  {
+    "source": "lib/controllers/v_deployment.ml",
+    "module": "v_deployment",
+    "type": "status",
+    "body": "unit"
+  },
+  {
+    "source": "lib/controllers/v_deployment.ml",
+    "module": "v_deployment",
+    "type": "t",
+    "body": "{ metadata : Object_meta.t; spec : vd_spec; status : status; }"
+  },
+  {
+    "source": "lib/controllers/v_deployment.ml",
+    "module": "v_deployment",
+    "type": "spec",
+    "body": "vd_spec"
+  },
+  {
+    "source": "lib/controllers/v_deployment_reconciler.ml",
+    "module": "v_deployment_reconciler",
+    "type": "step",
+    "body": "| Init | After_list_vrs | After_create_new_vrs | After_scale_new_vrs | After_ensure_new_vrs | After_scale_down_old_vrs | Done | Error"
+  },
+  {
+    "source": "lib/controllers/v_deployment_reconciler.ml",
+    "module": "v_deployment_reconciler",
+    "type": "s",
+    "body": "{ reconcile_step : step; new_vrs : Vreplica_set.t option; old_vrs_list : Vreplica_set.t list; old_vrs_index : int; }"
+  },
+  {
+    "source": "lib/controllers/v_stateful_set.ml",
+    "module": "v_stateful_set",
+    "type": "t",
+    "body": "{ metadata : Object_meta.t; spec : Stateful_set.ss_spec; status : Stateful_set.ss_status option; }"
+  },
+  {
+    "source": "lib/controllers/v_stateful_set.ml",
+    "module": "v_stateful_set",
+    "type": "spec",
+    "body": "Stateful_set.ss_spec"
+  },
+  {
+    "source": "lib/controllers/v_stateful_set.ml",
+    "module": "v_stateful_set",
+    "type": "status",
+    "body": "Stateful_set.ss_status option"
+  },
+  {
+    "source": "lib/controllers/v_stateful_set_reconciler.ml",
+    "module": "v_stateful_set_reconciler",
+    "type": "step",
+    "body": "| Init | After_list_pod | Get_pvc | After_get_pvc | Create_pvc | After_create_pvc | Skip_pvc | Create_needed | After_create_needed | Update_needed | After_update_needed | Delete_condemned | After_delete_condemned | Delete_outdated | After_delete_outdated | Done | Error"
+  },
+  {
+    "source": "lib/controllers/v_stateful_set_reconciler.ml",
+    "module": "v_stateful_set_reconciler",
+    "type": "s",
+    "body": "{ reconcile_step : step; needed : Pod.t option list; needed_index : int; condemned : Pod.t list; condemned_index : int; pvcs : Persistent_volume_claim.t list; pvc_index : int; }"
+  },
+  {
+    "source": "lib/controllers/vreplica_set.ml",
+    "module": "vreplica_set",
+    "type": "vrs_spec",
+    "body": "{ replicas : int option; selector : Label_selector.t; template : Pod_template_spec.t option; }"
+  },
+  {
+    "source": "lib/controllers/vreplica_set.ml",
+    "module": "vreplica_set",
+    "type": "vrs_status",
+    "body": "{ replicas : int }"
+  },
+  {
+    "source": "lib/controllers/vreplica_set.ml",
+    "module": "vreplica_set",
+    "type": "t",
+    "body": "{ metadata : Object_meta.t; spec : vrs_spec; status : vrs_status option; }"
+  },
+  {
+    "source": "lib/controllers/vreplica_set.ml",
+    "module": "vreplica_set",
+    "type": "spec",
+    "body": "vrs_spec"
+  },
+  {
+    "source": "lib/controllers/vreplica_set.ml",
+    "module": "vreplica_set",
+    "type": "status",
+    "body": "vrs_status option"
+  },
+  {
+    "source": "lib/controllers/vreplica_set_reconciler.ml",
+    "module": "vreplica_set_reconciler",
+    "type": "step",
+    "body": "| Init | After_list_pods | After_create_pod of int | After_delete_pod of int | After_update_vrs_status | Done | Error"
+  },
+  {
+    "source": "lib/controllers/vreplica_set_reconciler.ml",
+    "module": "vreplica_set_reconciler",
+    "type": "s",
+    "body": "{ reconcile_step : step; filtered_pods : Pod.t list option }"
+  }
+]

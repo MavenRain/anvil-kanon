@@ -1,0 +1,30 @@
+{
+  "query": "always",
+  "depth": 3,
+  "bound": {
+    "maxInFlight": 2,
+    "maxObjectsPerKind": 2,
+    "maxControllers": 1,
+    "uidCeiling": 4,
+    "rvCeiling": 5,
+    "reconcileCeiling": 1,
+    "maxReconcileDepth": 8,
+    "monkeyForge": []
+  },
+  "budget": {
+    "maxCrashes": 1,
+    "maxDrops": 0,
+    "maxMonkeyOps": 0
+  },
+  "options": {
+    "desired": 1,
+    "desireds": [
+      1
+    ],
+    "ordinals": [],
+    "drop": false,
+    "monkey": false,
+    "vct": false,
+    "requireFault": true
+  }
+}

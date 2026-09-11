@@ -1,0 +1,15 @@
+def edgeReportEncode : EdgeReport -> Value := fun (r : EdgeReport) => jsonObject (jsonObjectCons b"holds" (jsonBool r.0) (jsonObjectCons b"witnesses" (jsonEncodeNat r.1) (jsonObjectCons b"states" (jsonEncodeNat r.2) (jsonObjectCons b"frontierEmpty" (jsonBool r.3) jsonObjectNil))))
+def proofResultEncode : (0 A : Type 0) -> (A -> Value) -> Result A -> Value := fun (0 A : Type 0) (encode : A -> Value) (r : Result A) => case r with
+  | 0 (e : Error) => jsonObject (jsonObjectCons b"error" (jsonString (errorText e)) jsonObjectNil)
+  | 1 (a : A) => jsonObject (jsonObjectCons b"ok" (encode a) jsonObjectNil)
+def livenessEdgeEncode : LivenessEdge -> Value := fun (e : LivenessEdge) => jsonObject (jsonObjectCons b"name" (jsonString e.0) (jsonObjectCons b"report" (edgeReportEncode e.2) jsonObjectNil))
+def proofInvoke : Value -> Result Value := fun (input : Value) =>
+  resultBind Bool Value (jsonField Bool input b"stateful" jsonGetBool) (fun (stateful : Bool) =>
+  resultBind Int Value (jsonField Int input b"desired" jsonGetInt) (fun (desired : Int) =>
+  resultMap Bound Value (fun (b : Bound) =>
+  let c : ClusterConfig := scenarioCheckerConfig stateful in
+  let r : Reachable ClusterState := clusterExplore (nonnegative 64) b c (sequenceSingleton ClusterState (scenarioCheckerSeed stateful queryEsr desired (sequenceEmpty Int))) in
+  jsonObject (jsonObjectCons b"edges" (proofResultEncode (Sequence LivenessEdge) (jsonSequenceEncode LivenessEdge livenessEdgeEncode) (livenessEdges stateful desired b r))
+    (jsonObjectCons b"matches" (proofResultEncode ProofFact (fun (fact : ProofFact) => jsonBool (proofFormulaEqual fact.1 (livenessStatement stateful desired))) (livenessDerivation stateful desired b r))
+    (jsonObjectCons b"tail" (edgeReportEncode (livenessTailStable stateful desired r)) jsonObjectNil)))) (jsonField Bound input b"bound" boundWireDecode)))
+def proofRender : Value -> Bytes := fun (input : Value) => case (proofInvoke input) with | 0 (e : Error) => bytesAppend b"error: " (errorText e) | 1 (j : Value) => valueRender j

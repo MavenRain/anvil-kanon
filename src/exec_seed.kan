@@ -1,0 +1,14 @@
+def execApiErrorName : ApiError -> Bytes := fun (e : ApiError) => match e as self in ApiMethodApiError return Bytes with
+  | apiMethodApiErrorBadRequest => b"bad_request" | apiMethodApiErrorConflict => b"conflict" | apiMethodApiErrorForbidden => b"forbidden"
+  | apiMethodApiErrorInvalid => b"invalid" | apiMethodApiErrorObjectNotFound => b"object_not_found" | apiMethodApiErrorObjectAlreadyExists => b"object_already_exists"
+  | apiMethodApiErrorNotSupported => b"not_supported" | apiMethodApiErrorInternalError => b"internal_error" | apiMethodApiErrorTimeout => b"timeout"
+  | apiMethodApiErrorServerTimeout => b"server_timeout" | apiMethodApiErrorTransactionAbort => b"transaction_abort" | apiMethodApiErrorOther => b"other"
+def execCreate : InstalledTypes -> Sequence DynamicObjectT -> Result ExecServer := fun (it : InstalledTypes) (seed : Sequence DynamicObjectT) =>
+  let first : Result Bool := optionFold DynamicObjectT (Result Bool) (ok Bool true) (fun (o : DynamicObjectT) => resultMap CommonObjectRef Bool (fun (key : CommonObjectRef) => true) (objectRef o)) (seed.1 0) in
+  resultBind Bool ExecServer first (fun (checked : Bool) =>
+  sequenceFold DynamicObjectT (Result ExecServer) seed (ok ExecServer (tuple (tuple (resourceStoreNil, nonnegative 0, nonnegative 0), nonnegative 0, sequenceEmpty Bool)))
+    (fun (acc : Result ExecServer) (o : DynamicObjectT) => resultBind ExecServer ExecServer acc (fun (s : ExecServer) =>
+      let ns : Bytes := optionValue Bytes b"default" (objectMetaTNamespace (dynamicObjectTMetadata o)) in
+      let output : ApiObjectOutput := apiCreate it ns o s.0 in case output.1 with
+      | 0 (e : ApiError) => err ExecServer (malformedValue b"seed" (bytesAppend b"seed CREATE rejected: " (execApiErrorName e)))
+      | 1 (created : DynamicObjectT) => ok ExecServer (tuple (output.0, intAdd s.1 (nonnegative 1), s.2)))))

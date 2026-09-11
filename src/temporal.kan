@@ -1,0 +1,56 @@
+-- Classical temporal truth on finite lasso suffix classes.
+-- Names supply the same atom identity used by Comp_cat.Temporal.equal.
+mu FormulaShape : Type 0 :=
+| formulaTt : FormulaShape | formulaFf : FormulaShape
+| formulaStateAtom (name : Bytes) : FormulaShape | formulaActionAtom (name : Bytes) : FormulaShape
+| formulaConjNode (a : FormulaShape) (b : FormulaShape) : FormulaShape
+| formulaDisjNode (a : FormulaShape) (b : FormulaShape) : FormulaShape
+| formulaNegNode (a : FormulaShape) : FormulaShape
+| formulaImplNode (a : FormulaShape) (b : FormulaShape) : FormulaShape
+| formulaLaterNode (a : FormulaShape) : FormulaShape | formulaNextNode (a : FormulaShape) : FormulaShape
+| formulaAlwaysNode (a : FormulaShape) : FormulaShape | formulaEventuallyNode (a : FormulaShape) : FormulaShape
+def Formula : (0 A : Type 0) -> Type 0 := fun (0 A : Type 0) => prod (FormulaShape, (Lasso A -> Nat -> Verdict))
+def verdictOfBool : Bool -> Verdict := fun (b : Bool) => select Verdict b verdictTrue verdictFalse
+def verdictIsTrue : Verdict -> Bool := fun (v : Verdict) => match v as self in Verdict return Bool with | verdictTrue => true | verdictFalse => false | verdictUnknown => false
+def verdictIsFalse : Verdict -> Bool := fun (v : Verdict) => match v as self in Verdict return Bool with | verdictTrue => false | verdictFalse => true | verdictUnknown => false
+def verdictNeg : Verdict -> Verdict := fun (v : Verdict) => match v as self in Verdict return Verdict with | verdictTrue => verdictFalse | verdictFalse => verdictTrue | verdictUnknown => verdictUnknown
+def verdictConj : Verdict -> Verdict -> Verdict := fun (a : Verdict) (b : Verdict) => match a as self in Verdict return Verdict with
+  | verdictTrue => b | verdictFalse => verdictFalse | verdictUnknown => select Verdict (verdictIsFalse b) verdictFalse verdictUnknown
+def verdictDisj : Verdict -> Verdict -> Verdict := fun (a : Verdict) (b : Verdict) => match a as self in Verdict return Verdict with
+  | verdictTrue => verdictTrue | verdictFalse => b | verdictUnknown => select Verdict (verdictIsTrue b) verdictTrue verdictUnknown
+def lassoClass : (0 A : Type 0) -> Lasso A -> Nat -> Option A := fun (0 A : Type 0) (l : Lasso A) (i : Nat) =>
+  case (natLt i l.0.0) with | 1 (u : Unit) => l.0.1 i | 0 (u : Unit) => l.1.1 (natSub i l.0.0)
+def lassoNextClass : (0 A : Type 0) -> Lasso A -> Nat -> Nat := fun (0 A : Type 0) (l : Lasso A) (i : Nat) => chooseNat (natEq (natAdd i 1) (natAdd l.0.0 l.1.0)) l.0.0 (natAdd i 1)
+def formulaTrue : (0 A : Type 0) -> Formula A := fun (0 A : Type 0) => tuple (formulaTt, (fun (l : Lasso A) (i : Nat) => verdictTrue))
+def formulaFalse : (0 A : Type 0) -> Formula A := fun (0 A : Type 0) => tuple (formulaFf, (fun (l : Lasso A) (i : Nat) => verdictFalse))
+def formulaState : (0 A : Type 0) -> Bytes -> (A -> Bool) -> Formula A := fun (0 A : Type 0) (name : Bytes) (p : A -> Bool) =>
+  tuple (formulaStateAtom name, (fun (l : Lasso A) (i : Nat) => optionFold A Verdict verdictUnknown (fun (a : A) => verdictOfBool (p a)) (lassoClass A l i)))
+def formulaAction : (0 A : Type 0) -> Bytes -> (A -> A -> Bool) -> Formula A := fun (0 A : Type 0) (name : Bytes) (p : A -> A -> Bool) =>
+  tuple (formulaActionAtom name, (fun (l : Lasso A) (i : Nat) => optionFold A Verdict verdictUnknown (fun (a : A) =>
+    optionFold A Verdict verdictUnknown (fun (b : A) => verdictOfBool (p a b)) (lassoClass A l (lassoNextClass A l i))) (lassoClass A l i)))
+def formulaConj : (0 A : Type 0) -> Formula A -> Formula A -> Formula A := fun (0 A : Type 0) (a : Formula A) (b : Formula A) =>
+  tuple (formulaConjNode a.0 b.0, (fun (l : Lasso A) (i : Nat) => verdictConj (a.1 l i) (b.1 l i)))
+def formulaDisj : (0 A : Type 0) -> Formula A -> Formula A -> Formula A := fun (0 A : Type 0) (a : Formula A) (b : Formula A) =>
+  tuple (formulaDisjNode a.0 b.0, (fun (l : Lasso A) (i : Nat) => verdictDisj (a.1 l i) (b.1 l i)))
+def formulaNeg : (0 A : Type 0) -> Formula A -> Formula A := fun (0 A : Type 0) (a : Formula A) =>
+  tuple (formulaNegNode a.0, (fun (l : Lasso A) (i : Nat) => verdictNeg (a.1 l i)))
+def formulaImplies : (0 A : Type 0) -> Formula A -> Formula A -> Formula A := fun (0 A : Type 0) (a : Formula A) (b : Formula A) =>
+  tuple (formulaImplNode a.0 b.0, (fun (l : Lasso A) (i : Nat) => verdictDisj (verdictNeg (a.1 l i)) (b.1 l i)))
+def formulaLater : (0 A : Type 0) -> Formula A -> Formula A := fun (0 A : Type 0) (a : Formula A) => tuple (formulaLaterNode a.0, a.1)
+def formulaNext : (0 A : Type 0) -> Formula A -> Formula A := fun (0 A : Type 0) (a : Formula A) =>
+  tuple (formulaNextNode a.0, (fun (l : Lasso A) (i : Nat) => a.1 l (lassoNextClass A l i)))
+def formulaFutureFold : (0 A : Type 0) -> Formula A -> Lasso A -> Nat -> Verdict -> (Verdict -> Verdict -> Verdict) -> Verdict :=
+  fun (0 A : Type 0) (p : Formula A) (l : Lasso A) (i : Nat) (seed : Verdict) (op : Verdict -> Verdict -> Verdict) =>
+  let start : Nat := chooseNat (natLt i l.0.0) i l.0.0 in
+  countFold Verdict (natCount (natSub (natAdd l.0.0 l.1.0) start)) start seed (fun (j : Nat) (acc : Verdict) => op acc (p.1 l j))
+def formulaAlways : (0 A : Type 0) -> Formula A -> Formula A := fun (0 A : Type 0) (a : Formula A) =>
+  tuple (formulaAlwaysNode a.0, (fun (l : Lasso A) (i : Nat) => formulaFutureFold A a l i verdictTrue verdictConj))
+def formulaEventually : (0 A : Type 0) -> Formula A -> Formula A := fun (0 A : Type 0) (a : Formula A) =>
+  tuple (formulaEventuallyNode a.0, (fun (l : Lasso A) (i : Nat) => formulaFutureFold A a l i verdictFalse verdictDisj))
+def formulaLeadsTo : (0 A : Type 0) -> Formula A -> Formula A -> Formula A := fun (0 A : Type 0) (a : Formula A) (b : Formula A) => formulaAlways A (formulaImplies A a (formulaEventually A b))
+def formulaStable : (0 A : Type 0) -> Formula A -> Formula A := fun (0 A : Type 0) (a : Formula A) => formulaImplies A a (formulaAlways A a)
+def formulaWeakFairness : (0 A : Type 0) -> Bytes -> (A -> Bool) -> Bytes -> (A -> A -> Bool) -> Formula A :=
+  fun (0 A : Type 0) (preName : Bytes) (pre : A -> Bool) (actionName : Bytes) (action : A -> A -> Bool) =>
+  formulaAlways A (formulaImplies A (formulaAlways A (formulaState A preName pre)) (formulaEventually A (formulaAction A actionName action)))
+def formulaHolds : (0 A : Type 0) -> Formula A -> Lasso A -> Verdict := fun (0 A : Type 0) (p : Formula A) (l : Lasso A) =>
+  select Verdict (natEq l.1.0 0) verdictUnknown (p.1 l 0)

@@ -1,0 +1,118 @@
+-- VStatefulSet assurance: identity, internal guarantees, helpers, and rely clauses.
+def assuranceRef : CommonKind -> ObjectMetaT -> CommonObjectRef := fun (kind : CommonKind) (md : ObjectMetaT) => commonObjectRefMake kind (optionValue Bytes b"" (objectMetaTName md)) (optionValue Bytes b"" (objectMetaTNamespace md))
+def vstsRef : Stateful -> CommonObjectRef := fun (cr : Stateful) => assuranceRef vStatefulSetTKind (vStatefulSetTMetadata cr)
+def vstsName : Stateful -> Bytes := fun (cr : Stateful) => commonObjectRefName (vstsRef cr)
+def vstsNamespace : Stateful -> Bytes := fun (cr : Stateful) => commonObjectRefNamespace (vstsRef cr)
+def vstsReplicas : Stateful -> Int := fun (cr : Stateful) => optionValue Int (nonnegative 1) (statefulSetSsSpecReplicas (vStatefulSetTSpec cr))
+def vstsPodNameMatches : Bytes -> Bytes -> Bool := fun (parent : Bytes) (name : Bytes) => optionIsSome Int (statefulOrdinal parent name)
+def rec bytesAfterHyphen : Bytes -> Option Bytes := fun (s : Bytes) => match s as self in Bytes return Option Bytes with
+  | bytesNil => none Bytes | bytesCons h t => (case (natEq h 45) with | 1 (u : Unit) => some Bytes t | 0 (u : Unit) => bytesAfterHyphen t)
+def vstsPvcNameMatches : Bytes -> Bytes -> Bool := fun (parent : Bytes) (name : Bytes) => optionFold Bytes Bool false
+  (fun (rest : Bytes) => optionFold Bytes Bool false (fun (after : Bytes) => vstsPodNameMatches parent (bytesAppend b"vstatefulset-" after)) (bytesAfterHyphen rest)) (bytesStripPrefix b"vstatefulset-" name)
+def vstsOwnerWithoutUid : Stateful -> OwnerReferenceT -> Bool := fun (cr : Stateful) (owner : OwnerReferenceT) => optionFold OwnerReferenceT Bool false (ownerEqualWithoutUid owner) (vStatefulSetTControllerOwner cr)
+def assuranceExactlyOwner : (OwnerReferenceT -> Bool) -> ObjectMetaT -> Bool := fun (p : OwnerReferenceT -> Bool) (md : ObjectMetaT) => optionFold ListOwnerReferenceT Bool false
+  (fun (xs : ListOwnerReferenceT) => boolAnd (natEq (listOwnerReferenceTLength xs) 1) (listOwnerReferenceTEvery xs p)) (objectMetaTOwnerReferences md)
+def vstsExactlyOwner : Stateful -> ObjectMetaT -> Bool := fun (cr : Stateful) (md : ObjectMetaT) => assuranceExactlyOwner (vstsOwnerWithoutUid cr) md
+def vstsContainsOwner : Stateful -> ObjectMetaT -> Bool := fun (cr : Stateful) (md : ObjectMetaT) => optionFold OwnerReferenceT Bool false (objectMetaOwnersContain md) (vStatefulSetTControllerOwner cr)
+def vstsOwned : CommonKind -> Stateful -> ClusterState -> ListDynamicObjectT := fun (kind : CommonKind) (cr : Stateful) (s : ClusterState) => listDynamicObjectTFilter (storeObjects s.0.0)
+  (fun (o : DynamicObjectT) => boolAnd (commonKindEqual (dynamicObjectTKind o) kind) (vstsContainsOwner cr (dynamicObjectTMetadata o)))
+def vstsOrdinalLabel : ObjectMetaT -> Int -> Bool := fun (md : ObjectMetaT) (ord : Int) => optionEqual Bytes bytesEqual
+  (stringMapGet b"apps.kubernetes.io/pod-index" (optionValue StringMap stringMapEmpty (objectMetaTLabels md))) (some Bytes (intText ord))
+def vstsHasPodNameLabel : ObjectMetaT -> Bool := fun (md : ObjectMetaT) => optionIsSome Bytes (stringMapGet b"statefulset.kubernetes.io/pod-name" (optionValue StringMap stringMapEmpty (objectMetaTLabels md)))
+def vstsOwnedPodAt : Stateful -> ClusterState -> Nat -> Bool := fun (cr : Stateful) (s : ClusterState) (ord : Nat) => optionFold DynamicObjectT Bool false
+  (fun (obj : DynamicObjectT) => let md : ObjectMetaT := dynamicObjectTMetadata obj in boolAnd (commonKindEqual (dynamicObjectTKind obj) commonKindPod)
+    (boolAnd (vstsContainsOwner cr md) (boolAnd (vstsOrdinalLabel md (nonnegative ord)) (boolAnd (vstsHasPodNameLabel md)
+      (optionFold PodT Bool false (statefulPodSpecMatches cr) (resultToOption PodT (podTUnmarshal obj)))))))
+  (resourceStoreGet (commonObjectRefMake commonKindPod (statefulPodName (vstsName cr) (nonnegative ord)) (vstsNamespace cr)) s.0.0)
+def natAllBelow : Nat -> (Nat -> Bool) -> Bool := fun (n : Nat) (p : Nat -> Bool) =>
+  countFold Bool (natCount n) 0 true (fun (i : Nat) (acc : Bool) => boolAnd acc (p i))
+def natAnyBelow : Nat -> (Nat -> Bool) -> Bool := fun (n : Nat) (p : Nat -> Bool) => boolNot (natAllBelow n (fun (i : Nat) => boolNot (p i)))
+def vstsCurrentStateMatches : Stateful -> ClusterState -> Bool := fun (cr : Stateful) (s : ClusterState) =>
+  boolAnd (optionIsSome DynamicObjectT (resourceStoreGet (vstsRef cr) s.0.0))
+    (boolAnd (natAllBelow (optionValue Nat 0 (intToNat (vstsReplicas cr))) (vstsOwnedPodAt cr s))
+      (intEqual (nonnegative (listDynamicObjectTLength (vstsOwned commonKindPod cr s))) (vstsReplicas cr)))
+def vstsOrdinalIdentity : Stateful -> ClusterState -> Bool := fun (cr : Stateful) (s : ClusterState) => listDynamicObjectTEvery (vstsOwned commonKindPod cr s)
+  (fun (obj : DynamicObjectT) => let md : ObjectMetaT := dynamicObjectTMetadata obj in optionFold Bytes Bool false
+    (fun (name : Bytes) => optionFold Int Bool false (fun (ord : Int) => boolAnd (intIsNonnegative ord)
+      (boolAnd (bytesEqual name (statefulPodName (vstsName cr) ord)) (vstsOrdinalLabel md ord))) (statefulOrdinal (vstsName cr) name)) (objectMetaTName md))
+def vstsPvcTemplateName : Stateful -> Bytes -> Bool := fun (cr : Stateful) (name : Bytes) => boolNot (listPersistentVolumeClaimTEvery (statefulPvcTemplates cr)
+  (fun (tmpl : PersistentVolumeClaimT) => boolNot (natAnyBelow (optionValue Nat 0 (intToNat (vstsReplicas cr))) (fun (ord : Nat) =>
+    bytesEqual name (statefulPvcName (optionValue Bytes b"" (objectMetaTName (persistentVolumeClaimTMetadata tmpl))) (vstsName cr) (nonnegative ord))))))
+def vstsOwnedPvcBound : Stateful -> ClusterState -> Bool := fun (cr : Stateful) (s : ClusterState) => listDynamicObjectTEvery (vstsOwned commonKindPersistentVolumeClaim cr s)
+  (fun (obj : DynamicObjectT) => let md : ObjectMetaT := dynamicObjectTMetadata obj in boolAnd (optionEqual Bytes bytesEqual (objectMetaTNamespace md) (some Bytes (vstsNamespace cr)))
+    (optionFold Bytes Bool false (vstsPvcTemplateName cr) (objectMetaTName md)))
+def vstsControllerOwnerNamed : Stateful -> OwnerReferenceT -> Bool := fun (cr : Stateful) (o : OwnerReferenceT) => boolAnd (ownerIsController o)
+  (boolAnd (commonKindEqual (ownerReferenceTKind o) vStatefulSetTKind) (bytesEqual (ownerReferenceTName o) (vstsName cr)))
+def vstsSelfRequest : Stateful -> Request -> Bool := fun (cr : Stateful) (req : Request) => match req as self in ApiMethodApiRequest return Bool with
+  | apiMethodApiRequestListRequest r => boolAnd (commonKindEqual (apiMethodListRequestKind r) commonKindPod) (bytesEqual (apiMethodListRequestNamespace r) (vstsNamespace cr))
+  | apiMethodApiRequestGetRequest r => boolAnd (commonKindEqual (commonObjectRefKind (apiMethodGetRequestKey r)) commonKindPersistentVolumeClaim) (bytesEqual (commonObjectRefNamespace (apiMethodGetRequestKey r)) (vstsNamespace cr))
+  | apiMethodApiRequestCreateRequest r =>
+    let md : ObjectMetaT := dynamicObjectTMetadata (apiMethodCreateRequestObj r) in let kind : CommonKind := dynamicObjectTKind (apiMethodCreateRequestObj r) in
+    boolAnd (bytesEqual (apiMethodCreateRequestNamespace r) (vstsNamespace cr))
+      (select Bool (commonKindEqual kind commonKindPod) (assuranceExactlyOwner (vstsControllerOwnerNamed cr) md)
+        (boolAnd (commonKindEqual kind commonKindPersistentVolumeClaim) (optionFold ListOwnerReferenceT Bool true
+          (fun (xs : ListOwnerReferenceT) => listOwnerReferenceTEvery xs (fun (o : OwnerReferenceT) => implies (ownerIsController o) (vstsControllerOwnerNamed cr o))) (objectMetaTOwnerReferences md))))
+  | apiMethodApiRequestGetThenUpdateRequest r => boolAnd (bytesEqual (apiMethodGetThenUpdateRequestNamespace r) (vstsNamespace cr))
+      (boolAnd (commonKindEqual (dynamicObjectTKind (apiMethodGetThenUpdateRequestObj r)) commonKindPod) (vstsControllerOwnerNamed cr (apiMethodGetThenUpdateRequestOwnerRef r)))
+  | apiMethodApiRequestGetThenDeleteRequest r => boolAnd (commonKindEqual (commonObjectRefKind (apiMethodGetThenDeleteRequestKey r)) commonKindPod)
+      (boolAnd (bytesEqual (commonObjectRefNamespace (apiMethodGetThenDeleteRequestKey r)) (vstsNamespace cr)) (vstsControllerOwnerNamed cr (apiMethodGetThenDeleteRequestOwnerRef r)))
+  | apiMethodApiRequestDeleteRequest r => false | apiMethodApiRequestUpdateRequest r => false | apiMethodApiRequestUpdateStatusRequest r => false | apiMethodApiRequestGetThenUpdateStatusRequest r => false
+def vstsGuaranteeCreate : Stateful -> ApiMethodCreateRequest -> Bool := fun (cr : Stateful) (r : ApiMethodCreateRequest) =>
+  let md : ObjectMetaT := dynamicObjectTMetadata (apiMethodCreateRequestObj r) in let kind : CommonKind := dynamicObjectTKind (apiMethodCreateRequestObj r) in
+  boolAnd (bytesEqual (apiMethodCreateRequestNamespace r) (vstsNamespace cr)) (boolAnd (optionIsSome Bytes (objectMetaTName md))
+    (boolAnd (boolNot (optionIsSome Bytes (objectMetaTGenerateName md))) (boolAnd (boolNot (optionIsSome ListBytes (objectMetaTFinalizers md)))
+      (select Bool (commonKindEqual kind commonKindPod)
+        (boolAnd (vstsExactlyOwner cr md) (optionFold Bytes Bool false (vstsPodNameMatches (vstsName cr)) (objectMetaTName md)))
+        (implies (commonKindEqual kind commonKindPersistentVolumeClaim)
+          (boolAnd (boolNot (optionIsSome ListOwnerReferenceT (objectMetaTOwnerReferences md))) (optionFold Bytes Bool false (vstsPvcNameMatches (vstsName cr)) (objectMetaTName md))))))))
+def vstsGuaranteeDelete : Stateful -> ApiMethodGetThenDeleteRequest -> Bool := fun (cr : Stateful) (r : ApiMethodGetThenDeleteRequest) =>
+  let key : CommonObjectRef := apiMethodGetThenDeleteRequestKey r in boolAnd (bytesEqual (commonObjectRefNamespace key) (vstsNamespace cr))
+    (boolAnd (commonKindEqual (commonObjectRefKind key) commonKindPod) (boolAnd (vstsPodNameMatches (vstsName cr) (commonObjectRefName key)) (vstsOwnerWithoutUid cr (apiMethodGetThenDeleteRequestOwnerRef r))))
+def vstsGuaranteeUpdate : Stateful -> ApiMethodGetThenUpdateRequest -> Bool := fun (cr : Stateful) (r : ApiMethodGetThenUpdateRequest) =>
+  let md : ObjectMetaT := dynamicObjectTMetadata (apiMethodGetThenUpdateRequestObj r) in
+  boolAnd (optionEqual Bytes bytesEqual (objectMetaTName md) (some Bytes (apiMethodGetThenUpdateRequestName r)))
+    (boolAnd (optionEqual Bytes bytesEqual (objectMetaTNamespace md) (some Bytes (apiMethodGetThenUpdateRequestNamespace r)))
+    (boolAnd (commonKindEqual (dynamicObjectTKind (apiMethodGetThenUpdateRequestObj r)) commonKindPod)
+    (boolAnd (bytesEqual (apiMethodGetThenUpdateRequestNamespace r) (vstsNamespace cr))
+    (boolAnd (vstsPodNameMatches (vstsName cr) (apiMethodGetThenUpdateRequestName r))
+    (boolAnd (assuranceExactlyOwner (ownerReferenceTEqual (apiMethodGetThenUpdateRequestOwnerRef r)) md)
+    (boolAnd (vstsOwnerWithoutUid cr (apiMethodGetThenUpdateRequestOwnerRef r))
+    (boolAnd (boolNot (optionIsSome Bytes (objectMetaTDeletionTimestamp md))) (boolNot (optionIsSome ListBytes (objectMetaTFinalizers md))))))))))
+def vstsNonInterfering : Stateful -> Request -> Bool := fun (cr : Stateful) (req : Request) => match req as self in ApiMethodApiRequest return Bool with
+  | apiMethodApiRequestGetRequest r => true | apiMethodApiRequestListRequest r => true
+  | apiMethodApiRequestCreateRequest r => vstsGuaranteeCreate cr r | apiMethodApiRequestGetThenDeleteRequest r => vstsGuaranteeDelete cr r
+  | apiMethodApiRequestGetThenUpdateRequest r => vstsGuaranteeUpdate cr r
+  | apiMethodApiRequestDeleteRequest r => false | apiMethodApiRequestUpdateRequest r => false | apiMethodApiRequestUpdateStatusRequest r => false | apiMethodApiRequestGetThenUpdateStatusRequest r => false
+def vstsRequestsHold : Stateful -> Int -> (Request -> Bool) -> (Request -> Bool) -> ClusterState -> Bool := fun (cr : Stateful) (id : Int) (choose : Request -> Bool) (p : Request -> Bool) (s : ClusterState) =>
+  messagePoolEvery s.2 (fun (m : Message) => implies (hostEqual m.0 (hostController id (vstsRef cr))) (optionFold Request Bool true (fun (r : Request) => implies (choose r) (p r)) (contentGetRequest m.3)))
+def vstsRequestsWitness : Stateful -> Int -> (Request -> Bool) -> ClusterState -> Bool := fun (cr : Stateful) (id : Int) (p : Request -> Bool) (s : ClusterState) =>
+  messagePoolAny s.2 (fun (m : Message) => boolAnd (hostEqual m.0 (hostController id (vstsRef cr))) (optionFold Request Bool false p (contentGetRequest m.3)))
+def vstsPodPremise : Stateful -> CommonObjectRef -> Bool := fun (cr : Stateful) (key : CommonObjectRef) => boolAnd (commonKindEqual (commonObjectRefKind key) commonKindPod)
+  (boolAnd (bytesEqual (commonObjectRefNamespace key) (vstsNamespace cr)) (vstsPodNameMatches (vstsName cr) (commonObjectRefName key)))
+def vstsPvcPremise : Stateful -> CommonObjectRef -> Bool := fun (cr : Stateful) (key : CommonObjectRef) => boolAnd (commonKindEqual (commonObjectRefKind key) commonKindPersistentVolumeClaim) (vstsPvcNameMatches (vstsName cr) (commonObjectRefName key))
+def assuranceNoFinalizerOrDeletion : ObjectMetaT -> Bool := fun (md : ObjectMetaT) => boolAnd (boolNot (optionIsSome Bytes (objectMetaTDeletionTimestamp md))) (boolNot (optionIsSome ListBytes (objectMetaTFinalizers md)))
+def vstsHelperPods : Stateful -> ClusterState -> Bool := fun (cr : Stateful) (s : ClusterState) => storeEvery s.0.0 (fun (k : CommonObjectRef) (o : DynamicObjectT) =>
+  implies (vstsPodPremise cr k) (boolAnd (assuranceNoFinalizerOrDeletion (dynamicObjectTMetadata o)) (vstsExactlyOwner cr (dynamicObjectTMetadata o))))
+def vstsHelperPvcs : Stateful -> ClusterState -> Bool := fun (cr : Stateful) (s : ClusterState) => storeEvery s.0.0 (fun (k : CommonObjectRef) (o : DynamicObjectT) =>
+  implies (vstsPvcPremise cr k) (boolAnd (assuranceNoFinalizerOrDeletion (dynamicObjectTMetadata o)) (boolNot (optionIsSome ListOwnerReferenceT (objectMetaTOwnerReferences (dynamicObjectTMetadata o))))))
+def vstsPrefix : Bytes -> Bool := fun (s : Bytes) => optionIsSome Bytes (bytesStripPrefix b"vstatefulset-" s)
+def vstsControllerOwned : ObjectMetaT -> Bool := fun (md : ObjectMetaT) => optionFold ListOwnerReferenceT Bool false (fun (xs : ListOwnerReferenceT) => boolNot (listOwnerReferenceTEvery xs
+  (fun (o : OwnerReferenceT) => boolNot (boolAnd (optionValue Bool false (ownerReferenceTBlockOwnerDeletion o)) (boolAnd (ownerIsController o) (commonKindEqual (ownerReferenceTKind o) vStatefulSetTKind)))))) (objectMetaTOwnerReferences md)
+def vstsRelyScope : CommonKind -> Bool := fun (kind : CommonKind) => boolOr (commonKindEqual kind commonKindPod) (commonKindEqual kind commonKindPersistentVolumeClaim)
+def vstsRelyCreate : ApiMethodCreateRequest -> Bool := fun (r : ApiMethodCreateRequest) =>
+  let md : ObjectMetaT := dynamicObjectTMetadata (apiMethodCreateRequestObj r) in implies (vstsRelyScope (dynamicObjectTKind (apiMethodCreateRequestObj r)))
+    (boolAnd (boolNot (optionFold Bytes Bool (optionFold Bytes Bool false vstsPrefix (objectMetaTGenerateName md)) vstsPrefix (objectMetaTName md))) (boolNot (vstsControllerOwned md)))
+def vstsRelyUpdate : ClusterState -> ApiMethodUpdateRequest -> Bool := fun (s : ClusterState) (r : ApiMethodUpdateRequest) =>
+  let obj : DynamicObjectT := apiMethodUpdateRequestObj r in
+  let key : CommonObjectRef := commonObjectRefMake (dynamicObjectTKind obj) (apiMethodUpdateRequestName r) (apiMethodUpdateRequestNamespace r) in
+  implies (vstsRelyScope (dynamicObjectTKind obj)) (boolAnd (boolNot (vstsPrefix (apiMethodUpdateRequestName r)))
+    (boolAnd (optionFold DynamicObjectT Bool true (fun (stored : DynamicObjectT) => boolNot (vstsControllerOwned (dynamicObjectTMetadata stored))) (resourceStoreGet key s.0.0)) (boolNot (vstsControllerOwned (dynamicObjectTMetadata obj)))))
+def vstsRelyRequest : ClusterState -> Request -> Bool := fun (s : ClusterState) (req : Request) => match req as self in ApiMethodApiRequest return Bool with
+  | apiMethodApiRequestCreateRequest r => vstsRelyCreate r | apiMethodApiRequestUpdateRequest r => vstsRelyUpdate s r
+  | apiMethodApiRequestGetRequest r => true | apiMethodApiRequestListRequest r => true | apiMethodApiRequestDeleteRequest r => true
+  | apiMethodApiRequestUpdateStatusRequest r => true | apiMethodApiRequestGetThenDeleteRequest r => true
+  | apiMethodApiRequestGetThenUpdateRequest r => true | apiMethodApiRequestGetThenUpdateStatusRequest r => true
+def vstsRelyHolds : (Request -> Bool) -> ClusterState -> Bool := fun (choose : Request -> Bool) (s : ClusterState) => messagePoolEvery s.2 (fun (m : Message) =>
+  implies (hostEqual m.0 hostMonkey) (optionFold Request Bool true (fun (r : Request) => implies (choose r) (vstsRelyRequest s r)) (contentGetRequest m.3)))
+def vstsRelyWitness : (Request -> Bool) -> ClusterState -> Bool := fun (choose : Request -> Bool) (s : ClusterState) => messagePoolAny s.2 (fun (m : Message) =>
+  boolAnd (hostEqual m.0 hostMonkey) (optionFold Request Bool false choose (contentGetRequest m.3)))

@@ -1,0 +1,84 @@
+-- Five host addresses, four message-content variants, and a multiset network.
+mu Host : Type 0 :=
+| hostApi : Host
+| hostBuiltin : Host
+| hostController (id : Int) (key : CommonObjectRef) : Host
+| hostExternal (id : Int) : Host
+| hostMonkey : Host
+def hostRank : Host -> Nat := fun (h : Host) => match h as self in Host return Nat with
+  | hostApi => 0 | hostBuiltin => 1 | hostController i k => 2 | hostExternal i => 3 | hostMonkey => 4
+def hostControllerData : Host -> Option (prod (Int, CommonObjectRef)) := fun (h : Host) => match h as self in Host return Option (prod (Int, CommonObjectRef)) with
+  | hostApi => none (prod (Int, CommonObjectRef)) | hostBuiltin => none (prod (Int, CommonObjectRef))
+  | hostController i k => some (prod (Int, CommonObjectRef)) (tuple (i, k))
+  | hostExternal i => none (prod (Int, CommonObjectRef)) | hostMonkey => none (prod (Int, CommonObjectRef))
+def hostExternalData : Host -> Option Int := fun (h : Host) => match h as self in Host return Option Int with
+  | hostApi => none Int | hostBuiltin => none Int | hostController i k => none Int | hostExternal i => some Int i | hostMonkey => none Int
+def hostEqual : Host -> Host -> Bool := fun (a : Host) (b : Host) =>
+  boolAnd (natEq (hostRank a) (hostRank b)) (boolAnd
+    (optionEqual (prod (Int, CommonObjectRef)) (fun (x : prod (Int, CommonObjectRef)) (y : prod (Int, CommonObjectRef)) => boolAnd (intEqual x.0 y.0) (commonObjectRefEqual x.1 y.1)) (hostControllerData a) (hostControllerData b))
+    (optionEqual Int intEqual (hostExternalData a) (hostExternalData b)))
+def hostIsController : Host -> Int -> Bool := fun (h : Host) (id : Int) => optionFold (prod (Int, CommonObjectRef)) Bool false (fun (x : prod (Int, CommonObjectRef)) => intEqual x.0 id) (hostControllerData h)
+mu Content : Type 0 :=
+| contentRequest (req : Request) : Content
+| contentResponse (resp : Response) : Content
+| contentExternalRequest (body : Value) : Content
+| contentExternalResponse (body : Value) : Content
+def contentGetRequest : Content -> Option Request := fun (c : Content) => match c as self in Content return Option Request with
+  | contentRequest r => some Request r | contentResponse r => none Request | contentExternalRequest v => none Request | contentExternalResponse v => none Request
+def contentGetResponse : Content -> Option Response := fun (c : Content) => match c as self in Content return Option Response with
+  | contentRequest r => none Response | contentResponse r => some Response r | contentExternalRequest v => none Response | contentExternalResponse v => none Response
+def contentGetExternalRequest : Content -> Option Value := fun (c : Content) => match c as self in Content return Option Value with
+  | contentRequest r => none Value | contentResponse r => none Value | contentExternalRequest v => some Value v | contentExternalResponse v => none Value
+def contentGetExternalResponse : Content -> Option Value := fun (c : Content) => match c as self in Content return Option Value with
+  | contentRequest r => none Value | contentResponse r => none Value | contentExternalRequest v => none Value | contentExternalResponse v => some Value v
+def contentEqual : Content -> Content -> Bool := fun (a : Content) (b : Content) => match a as self in Content return Bool with
+  | contentRequest r => optionFold Request Bool false (apiMethodApiRequestEqual r) (contentGetRequest b)
+  | contentResponse r => optionFold Response Bool false (apiMethodApiResponseEqual r) (contentGetResponse b)
+  | contentExternalRequest v => optionFold Value Bool false (valueEqual v) (contentGetExternalRequest b)
+  | contentExternalResponse v => optionFold Value Bool false (valueEqual v) (contentGetExternalResponse b)
+mu RequestView : Type 0 := | kubeRequest (request : Request) : RequestView | externalRequest (request : Value) : RequestView
+mu ResponseView : Type 0 := | kubeResponse (response : Response) : ResponseView | externalResponse (response : Value) : ResponseView
+def responseViewKube : ResponseView -> Option Response := fun (r : ResponseView) => match r as self in ResponseView return Option Response with
+  | kubeResponse response => some Response response | externalResponse response => none Response
+def contentResponseView : Content -> Option ResponseView := fun (c : Content) => match c as self in Content return Option ResponseView with
+  | contentRequest r => none ResponseView | contentResponse r => some ResponseView (kubeResponse r)
+  | contentExternalRequest v => none ResponseView | contentExternalResponse v => some ResponseView (externalResponse v)
+def Message : Type 0 := prod (Host, Host, Int, Content)
+def messageMake : Host -> Host -> Int -> Content -> Message := fun (src : Host) (dst : Host) (rpc : Int) (content : Content) => tuple (src, dst, rpc, content)
+def messageEqual : Message -> Message -> Bool := fun (a : Message) (b : Message) => boolAnd (hostEqual a.0 b.0) (boolAnd (hostEqual a.1 b.1) (boolAnd (intEqual a.2 b.2) (contentEqual a.3 b.3)))
+def messageDestinedFor : Option Message -> Host -> Bool := fun (message : Option Message) (host : Host) => optionFold Message Bool true (fun (m : Message) => hostEqual m.1 host) message
+def messageResponseMatches : Message -> Message -> Bool := fun (response : Message) (request : Message) =>
+  let crossover : Bool := boolAnd (hostEqual response.0 request.1) (boolAnd (hostEqual response.1 request.0) (intEqual response.2 request.2)) in
+  let apiPair : Bool := optionFold Response Bool false (fun (r : Response) => optionFold Request Bool false
+    (fun (q : Request) => natEq (apiMethodApiResponseRank r) (apiMethodApiRequestRank q)) (contentGetRequest request.3)) (contentGetResponse response.3) in
+  let externalPair : Bool := boolAnd (optionIsSome Value (contentGetExternalResponse response.3)) (optionIsSome Value (contentGetExternalRequest request.3)) in
+  boolAnd crossover (boolOr apiPair externalPair)
+def messageFormResponse : Message -> Response -> Message := fun (req : Message) (resp : Response) => tuple (req.1, req.0, req.2, contentResponse resp)
+mu MessagePool : Type 0 := | messagePoolNil : MessagePool | messagePoolCons (message : Message) (tail : MessagePool) : MessagePool
+def rec messagePoolSize : MessagePool -> Nat := fun (xs : MessagePool) => match xs as self in MessagePool return Nat with
+  | messagePoolNil => 0 | messagePoolCons h t => natAdd 1 (messagePoolSize t)
+def rec messagePoolCount : Message -> MessagePool -> Nat := fun (m : Message) (xs : MessagePool) => match xs as self in MessagePool return Nat with
+  | messagePoolNil => 0 | messagePoolCons h t => natAdd (boolNat (messageEqual m h)) (messagePoolCount m t)
+def messagePoolContains : Message -> MessagePool -> Bool := fun (m : Message) (xs : MessagePool) => natLt 0 (messagePoolCount m xs)
+def rec messagePoolAppend : MessagePool -> MessagePool -> MessagePool := fun (a : MessagePool) (b : MessagePool) => match a as self in MessagePool return MessagePool with
+  | messagePoolNil => b | messagePoolCons h t => messagePoolCons h (messagePoolAppend t b)
+def rec messagePoolRemove : Message -> MessagePool -> Option MessagePool := fun (m : Message) (xs : MessagePool) => match xs as self in MessagePool return Option MessagePool with
+  | messagePoolNil => none MessagePool
+  | messagePoolCons h t => (case (messageEqual m h) with | 1 (u : Unit) => some MessagePool t
+    | 0 (u : Unit) => optionMap MessagePool MessagePool (fun (rest : MessagePool) => messagePoolCons h rest) (messagePoolRemove m t))
+def rec messagePoolEvery : MessagePool -> (Message -> Bool) -> Bool := fun (xs : MessagePool) (p : Message -> Bool) => match xs as self in MessagePool return Bool with
+  | messagePoolNil => true | messagePoolCons h t => boolAnd (p h) (messagePoolEvery t p)
+def messagePoolEqual : MessagePool -> MessagePool -> Bool := fun (a : MessagePool) (b : MessagePool) =>
+  boolAnd (natEq (messagePoolSize a) (messagePoolSize b)) (messagePoolEvery a (fun (m : Message) => natEq (messagePoolCount m a) (messagePoolCount m b)))
+def rec messagePoolFold : (0 A : Type 0) -> MessagePool -> A -> (A -> Message -> A) -> A := fun (0 A : Type 0) (xs : MessagePool) (acc : A) (f : A -> Message -> A) =>
+  match xs as self in MessagePool return A with | messagePoolNil => acc | messagePoolCons h t => messagePoolFold A t (f acc h) f
+def rec messagePoolReverseOnto : MessagePool -> MessagePool -> MessagePool := fun (xs : MessagePool) (acc : MessagePool) => match xs as self in MessagePool return MessagePool with
+  | messagePoolNil => acc | messagePoolCons h t => messagePoolReverseOnto t (messagePoolCons h acc)
+def messagePoolDistinct : MessagePool -> MessagePool := fun (xs : MessagePool) => messagePoolReverseOnto
+  (messagePoolFold MessagePool xs messagePoolNil (fun (acc : MessagePool) (m : Message) => select MessagePool (messagePoolContains m acc) acc (messagePoolCons m acc))) messagePoolNil
+def networkEnabled : Option Message -> MessagePool -> Bool := fun (recv : Option Message) (pool : MessagePool) => optionFold Message Bool true (fun (m : Message) => messagePoolContains m pool) recv
+def networkTransition : Option Message -> MessagePool -> MessagePool -> MessagePool := fun (recv : Option Message) (send : MessagePool) (pool : MessagePool) =>
+  messagePoolAppend (optionFold Message MessagePool pool (fun (m : Message) => optionValue MessagePool pool (messagePoolRemove m pool)) recv) send
+def apiMessageTransition : InstalledTypes -> Message -> ApiState -> prod (ApiState, Message) := fun (it : InstalledTypes) (msg : Message) (s : ApiState) =>
+  optionFold Request (prod (ApiState, Message)) (tuple (s, msg)) (fun (req : Request) =>
+    let result : ApiOutput := apiHandle it req s in tuple (result.0, messageFormResponse msg result.1)) (contentGetRequest msg.3)

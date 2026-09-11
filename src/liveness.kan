@@ -1,0 +1,78 @@
+-- The derivations are conditional on the explicit assumptions used by the source.
+def livenessBound : Bool -> Bound := fun (stateful : Bool) => tuple (nonnegative 2, nonnegative 2, nonnegative 1, nonnegative 4, select Int stateful (nonnegative 5) (nonnegative 4), nonnegative 1, nonnegative 8, listPodTNil)
+def livenessKey : Bool -> CommonObjectRef := fun (stateful : Bool) => select CommonObjectRef stateful scenarioStatefulRef scenarioVrsRef
+def livenessNext : Bool -> ClusterState -> ClusterState -> Bool := fun (stateful : Bool) (s : ClusterState) (next : ClusterState) => sequenceAny ClusterState (boundedSuccessors (livenessBound stateful) (scenarioCheckerConfig stateful) s) (clusterStateEqual next)
+def livenessDesired : Bool -> Int -> ProofFormula := fun (stateful : Bool) (desired : Int) => proofState b"desired_state_is" (scenarioCheckerDesired stateful desired)
+def livenessMatches : Bool -> Int -> ProofFormula := fun (stateful : Bool) (desired : Int) => proofState b"current_state_matches" (scenarioCheckerTarget stateful desired)
+def livenessSpec : Bool -> Int -> ProofFormula := fun (stateful : Bool) (desired : Int) => proofConj (livenessDesired stateful desired) (proofConj (proofAlways (proofAction b"cluster_next" (livenessNext stateful))) (proofState b"fair_controller" (fun (s : ClusterState) => true)))
+def livenessControllerLabel : Bool -> ClusterStep -> Bool := fun (stateful : Bool) (step : ClusterStep) => match step as self in ClusterStep return Bool with
+  | stepController id recv key => boolAnd (intEqual id (nonnegative 0)) (optionFold CommonObjectRef Bool false (commonObjectRefEqual (livenessKey stateful)) key)
+  | stepApi recv => false | stepBuiltin key => false | stepSchedule id key => false | stepRestart id => false | stepDisableCrash id => false
+  | stepDrop msg error => false | stepDisableDrop => false | stepMonkey pod => false | stepDisableMonkey => false | stepExternal id recv => false | stepStutter => false
+def LivenessNode : Type 0 := prod (Bytes, (ClusterState -> Bool))
+def livenessAtVrs : Bytes -> VrsStep -> LivenessNode := fun (name : Bytes) (step : VrsStep) => tuple (bytesAppend b"at_" name, vrsAtStep (nonnegative 0) scenarioVrsRef step)
+def livenessAtVsts : Bytes -> StatefulStep -> LivenessNode := fun (name : Bytes) (step : StatefulStep) => tuple (bytesAppend b"at_" name, vstsAtStep (nonnegative 0) scenarioStatefulRef step)
+def livenessInit : Bool -> LivenessNode := fun (stateful : Bool) => select LivenessNode stateful (livenessAtVsts b"Init" vStatefulSetReconcilerStepInit) (livenessAtVrs b"Init" vreplicaSetReconcilerStepInit)
+def livenessDone : Bool -> LivenessNode := fun (stateful : Bool) => select LivenessNode stateful (livenessAtVsts b"Done" vStatefulSetReconcilerStepDone) (livenessAtVrs b"Done" vreplicaSetReconcilerStepDone)
+def LivenessEdgeSpec : Type 0 := prod (Bytes, LivenessNode, LivenessNode, Bytes)
+def LivenessEdge : Type 0 := prod (Bytes, ProofFact, EdgeReport)
+def livenessWf1Edge : Bool -> Int -> Bound -> Reachable ClusterState -> LivenessEdgeSpec -> Result LivenessEdge :=
+  fun (stateful : Bool) (desired : Int) (b : Bound) (r : Reachable ClusterState) (edge : LivenessEdgeSpec) =>
+  let c : ClusterConfig := scenarioCheckerConfig stateful in
+  let pre : ProofFormula := proofState edge.1.0 edge.1.1 in
+  let post : ProofFormula := proofState edge.2.0 edge.2.1 in
+  let enabled : ProofFormula := proofState (bytesAppend b"enabled_" edge.3) (fun (s : ClusterState) => successorsAny (boundedLabelledSuccessors b c s) (fun (step : ClusterStep) (next : ClusterState) => livenessControllerLabel stateful step)) in
+  let sp : ProofFormula := livenessSpec stateful desired in
+  let closure : EdgeReport := dischargeClosure b c r edge.1.1 edge.2.1 in
+  let drives : EdgeReport := dischargeDrives b c r edge.1.1 (livenessControllerLabel stateful) edge.2.1 in
+  resultMap ProofFact LivenessEdge (fun (fact : ProofFact) => tuple (edge.0, fact, closure))
+    (proofWf1 sp pre post (fun (u : Ghost) => dischargeObligation closure) (fun (u : Ghost) => dischargeObligation drives)
+      (proofAssume sp (proofAlways (proofAction b"cluster_next" (livenessNext stateful))))
+      (proofAssume sp (proofAlways (proofImpl pre enabled)))
+      (proofAssume sp (proofLeadsTo (proofAlways enabled) (proofAction edge.3 (livenessNext stateful)))))
+def livenessVrsEdges : Sequence LivenessEdgeSpec :=
+  let init : LivenessNode := livenessInit false in
+  let listed : LivenessNode := livenessAtVrs b"After_list_pods" vreplicaSetReconcilerStepAfterListPods in
+  let creating : LivenessNode := tuple (b"at_creating", vrsAtPhase (nonnegative 0) scenarioVrsRef (fun (s : VrsStep) => natEq (vreplicaSetReconcilerStepRank s) 2)) in
+  let status : LivenessNode := livenessAtVrs b"After_update_vrs_status" vreplicaSetReconcilerStepAfterUpdateVrsStatus in
+  sequencePush LivenessEdgeSpec (sequencePush LivenessEdgeSpec (sequencePush LivenessEdgeSpec (sequenceSingleton LivenessEdgeSpec
+    (tuple (b"lemma_init_to_after_list_pods", init, listed, b"controller_list")))
+    (tuple (b"lemma_after_list_to_create", listed, creating, b"controller_create")))
+    (tuple (b"lemma_create_to_after_update_status", creating, status, b"controller_update_status")))
+    (tuple (b"lemma_after_update_status_to_done", status, livenessDone false, b"controller_done"))
+def livenessVstsEdges : Sequence LivenessEdgeSpec :=
+  let init : LivenessNode := livenessInit true in
+  let listed : LivenessNode := livenessAtVsts b"After_list_pod" vStatefulSetReconcilerStepAfterListPod in
+  let create : LivenessNode := livenessAtVsts b"Create_needed" vStatefulSetReconcilerStepCreateNeeded in
+  let created : LivenessNode := livenessAtVsts b"After_create_needed" vStatefulSetReconcilerStepAfterCreateNeeded in
+  let outdated : LivenessNode := livenessAtVsts b"Delete_outdated" vStatefulSetReconcilerStepDeleteOutdated in
+  sequencePush LivenessEdgeSpec (sequencePush LivenessEdgeSpec (sequencePush LivenessEdgeSpec (sequencePush LivenessEdgeSpec (sequenceSingleton LivenessEdgeSpec
+    (tuple (b"lemma_init_to_after_list_pod", init, listed, b"controller_list")))
+    (tuple (b"lemma_after_list_to_create_needed", listed, create, b"controller_create_needed")))
+    (tuple (b"lemma_create_needed_to_after_create_needed", create, created, b"controller_after_create_needed")))
+    (tuple (b"lemma_after_create_needed_to_delete_outdated", created, outdated, b"controller_scan_outdated")))
+    (tuple (b"lemma_delete_outdated_to_done", outdated, livenessDone true, b"controller_done"))
+def livenessEdges : Bool -> Int -> Bound -> Reachable ClusterState -> Result (Sequence LivenessEdge) := fun (stateful : Bool) (desired : Int) (b : Bound) (r : Reachable ClusterState) =>
+  sequenceFold LivenessEdgeSpec (Result (Sequence LivenessEdge)) (select (Sequence LivenessEdgeSpec) stateful livenessVstsEdges livenessVrsEdges) (ok (Sequence LivenessEdge) (sequenceEmpty LivenessEdge))
+    (fun (acc : Result (Sequence LivenessEdge)) (spec : LivenessEdgeSpec) => resultBind (Sequence LivenessEdge) (Sequence LivenessEdge) acc (fun (edges : Sequence LivenessEdge) =>
+      resultMap LivenessEdge (Sequence LivenessEdge) (sequencePush LivenessEdge edges) (livenessWf1Edge stateful desired b r spec)))
+def livenessStatement : Bool -> Int -> ProofFormula := fun (stateful : Bool) (desired : Int) => proofLeadsTo (proofAlways (livenessDesired stateful desired)) (livenessMatches stateful desired)
+def livenessDerivation : Bool -> Int -> Bound -> Reachable ClusterState -> Result ProofFact := fun (stateful : Bool) (desired : Int) (b : Bound) (r : Reachable ClusterState) =>
+  resultBind (Sequence LivenessEdge) ProofFact (livenessEdges stateful desired b r) (fun (edges : Sequence LivenessEdge) =>
+  let sp : ProofFormula := livenessSpec stateful desired in
+  let init : LivenessNode := livenessInit stateful in
+  let done : LivenessNode := livenessDone stateful in
+  let fdone : ProofFormula := proofState done.0 done.1 in
+  resultBind Bool ProofFact (dischargeObligation (dischargeReaches r (scenarioCheckerDesired stateful desired) init.1)) (fun (checked : Bool) =>
+  resultBind Bool ProofFact (dischargeObligation (dischargeInvariant r (fun (s : ClusterState) => implies (done.1 s) (scenarioCheckerTarget stateful desired s)))) (fun (checked : Bool) =>
+  resultBind ProofFact ProofFact (proofWeaken (proofAssume sp (proofAlways (proofImpl fdone fdone))) (proofAssume sp (proofAlways (proofImpl fdone (livenessMatches stateful desired)))) (proofSelf sp fdone)) (fun (tail : ProofFact) =>
+  resultBind ProofFact ProofFact (sequenceFold LivenessEdge (Result ProofFact) (sequenceReverse LivenessEdge edges) (ok ProofFact tail)
+    (fun (acc : Result ProofFact) (edge : LivenessEdge) => resultBind ProofFact ProofFact acc (proofTrans edge.1))) (fun (chain : ProofFact) =>
+  proofTrans (proofAssume sp (proofLeadsTo (proofAlways (livenessDesired stateful desired)) (proofState init.0 init.1))) chain)))))
+def livenessTailStable : Bool -> Int -> Reachable ClusterState -> EdgeReport := fun (stateful : Bool) (desired : Int) (r : Reachable ClusterState) =>
+  let done : LivenessNode := livenessDone stateful in
+  let matched : ClusterState -> Bool := fun (s : ClusterState) => boolAnd (done.1 s) (scenarioCheckerTarget stateful desired s) in
+  let a : EdgeReport := dischargeReaches r done.1 done.1 in
+  let b : EdgeReport := dischargeReaches r matched matched in
+  let c : EdgeReport := dischargeInvariant r (fun (s : ClusterState) => implies (done.1 s) (scenarioCheckerTarget stateful desired s)) in
+  tuple (boolAnd (boolAnd a.0 b.0) (boolAnd c.0 r.2), b.1, c.2, c.3)

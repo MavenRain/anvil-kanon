@@ -1,0 +1,71 @@
+-- Ongoing state retains the triggering snapshot, pending RPC, local state, and id.
+def Ongoing : Type 0 := prod (DynamicObjectT, Option Message, Value, Int)
+def ongoingEqual : Ongoing -> Ongoing -> Bool := fun (a : Ongoing) (b : Ongoing) =>
+  boolAnd (dynamicObjectTEqual a.0 b.0) (boolAnd (optionEqual Message messageEqual a.1 b.1) (boolAnd (valueEqual a.2 b.2) (intEqual a.3 b.3)))
+mu OngoingMap : Type 0 := | ongoingMapNil : OngoingMap | ongoingMapCons (key : CommonObjectRef) (value : Ongoing) (tail : OngoingMap) : OngoingMap
+def rec ongoingMapGet : CommonObjectRef -> OngoingMap -> Option Ongoing := fun (key : CommonObjectRef) (s : OngoingMap) =>
+  match s as self in OngoingMap return Option Ongoing with | ongoingMapNil => none Ongoing
+  | ongoingMapCons k v t => (case (objectRefKeyEqual key k) with | 1 (u : Unit) => some Ongoing v | 0 (u : Unit) => ongoingMapGet key t)
+def rec ongoingMapSet : CommonObjectRef -> Ongoing -> OngoingMap -> OngoingMap := fun (key : CommonObjectRef) (obj : Ongoing) (s : OngoingMap) =>
+  match s as self in OngoingMap return OngoingMap with | ongoingMapNil => ongoingMapCons key obj ongoingMapNil
+  | ongoingMapCons k v t => (case (objectRefKeyEqual key k) with | 1 (u : Unit) => ongoingMapCons key obj t
+    | 0 (u : Unit) => (case (objectRefLess key k) with | 1 (u : Unit) => ongoingMapCons key obj s | 0 (u : Unit) => ongoingMapCons k v (ongoingMapSet key obj t)))
+def rec ongoingMapRemove : CommonObjectRef -> OngoingMap -> OngoingMap := fun (key : CommonObjectRef) (s : OngoingMap) =>
+  match s as self in OngoingMap return OngoingMap with | ongoingMapNil => ongoingMapNil
+  | ongoingMapCons k v t => (case (objectRefKeyEqual key k) with | 1 (u : Unit) => t | 0 (u : Unit) => ongoingMapCons k v (ongoingMapRemove key t))
+def rec ongoingMapSize : OngoingMap -> Nat := fun (s : OngoingMap) => match s as self in OngoingMap return Nat with
+  | ongoingMapNil => 0 | ongoingMapCons k v t => natAdd 1 (ongoingMapSize t)
+def rec ongoingMapEqual : OngoingMap -> OngoingMap -> Bool := fun (a : OngoingMap) (b : OngoingMap) =>
+  match a as self in OngoingMap return Bool with | ongoingMapNil => natEq (ongoingMapSize b) 0
+  | ongoingMapCons k v t => (match b as self in OngoingMap return Bool with | ongoingMapNil => false
+    | ongoingMapCons l w r => boolAnd (objectRefKeyEqual k l) (boolAnd (ongoingEqual v w) (ongoingMapEqual t r)))
+def rec ongoingMapFold : (0 A : Type 0) -> OngoingMap -> A -> (CommonObjectRef -> Ongoing -> A -> A) -> A := fun (0 A : Type 0) (s : OngoingMap) (acc : A) (f : CommonObjectRef -> Ongoing -> A -> A) =>
+  match s as self in OngoingMap return A with | ongoingMapNil => acc | ongoingMapCons k v t => ongoingMapFold A t (f k v acc) f
+def ControllerState : Type 0 := prod (OngoingMap, ResourceStore, Int)
+def controllerInit : ControllerState := tuple (ongoingMapNil, resourceStoreNil, nonnegative 0)
+def controllerStateEqual : ControllerState -> ControllerState -> Bool := fun (a : ControllerState) (b : ControllerState) =>
+  boolAnd (ongoingMapEqual a.0 b.0) (boolAnd (resourceStoreEqual a.1 b.1) (intEqual a.2 b.2))
+def ControllerInput : Type 0 := prod (Option Message, Option CommonObjectRef, Int)
+def ControllerOutput : Type 0 := prod (ControllerState, MessagePool, Int)
+def controllerRunEnabled : ControllerProgram -> ControllerInput -> ControllerState -> Bool := fun (model : ControllerProgram) (input : ControllerInput) (s : ControllerState) =>
+  optionFold CommonObjectRef Bool false (fun (key : CommonObjectRef) =>
+    boolAnd (commonKindEqual (commonObjectRefKind key) model.0) (boolAnd (optionIsSome DynamicObjectT (resourceStoreGet key s.1))
+    (boolAnd (boolNot (optionIsSome Message input.0)) (boolNot (optionIsSome Ongoing (ongoingMapGet key s.0)))))) input.1
+def controllerRun : ControllerProgram -> ControllerInput -> ControllerState -> ControllerOutput := fun (model : ControllerProgram) (input : ControllerInput) (s : ControllerState) =>
+  optionFold CommonObjectRef ControllerOutput (tuple (s, messagePoolNil, input.2)) (fun (key : CommonObjectRef) =>
+  optionFold DynamicObjectT ControllerOutput (tuple (s, messagePoolNil, input.2)) (fun (cr : DynamicObjectT) =>
+    let ongoing : Ongoing := tuple (cr, none Message, model.1, s.2) in
+    tuple (tuple (ongoingMapSet key ongoing s.0, resourceStoreRemove key s.1, intAdd s.2 (nonnegative 1)), messagePoolNil, input.2)) (resourceStoreGet key s.1)) input.1
+def controllerContinueEnabled : ControllerProgram -> ControllerInput -> ControllerState -> Bool := fun (model : ControllerProgram) (input : ControllerInput) (s : ControllerState) =>
+  optionFold CommonObjectRef Bool false (fun (key : CommonObjectRef) =>
+    boolAnd (commonKindEqual (commonObjectRefKind key) model.0) (optionFold Ongoing Bool false (fun (r : Ongoing) =>
+      boolAnd (boolNot (model.3 r.2)) (boolAnd (boolNot (model.4 r.2))
+        (optionFold Message Bool (boolNot (optionIsSome Message input.0)) (fun (pending : Message) =>
+          optionFold Message Bool false (fun (recv : Message) => messageResponseMatches recv pending) input.0) r.1))) (ongoingMapGet key s.0))) input.1
+def contentResponseOnly : Content -> Option Content := fun (c : Content) => match c as self in Content return Option Content with
+  | contentRequest r => none Content | contentResponse r => some Content c | contentExternalRequest v => none Content | contentExternalResponse v => some Content c
+def controllerRequestMessage : Int -> CommonObjectRef -> Int -> RequestView -> Message := fun (id : Int) (key : CommonObjectRef) (rpc : Int) (req : RequestView) =>
+  match req as self in RequestView return Message with
+  | kubeRequest r => tuple (hostController id key, hostApi, rpc, contentRequest r)
+  | externalRequest v => tuple (hostController id key, hostExternal id, rpc, contentExternalRequest v)
+def controllerContinue : ControllerProgram -> Int -> ControllerInput -> ControllerState -> ControllerOutput := fun (model : ControllerProgram) (id : Int) (input : ControllerInput) (s : ControllerState) =>
+  optionFold CommonObjectRef ControllerOutput (tuple (s, messagePoolNil, input.2)) (fun (key : CommonObjectRef) =>
+  optionFold Ongoing ControllerOutput (tuple (s, messagePoolNil, input.2)) (fun (r : Ongoing) =>
+    let response : Option ResponseView := optionBind Message ResponseView input.0 (fun (m : Message) => contentResponseView m.3) in
+    let result : ProgramOutput := model.2 r.0 response r.2 in
+    let pending : Option Message := optionMap RequestView Message (controllerRequestMessage id key input.2) result.1 in
+    let send : MessagePool := optionFold Message MessagePool messagePoolNil (fun (m : Message) => messagePoolCons m messagePoolNil) pending in
+    let allocator : Int := select Int (optionIsSome Message pending) (intAdd input.2 (nonnegative 1)) input.2 in
+    tuple (tuple (ongoingMapSet key (tuple (r.0, pending, result.0, r.3)) s.0, s.1, s.2), send, allocator)) (ongoingMapGet key s.0)) input.1
+def controllerEndEnabled : ControllerProgram -> ControllerInput -> ControllerState -> Bool := fun (model : ControllerProgram) (input : ControllerInput) (s : ControllerState) =>
+  optionFold CommonObjectRef Bool false (fun (key : CommonObjectRef) =>
+    boolAnd (commonKindEqual (commonObjectRefKind key) model.0) (optionFold Ongoing Bool false (fun (r : Ongoing) =>
+      boolAnd (boolOr (model.3 r.2) (model.4 r.2)) (boolNot (optionIsSome Message input.0))) (ongoingMapGet key s.0))) input.1
+def controllerEnd : ControllerInput -> ControllerState -> ControllerOutput := fun (input : ControllerInput) (s : ControllerState) =>
+  optionFold CommonObjectRef ControllerOutput (tuple (s, messagePoolNil, input.2)) (fun (key : CommonObjectRef) =>
+    tuple (tuple (ongoingMapRemove key s.0, s.1, s.2), messagePoolNil, input.2)) input.1
+def controllerChoose : ControllerProgram -> Int -> ControllerInput -> ControllerState -> Option ControllerOutput := fun (model : ControllerProgram) (id : Int) (input : ControllerInput) (s : ControllerState) =>
+  case (controllerRunEnabled model input s) with | 1 (u : Unit) => some ControllerOutput (controllerRun model input s)
+  | 0 (u : Unit) => (case (controllerContinueEnabled model input s) with | 1 (u : Unit) => some ControllerOutput (controllerContinue model id input s)
+    | 0 (u : Unit) => (case (controllerEndEnabled model input s) with | 1 (u : Unit) => some ControllerOutput (controllerEnd input s)
+      | 0 (u : Unit) => none ControllerOutput))

@@ -1,0 +1,20 @@
+{
+  "stateful": true,
+  "query": "settled",
+  "desired": 1,
+  "desireds": [
+    1
+  ],
+  "depth": 40,
+  "bound": {
+    "maxInFlight": 2,
+    "maxObjectsPerKind": 2,
+    "maxControllers": 1,
+    "uidCeiling": 4,
+    "rvCeiling": 5,
+    "reconcileCeiling": 1,
+    "maxReconcileDepth": 8,
+    "monkeyForge": []
+  },
+  "forceFalse": false
+}

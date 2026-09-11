@@ -1,0 +1,11 @@
+[
+  "vrsStateDecodeRender",
+  "vrsInvokeRender",
+  "vrsInitJson",
+  "deploymentStateDecodeRender",
+  "deploymentInvokeRender",
+  "deploymentInitJson",
+  "statefulStateDecodeRender",
+  "statefulInvokeRender",
+  "statefulInitJson"
+]

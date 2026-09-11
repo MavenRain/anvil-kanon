@@ -1,0 +1,53 @@
+-- Bounded cluster reachability, pruning metadata, and non-vacuous gates.
+def intMax : Int -> Int -> Int := fun (a : Int) (b : Int) => select Int (intLess a b) b a
+def clusterMaxReconcileId : ClusterState -> Int := fun (s : ClusterState) => actorMapFold Int s.1 (nonnegative 0)
+  (fun (id : Int) (a : Actor) (acc : Int) => intMax acc a.0.2)
+def clusterOverCeiling : Bound -> ClusterState -> Bool := fun (b : Bound) (s : ClusterState) => boolOr (intLess b.3 s.0.1)
+  (boolOr (intLess b.4 s.0.2) (intLess b.5 (clusterMaxReconcileId s)))
+def rec successorsFilter : Successors -> (ClusterStep -> ClusterState -> Bool) -> Successors := fun (xs : Successors) (p : ClusterStep -> ClusterState -> Bool) =>
+  match xs as self in Successors return Successors with | successorsNil => successorsNil
+  | successorsCons step state tail => let rest : Successors := successorsFilter tail p in
+      select Successors (p step state) (successorsCons step state rest) rest
+def successorsEvery : Successors -> (ClusterStep -> ClusterState -> Bool) -> Bool := fun (xs : Successors) (p : ClusterStep -> ClusterState -> Bool) =>
+  successorsFold Bool xs true (fun (acc : Bool) (step : ClusterStep) (s : ClusterState) => boolAnd acc (p step s))
+def successorsAny : Successors -> (ClusterStep -> ClusterState -> Bool) -> Bool := fun (xs : Successors) (p : ClusterStep -> ClusterState -> Bool) =>
+  boolNot (successorsEvery xs (fun (step : ClusterStep) (s : ClusterState) => boolNot (p step s)))
+def boundedLabelledSuccessors : Bound -> ClusterConfig -> ClusterState -> Successors := fun (b : Bound) (c : ClusterConfig) (s : ClusterState) =>
+  successorsFilter (clusterEnabledSuccessors b c s) (fun (step : ClusterStep) (s : ClusterState) => boolNot (clusterOverCeiling b s))
+def successorsSequence : Successors -> Sequence ClusterState := fun (xs : Successors) => successorsFold (Sequence ClusterState) xs (sequenceEmpty ClusterState)
+  (fun (acc : Sequence ClusterState) (step : ClusterStep) (s : ClusterState) => sequencePush ClusterState acc s)
+def boundedSuccessors : Bound -> ClusterConfig -> ClusterState -> Sequence ClusterState := fun (b : Bound) (c : ClusterConfig) (s : ClusterState) => successorsSequence (boundedLabelledSuccessors b c s)
+def clusterProductiveStep : ClusterStep -> Bool := fun (step : ClusterStep) => match step as self in ClusterStep return Bool with
+  | stepApi recv => optionIsSome Message recv
+  | stepBuiltin key => true | stepController id recv key => true | stepSchedule id key => true | stepMonkey pod => true | stepExternal id recv => true
+  | stepRestart id => false | stepDisableCrash id => false | stepDrop msg error => false | stepDisableDrop => false | stepDisableMonkey => false | stepStutter => false
+def clusterProductiveSuccessors : Bound -> ClusterConfig -> ClusterState -> Successors := fun (b : Bound) (c : ClusterConfig) (s : ClusterState) =>
+  successorsFilter (clusterEnabledSuccessors b c s) (fun (step : ClusterStep) (s : ClusterState) => clusterProductiveStep step)
+def clusterEffectivelyQuiescent : Bound -> ClusterConfig -> ClusterState -> Bool := fun (b : Bound) (c : ClusterConfig) (s : ClusterState) =>
+  successorsEvery (clusterProductiveSuccessors b c s) (fun (step : ClusterStep) (next : ClusterState) => clusterStateEqual s next)
+def clusterSettled : Bound -> ClusterConfig -> ClusterState -> Bool := fun (b : Bound) (c : ClusterConfig) (s : ClusterState) =>
+  successorsEvery (boundedLabelledSuccessors b c s) (fun (step : ClusterStep) (next : ClusterState) => implies (clusterProductiveStep step) (clusterStateEqual s next))
+def clusterFairLasso : (ClusterState -> Bool) -> Lasso ClusterState -> Bool := fun (quiescent : ClusterState -> Bool) (l : Lasso ClusterState) =>
+  optionFold ClusterState Bool true (fun (head : ClusterState) => implies (sequenceEvery ClusterState l.1 (clusterStateEqual head)) (quiescent head)) (l.1.1 0)
+def clusterExplore : Int -> Bound -> ClusterConfig -> Sequence ClusterState -> Reachable ClusterState := fun (depth : Int) (b : Bound) (c : ClusterConfig) (init : Sequence ClusterState) =>
+  explore ClusterState depth (boundedSuccessors b c) clusterStateEqual init
+def reachableCount : (0 A : Type 0) -> Reachable A -> (A -> Bool) -> Nat := fun (0 A : Type 0) (r : Reachable A) (p : A -> Bool) =>
+  sequenceFold A Nat r.0 0 (fun (n : Nat) (s : A) => natAdd n (boolNat (p s)))
+def ClusterMetadata : Type 0 := prod (Int, Int, Bool)
+def clusterCollectMetadata : Bound -> ClusterConfig -> Reachable ClusterState -> ClusterMetadata := fun (b : Bound) (c : ClusterConfig) (r : Reachable ClusterState) =>
+  sequenceFold ClusterState ClusterMetadata r.0 (tuple (nonnegative 0, nonnegative 0, false)) (fun (acc : ClusterMetadata) (s : ClusterState) =>
+    let distance : Int := nonnegative (natSub (reachablePath ClusterState r clusterStateEqual s).0 1) in
+    let pruned : Bool := (case (intLess distance r.3) with | 0 (u : Unit) => false | 1 (u : Unit) =>
+      successorsAny (clusterEnabledSuccessors b c s) (fun (step : ClusterStep) (next : ClusterState) => clusterOverCeiling b next)) in
+    tuple (intMax acc.0 s.0.1, intMax acc.1 s.0.2, boolOr acc.2 pruned))
+def ClusterReport : Type 0 := prod (Outcome ClusterState, Bound, Int, Int, Bool, Option Invariant, Option Nat)
+def clusterViolatedOf : Invariants -> Outcome ClusterState -> Option Invariant := fun (xs : Invariants) (outcome : Outcome ClusterState) => case outcome with
+  | 1 (clean : prod (Bool, Int, Nat)) => none Invariant
+  | 0 (bad : prod (Lasso ClusterState, Nat)) => optionBind ClusterState Invariant (bad.0.1.1 0) (invariantFirstViolated xs)
+def clusterSafetyReport : Bound -> ClusterConfig -> Reachable ClusterState -> Invariants -> ClusterReport := fun (b : Bound) (c : ClusterConfig) (r : Reachable ClusterState) (xs : Invariants) =>
+  let outcome : Outcome ClusterState := checkSafety ClusterState r (invariantConjunction xs) clusterStateEqual in
+  let meta : ClusterMetadata := clusterCollectMetadata b c r in tuple (outcome, b, meta.0, meta.1, meta.2, clusterViolatedOf xs outcome, none Nat)
+def clusterReachesReport : Bound -> ClusterConfig -> Reachable ClusterState -> (ClusterState -> Bool) -> (ClusterState -> Bool) -> ClusterReport :=
+  fun (b : Bound) (c : ClusterConfig) (r : Reachable ClusterState) (target : ClusterState -> Bool) (gate : ClusterState -> Bool) =>
+  let outcome : Outcome ClusterState := checkReaches ClusterState r target gate clusterStateEqual in
+  let meta : ClusterMetadata := clusterCollectMetadata b c r in tuple (outcome, b, meta.0, meta.1, meta.2, none Invariant, some Nat (reachableCount ClusterState r gate))

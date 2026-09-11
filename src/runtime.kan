@@ -1,0 +1,82 @@
+-- Direct execution threads client state explicitly, including mutations before errors.
+def intCount : Int -> Count := fun (n : Int) => match n as self in Int return Count with | nonnegative n => natCount n | negative n => countZero
+mu RuntimeOutcome : Type 0 := | runtimeReconciled : RuntimeOutcome | runtimeErrored : RuntimeOutcome | runtimeIncomplete (remaining : Int) : RuntimeOutcome
+def runtimeRequeues : RuntimeOutcome -> Bool := fun (o : RuntimeOutcome) => match o as self in RuntimeOutcome return Bool with | runtimeReconciled => false | runtimeErrored => true | runtimeIncomplete n => true
+def runtimeOutcomeEqual : RuntimeOutcome -> RuntimeOutcome -> Bool := fun (a : RuntimeOutcome) (b : RuntimeOutcome) => match a as self in RuntimeOutcome return Bool with
+  | runtimeReconciled => (match b as other in RuntimeOutcome return Bool with | runtimeReconciled => true | runtimeErrored => false | runtimeIncomplete n => false)
+  | runtimeErrored => (match b as other in RuntimeOutcome return Bool with | runtimeReconciled => false | runtimeErrored => true | runtimeIncomplete n => false)
+  | runtimeIncomplete n => (match b as other in RuntimeOutcome return Bool with | runtimeReconciled => false | runtimeErrored => false | runtimeIncomplete m => intEqual n m)
+def ClientResult : (0 S : Type 0) -> (0 A : Type 0) -> Type 0 := fun (0 S : Type 0) (0 A : Type 0) => prod (S, Result A)
+def Client : (0 S : Type 0) -> Type 0 := fun (0 S : Type 0) => S -> Request -> ClientResult S Response
+def clientBind : (0 S : Type 0) -> (0 A : Type 0) -> (0 B : Type 0) -> ClientResult S A -> (S -> A -> ClientResult S B) -> ClientResult S B :=
+  fun (0 S : Type 0) (0 A : Type 0) (0 B : Type 0) (r : ClientResult S A) (f : S -> A -> ClientResult S B) => case r.1 with | 0 (e : Error) => tuple (r.0, err B e) | 1 (a : A) => f r.0 a
+def rec runtimeDrive : (0 S : Type 0) -> Count -> Client S -> ControllerProgram -> DynamicObjectT -> Option ResponseView -> Value -> S -> ClientResult S RuntimeOutcome :=
+  fun (0 S : Type 0) (fuel : Count) (client : Client S) (model : ControllerProgram) (cr : DynamicObjectT) (resp : Option ResponseView) (local : Value) (s : S) =>
+  match fuel as self in Count return ClientResult S RuntimeOutcome with
+  | countZero => tuple (s, ok RuntimeOutcome (runtimeIncomplete (nonnegative 0)))
+  | countSucc rest => case (model.4 local) with | 1 (u : Unit) => tuple (s, ok RuntimeOutcome runtimeErrored)
+    | 0 (u : Unit) => (case (model.3 local) with | 1 (u : Unit) => tuple (s, ok RuntimeOutcome runtimeReconciled)
+    | 0 (u : Unit) => let step : ProgramOutput := model.2 cr resp local in
+      case step.1 with | 0 (u : Unit) => runtimeDrive S rest client model cr (none ResponseView) step.0 s
+      | 1 (req : RequestView) => (match req as self in RequestView return ClientResult S RuntimeOutcome with
+        | kubeRequest k => clientBind S Response RuntimeOutcome (client s k) (fun (next : S) (response : Response) => runtimeDrive S rest client model cr (some ResponseView (kubeResponse response)) step.0 next)
+        | externalRequest external => tuple (s, err RuntimeOutcome (malformedValue b"external_request" b"in-memory api-server backend has no external subsystem"))))
+def runtimeReconcile : (0 S : Type 0) -> Client S -> ControllerProgram -> DynamicObjectT -> Int -> S -> ClientResult S RuntimeOutcome :=
+  fun (0 S : Type 0) (client : Client S) (model : ControllerProgram) (cr : DynamicObjectT) (fuel : Int) (s : S) => runtimeDrive S (intCount fuel) client model cr (none ResponseView) model.1 s
+def RuntimeResults : Type 0 := Sequence (prod (CommonObjectRef, RuntimeOutcome))
+def runtimeResultsSet : RuntimeResults -> CommonObjectRef -> RuntimeOutcome -> RuntimeResults := fun (xs : RuntimeResults) (key : CommonObjectRef) (outcome : RuntimeOutcome) =>
+  let rest : RuntimeResults := sequenceFilter (prod (CommonObjectRef, RuntimeOutcome)) xs (fun (entry : prod (CommonObjectRef, RuntimeOutcome)) => boolNot (commonObjectRefEqual key entry.0)) in
+  let before : RuntimeResults := sequenceFilter (prod (CommonObjectRef, RuntimeOutcome)) rest (fun (e : prod (CommonObjectRef, RuntimeOutcome)) => objectRefLess e.0 key) in
+  let after : RuntimeResults := sequenceFilter (prod (CommonObjectRef, RuntimeOutcome)) rest (fun (e : prod (CommonObjectRef, RuntimeOutcome)) => objectRefLess key e.0) in
+  sequenceAppend (prod (CommonObjectRef, RuntimeOutcome)) before (sequencePrepend (prod (CommonObjectRef, RuntimeOutcome)) (tuple (key, outcome)) after)
+def RuntimeRound : Type 0 := prod (RuntimeResults, Sequence CommonObjectRef)
+def runtimeProcessKey : (0 S : Type 0) -> Client S -> ControllerProgram -> Int -> CommonObjectRef -> RuntimeRound -> S -> ClientResult S RuntimeRound :=
+  fun (0 S : Type 0) (client : Client S) (model : ControllerProgram) (fuel : Int) (key : CommonObjectRef) (acc : RuntimeRound) (s : S) =>
+  clientBind S Response RuntimeRound (client s (requestGet key)) (fun (s : S) (response : Response) =>
+    case (responseGet (some Response response)) with
+    | 0 (u : Unit) => tuple (s, err RuntimeRound (malformedValue b"api_response" b"GET returned a non-get response"))
+    | 1 (res : ApiResult DynamicObjectT) => (case res with
+      | 0 (e : ApiError) => select (ClientResult S RuntimeRound) (apiMethodApiErrorEqual e apiMethodApiErrorObjectNotFound) (tuple (s, ok RuntimeRound acc))
+          (tuple (s, ok RuntimeRound (tuple (runtimeResultsSet acc.0 key runtimeErrored, sequencePush CommonObjectRef acc.1 key))))
+      | 1 (cr : DynamicObjectT) => clientBind S RuntimeOutcome RuntimeRound (runtimeReconcile S client model cr fuel s) (fun (s : S) (o : RuntimeOutcome) =>
+        tuple (s, ok RuntimeRound (tuple (runtimeResultsSet acc.0 key o, select (Sequence CommonObjectRef) (runtimeRequeues o) (sequencePush CommonObjectRef acc.1 key) acc.1))))))
+def rec runtimeRounds : (0 S : Type 0) -> Count -> Client S -> ControllerProgram -> Int -> Sequence CommonObjectRef -> RuntimeResults -> S -> ClientResult S RuntimeResults :=
+  fun (0 S : Type 0) (rounds : Count) (client : Client S) (model : ControllerProgram) (fuel : Int) (queue : Sequence CommonObjectRef) (results : RuntimeResults) (s : S) =>
+  match rounds as self in Count return ClientResult S RuntimeResults with | countZero => tuple (s, ok RuntimeResults results)
+  | countSucc rest => case (natEq queue.0 0) with | 1 (u : Unit) => tuple (s, ok RuntimeResults results)
+    | 0 (u : Unit) => clientBind S RuntimeRound RuntimeResults
+      (sequenceFold CommonObjectRef (ClientResult S RuntimeRound) queue (tuple (s, ok RuntimeRound (tuple (results, sequenceEmpty CommonObjectRef))))
+        (fun (acc : ClientResult S RuntimeRound) (key : CommonObjectRef) => clientBind S RuntimeRound RuntimeRound acc (fun (s : S) (r : RuntimeRound) => runtimeProcessKey S client model fuel key r s)))
+      (fun (s : S) (r : RuntimeRound) => runtimeRounds S rest client model fuel r.1 r.0 s)
+def runtimeRunController : (0 S : Type 0) -> Client S -> ControllerProgram -> Sequence CommonObjectRef -> Int -> Int -> S -> ClientResult S RuntimeResults :=
+  fun (0 S : Type 0) (client : Client S) (model : ControllerProgram) (queue : Sequence CommonObjectRef) (fuel : Int) (rounds : Int) (s : S) =>
+  let dedup : Sequence CommonObjectRef := sequenceFold CommonObjectRef (Sequence CommonObjectRef) queue (sequenceEmpty CommonObjectRef)
+    (fun (acc : Sequence CommonObjectRef) (key : CommonObjectRef) => select (Sequence CommonObjectRef) (sequenceAny CommonObjectRef acc (commonObjectRefEqual key)) acc (sequencePush CommonObjectRef acc key)) in
+  runtimeRounds S (intCount rounds) client model fuel dedup (sequenceEmpty (prod (CommonObjectRef, RuntimeOutcome))) s
+def runtimeRunModel : (0 S : Type 0) -> Client S -> ControllerProgram -> Bytes -> Int -> S -> ClientResult S Bool :=
+  fun (0 S : Type 0) (client : Client S) (model : ControllerProgram) (ns : Bytes) (fuel : Int) (s : S) =>
+  clientBind S Response Bool (client s (requestList model.0 ns)) (fun (s : S) (response : Response) => case (responseList (some Response response)) with
+    | 0 (u : Unit) => tuple (s, err Bool (malformedValue b"api_response" b"LIST returned a non-list response"))
+    | 1 (res : ApiResult ListDynamicObjectT) => (case res with
+      | 0 (e : ApiError) => tuple (s, err Bool (malformedValue b"list_response" b"list request returned an api error"))
+      | 1 (objs : ListDynamicObjectT) => listDynamicObjectTFold (ClientResult S Bool) objs (tuple (s, ok Bool true))
+        (fun (acc : ClientResult S Bool) (cr : DynamicObjectT) => clientBind S Bool Bool acc (fun (s : S) (settled : Bool) =>
+          clientBind S RuntimeOutcome Bool (runtimeReconcile S client model cr fuel s) (fun (s : S) (o : RuntimeOutcome) => tuple (s, ok Bool (boolAnd settled (boolNot (runtimeRequeues o)))))))))
+def RuntimeFixpoint : Type 0 := prod (Int, Bool)
+def rec runtimeFixpointRounds : (0 S : Type 0) -> Count -> Int -> Client S -> Sequence ControllerProgram -> Bytes -> (S -> Int) -> Int -> S -> ClientResult S RuntimeFixpoint :=
+  fun (0 S : Type 0) (remaining : Count) (rounds : Int) (client : Client S) (models : Sequence ControllerProgram) (ns : Bytes) (rv : S -> Int) (fuel : Int) (s : S) =>
+  match remaining as self in Count return ClientResult S RuntimeFixpoint with | countZero => tuple (s, ok RuntimeFixpoint (tuple (rounds, false)))
+  | countSucc rest => let before : Int := rv s in
+    clientBind S Bool RuntimeFixpoint (sequenceFold ControllerProgram (ClientResult S Bool) models (tuple (s, ok Bool true))
+      (fun (acc : ClientResult S Bool) (model : ControllerProgram) => clientBind S Bool Bool acc (fun (s : S) (settled : Bool) =>
+        clientBind S Bool Bool (runtimeRunModel S client model ns fuel s) (fun (s : S) (next : Bool) => tuple (s, ok Bool (boolAnd settled next))))))
+      (fun (s : S) (settled : Bool) => case (boolAnd (intEqual before (rv s)) settled) with
+        | 1 (u : Unit) => tuple (s, ok RuntimeFixpoint (tuple (intAdd rounds (nonnegative 1), true)))
+        | 0 (u : Unit) => runtimeFixpointRounds S rest (intAdd rounds (nonnegative 1)) client models ns rv fuel s)
+def runtimeRunToFixpoint : (0 S : Type 0) -> Client S -> Sequence ControllerProgram -> Bytes -> (S -> Int) -> Int -> Int -> S -> ClientResult S RuntimeFixpoint :=
+  fun (0 S : Type 0) (client : Client S) (models : Sequence ControllerProgram) (ns : Bytes) (rv : S -> Int) (fuel : Int) (rounds : Int) (s : S) => runtimeFixpointRounds S (intCount rounds) (nonnegative 0) client models ns rv fuel s
+def ExecServer : Type 0 := prod (ApiState, Int, Sequence Bool)
+def execRequest : InstalledTypes -> Bool -> Client ExecServer := fun (it : InstalledTypes) (checked : Bool) (s : ExecServer) (req : Request) =>
+  let out : ApiOutput := apiHandle it req s.0 in
+  let checks : Sequence Bool := case checked with | 0 (u : Unit) => s.2 | 1 (u : Unit) => sequencePush Bool s.2 (oracleAgrees it req s.0) in
+  tuple (tuple (out.0, intAdd s.1 (nonnegative 1), checks), ok Response out.1)

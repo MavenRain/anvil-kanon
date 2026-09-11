@@ -1,0 +1,409 @@
+-- Generated structural list operations.
+
+def rec listOwnerReferenceTReverseOnto : ListOwnerReferenceT -> ListOwnerReferenceT -> ListOwnerReferenceT := fun (xs : ListOwnerReferenceT) (acc : ListOwnerReferenceT) =>
+  match xs as self in ListOwnerReferenceT return ListOwnerReferenceT with | listOwnerReferenceTNil => acc | listOwnerReferenceTCons h t => listOwnerReferenceTReverseOnto t (listOwnerReferenceTCons h acc)
+
+def listOwnerReferenceTReverse : ListOwnerReferenceT -> ListOwnerReferenceT := fun (xs : ListOwnerReferenceT) => listOwnerReferenceTReverseOnto xs listOwnerReferenceTNil
+
+def listOwnerReferenceTAppend : ListOwnerReferenceT -> ListOwnerReferenceT -> ListOwnerReferenceT := fun (xs : ListOwnerReferenceT) (ys : ListOwnerReferenceT) => listOwnerReferenceTReverseOnto (listOwnerReferenceTReverse xs) ys
+
+def rec listOwnerReferenceTFold : (0 B : Type 0) -> ListOwnerReferenceT -> B -> (B -> OwnerReferenceT -> B) -> B :=
+  fun (0 B : Type 0) (xs : ListOwnerReferenceT) (acc : B) (step : B -> OwnerReferenceT -> B) =>
+  match xs as self in ListOwnerReferenceT return B with | listOwnerReferenceTNil => acc | listOwnerReferenceTCons h t => listOwnerReferenceTFold B t (step acc h) step
+
+def rec listOwnerReferenceTFind : ListOwnerReferenceT -> (OwnerReferenceT -> Bool) -> Option (OwnerReferenceT) := fun (xs : ListOwnerReferenceT) (p : OwnerReferenceT -> Bool) =>
+  match xs as self in ListOwnerReferenceT return Option (OwnerReferenceT) with | listOwnerReferenceTNil => none (OwnerReferenceT)
+  | listOwnerReferenceTCons h t => (case (p h) with | 1 (u : Unit) => some (OwnerReferenceT) h | 0 (u : Unit) => listOwnerReferenceTFind t p)
+
+def listOwnerReferenceTEvery : ListOwnerReferenceT -> (OwnerReferenceT -> Bool) -> Bool := fun (xs : ListOwnerReferenceT) (p : OwnerReferenceT -> Bool) =>
+  boolNot (optionIsSome (OwnerReferenceT) (listOwnerReferenceTFind xs (fun (x : OwnerReferenceT) => boolNot (p x))))
+
+def listOwnerReferenceTFilter : ListOwnerReferenceT -> (OwnerReferenceT -> Bool) -> ListOwnerReferenceT := fun (xs : ListOwnerReferenceT) (p : OwnerReferenceT -> Bool) =>
+  listOwnerReferenceTReverse (listOwnerReferenceTFold ListOwnerReferenceT xs listOwnerReferenceTNil (fun (acc : ListOwnerReferenceT) (h : OwnerReferenceT) => select ListOwnerReferenceT (p h) (listOwnerReferenceTCons h acc) acc))
+
+def listOwnerReferenceTMap : ListOwnerReferenceT -> (OwnerReferenceT -> OwnerReferenceT) -> ListOwnerReferenceT := fun (xs : ListOwnerReferenceT) (g : OwnerReferenceT -> OwnerReferenceT) =>
+  listOwnerReferenceTReverse (listOwnerReferenceTFold ListOwnerReferenceT xs listOwnerReferenceTNil (fun (acc : ListOwnerReferenceT) (h : OwnerReferenceT) => listOwnerReferenceTCons (g h) acc))
+
+def rec listBytesReverseOnto : ListBytes -> ListBytes -> ListBytes := fun (xs : ListBytes) (acc : ListBytes) =>
+  match xs as self in ListBytes return ListBytes with | listBytesNil => acc | listBytesCons h t => listBytesReverseOnto t (listBytesCons h acc)
+
+def listBytesReverse : ListBytes -> ListBytes := fun (xs : ListBytes) => listBytesReverseOnto xs listBytesNil
+
+def listBytesAppend : ListBytes -> ListBytes -> ListBytes := fun (xs : ListBytes) (ys : ListBytes) => listBytesReverseOnto (listBytesReverse xs) ys
+
+def rec listBytesFold : (0 B : Type 0) -> ListBytes -> B -> (B -> Bytes -> B) -> B :=
+  fun (0 B : Type 0) (xs : ListBytes) (acc : B) (step : B -> Bytes -> B) =>
+  match xs as self in ListBytes return B with | listBytesNil => acc | listBytesCons h t => listBytesFold B t (step acc h) step
+
+def rec listBytesFind : ListBytes -> (Bytes -> Bool) -> Option (Bytes) := fun (xs : ListBytes) (p : Bytes -> Bool) =>
+  match xs as self in ListBytes return Option (Bytes) with | listBytesNil => none (Bytes)
+  | listBytesCons h t => (case (p h) with | 1 (u : Unit) => some (Bytes) h | 0 (u : Unit) => listBytesFind t p)
+
+def listBytesEvery : ListBytes -> (Bytes -> Bool) -> Bool := fun (xs : ListBytes) (p : Bytes -> Bool) =>
+  boolNot (optionIsSome (Bytes) (listBytesFind xs (fun (x : Bytes) => boolNot (p x))))
+
+def listBytesFilter : ListBytes -> (Bytes -> Bool) -> ListBytes := fun (xs : ListBytes) (p : Bytes -> Bool) =>
+  listBytesReverse (listBytesFold ListBytes xs listBytesNil (fun (acc : ListBytes) (h : Bytes) => select ListBytes (p h) (listBytesCons h acc) acc))
+
+def listBytesMap : ListBytes -> (Bytes -> Bytes) -> ListBytes := fun (xs : ListBytes) (g : Bytes -> Bytes) =>
+  listBytesReverse (listBytesFold ListBytes xs listBytesNil (fun (acc : ListBytes) (h : Bytes) => listBytesCons (g h) acc))
+
+def rec listDynamicObjectTReverseOnto : ListDynamicObjectT -> ListDynamicObjectT -> ListDynamicObjectT := fun (xs : ListDynamicObjectT) (acc : ListDynamicObjectT) =>
+  match xs as self in ListDynamicObjectT return ListDynamicObjectT with | listDynamicObjectTNil => acc | listDynamicObjectTCons h t => listDynamicObjectTReverseOnto t (listDynamicObjectTCons h acc)
+
+def listDynamicObjectTReverse : ListDynamicObjectT -> ListDynamicObjectT := fun (xs : ListDynamicObjectT) => listDynamicObjectTReverseOnto xs listDynamicObjectTNil
+
+def listDynamicObjectTAppend : ListDynamicObjectT -> ListDynamicObjectT -> ListDynamicObjectT := fun (xs : ListDynamicObjectT) (ys : ListDynamicObjectT) => listDynamicObjectTReverseOnto (listDynamicObjectTReverse xs) ys
+
+def rec listDynamicObjectTFold : (0 B : Type 0) -> ListDynamicObjectT -> B -> (B -> DynamicObjectT -> B) -> B :=
+  fun (0 B : Type 0) (xs : ListDynamicObjectT) (acc : B) (step : B -> DynamicObjectT -> B) =>
+  match xs as self in ListDynamicObjectT return B with | listDynamicObjectTNil => acc | listDynamicObjectTCons h t => listDynamicObjectTFold B t (step acc h) step
+
+def rec listDynamicObjectTFind : ListDynamicObjectT -> (DynamicObjectT -> Bool) -> Option (DynamicObjectT) := fun (xs : ListDynamicObjectT) (p : DynamicObjectT -> Bool) =>
+  match xs as self in ListDynamicObjectT return Option (DynamicObjectT) with | listDynamicObjectTNil => none (DynamicObjectT)
+  | listDynamicObjectTCons h t => (case (p h) with | 1 (u : Unit) => some (DynamicObjectT) h | 0 (u : Unit) => listDynamicObjectTFind t p)
+
+def listDynamicObjectTEvery : ListDynamicObjectT -> (DynamicObjectT -> Bool) -> Bool := fun (xs : ListDynamicObjectT) (p : DynamicObjectT -> Bool) =>
+  boolNot (optionIsSome (DynamicObjectT) (listDynamicObjectTFind xs (fun (x : DynamicObjectT) => boolNot (p x))))
+
+def listDynamicObjectTFilter : ListDynamicObjectT -> (DynamicObjectT -> Bool) -> ListDynamicObjectT := fun (xs : ListDynamicObjectT) (p : DynamicObjectT -> Bool) =>
+  listDynamicObjectTReverse (listDynamicObjectTFold ListDynamicObjectT xs listDynamicObjectTNil (fun (acc : ListDynamicObjectT) (h : DynamicObjectT) => select ListDynamicObjectT (p h) (listDynamicObjectTCons h acc) acc))
+
+def listDynamicObjectTMap : ListDynamicObjectT -> (DynamicObjectT -> DynamicObjectT) -> ListDynamicObjectT := fun (xs : ListDynamicObjectT) (g : DynamicObjectT -> DynamicObjectT) =>
+  listDynamicObjectTReverse (listDynamicObjectTFold ListDynamicObjectT xs listDynamicObjectTNil (fun (acc : ListDynamicObjectT) (h : DynamicObjectT) => listDynamicObjectTCons (g h) acc))
+
+def rec listContainerEnvVarReverseOnto : ListContainerEnvVar -> ListContainerEnvVar -> ListContainerEnvVar := fun (xs : ListContainerEnvVar) (acc : ListContainerEnvVar) =>
+  match xs as self in ListContainerEnvVar return ListContainerEnvVar with | listContainerEnvVarNil => acc | listContainerEnvVarCons h t => listContainerEnvVarReverseOnto t (listContainerEnvVarCons h acc)
+
+def listContainerEnvVarReverse : ListContainerEnvVar -> ListContainerEnvVar := fun (xs : ListContainerEnvVar) => listContainerEnvVarReverseOnto xs listContainerEnvVarNil
+
+def listContainerEnvVarAppend : ListContainerEnvVar -> ListContainerEnvVar -> ListContainerEnvVar := fun (xs : ListContainerEnvVar) (ys : ListContainerEnvVar) => listContainerEnvVarReverseOnto (listContainerEnvVarReverse xs) ys
+
+def rec listContainerEnvVarFold : (0 B : Type 0) -> ListContainerEnvVar -> B -> (B -> ContainerEnvVar -> B) -> B :=
+  fun (0 B : Type 0) (xs : ListContainerEnvVar) (acc : B) (step : B -> ContainerEnvVar -> B) =>
+  match xs as self in ListContainerEnvVar return B with | listContainerEnvVarNil => acc | listContainerEnvVarCons h t => listContainerEnvVarFold B t (step acc h) step
+
+def rec listContainerEnvVarFind : ListContainerEnvVar -> (ContainerEnvVar -> Bool) -> Option (ContainerEnvVar) := fun (xs : ListContainerEnvVar) (p : ContainerEnvVar -> Bool) =>
+  match xs as self in ListContainerEnvVar return Option (ContainerEnvVar) with | listContainerEnvVarNil => none (ContainerEnvVar)
+  | listContainerEnvVarCons h t => (case (p h) with | 1 (u : Unit) => some (ContainerEnvVar) h | 0 (u : Unit) => listContainerEnvVarFind t p)
+
+def listContainerEnvVarEvery : ListContainerEnvVar -> (ContainerEnvVar -> Bool) -> Bool := fun (xs : ListContainerEnvVar) (p : ContainerEnvVar -> Bool) =>
+  boolNot (optionIsSome (ContainerEnvVar) (listContainerEnvVarFind xs (fun (x : ContainerEnvVar) => boolNot (p x))))
+
+def listContainerEnvVarFilter : ListContainerEnvVar -> (ContainerEnvVar -> Bool) -> ListContainerEnvVar := fun (xs : ListContainerEnvVar) (p : ContainerEnvVar -> Bool) =>
+  listContainerEnvVarReverse (listContainerEnvVarFold ListContainerEnvVar xs listContainerEnvVarNil (fun (acc : ListContainerEnvVar) (h : ContainerEnvVar) => select ListContainerEnvVar (p h) (listContainerEnvVarCons h acc) acc))
+
+def listContainerEnvVarMap : ListContainerEnvVar -> (ContainerEnvVar -> ContainerEnvVar) -> ListContainerEnvVar := fun (xs : ListContainerEnvVar) (g : ContainerEnvVar -> ContainerEnvVar) =>
+  listContainerEnvVarReverse (listContainerEnvVarFold ListContainerEnvVar xs listContainerEnvVarNil (fun (acc : ListContainerEnvVar) (h : ContainerEnvVar) => listContainerEnvVarCons (g h) acc))
+
+def rec listContainerContainerPortReverseOnto : ListContainerContainerPort -> ListContainerContainerPort -> ListContainerContainerPort := fun (xs : ListContainerContainerPort) (acc : ListContainerContainerPort) =>
+  match xs as self in ListContainerContainerPort return ListContainerContainerPort with | listContainerContainerPortNil => acc | listContainerContainerPortCons h t => listContainerContainerPortReverseOnto t (listContainerContainerPortCons h acc)
+
+def listContainerContainerPortReverse : ListContainerContainerPort -> ListContainerContainerPort := fun (xs : ListContainerContainerPort) => listContainerContainerPortReverseOnto xs listContainerContainerPortNil
+
+def listContainerContainerPortAppend : ListContainerContainerPort -> ListContainerContainerPort -> ListContainerContainerPort := fun (xs : ListContainerContainerPort) (ys : ListContainerContainerPort) => listContainerContainerPortReverseOnto (listContainerContainerPortReverse xs) ys
+
+def rec listContainerContainerPortFold : (0 B : Type 0) -> ListContainerContainerPort -> B -> (B -> ContainerContainerPort -> B) -> B :=
+  fun (0 B : Type 0) (xs : ListContainerContainerPort) (acc : B) (step : B -> ContainerContainerPort -> B) =>
+  match xs as self in ListContainerContainerPort return B with | listContainerContainerPortNil => acc | listContainerContainerPortCons h t => listContainerContainerPortFold B t (step acc h) step
+
+def rec listContainerContainerPortFind : ListContainerContainerPort -> (ContainerContainerPort -> Bool) -> Option (ContainerContainerPort) := fun (xs : ListContainerContainerPort) (p : ContainerContainerPort -> Bool) =>
+  match xs as self in ListContainerContainerPort return Option (ContainerContainerPort) with | listContainerContainerPortNil => none (ContainerContainerPort)
+  | listContainerContainerPortCons h t => (case (p h) with | 1 (u : Unit) => some (ContainerContainerPort) h | 0 (u : Unit) => listContainerContainerPortFind t p)
+
+def listContainerContainerPortEvery : ListContainerContainerPort -> (ContainerContainerPort -> Bool) -> Bool := fun (xs : ListContainerContainerPort) (p : ContainerContainerPort -> Bool) =>
+  boolNot (optionIsSome (ContainerContainerPort) (listContainerContainerPortFind xs (fun (x : ContainerContainerPort) => boolNot (p x))))
+
+def listContainerContainerPortFilter : ListContainerContainerPort -> (ContainerContainerPort -> Bool) -> ListContainerContainerPort := fun (xs : ListContainerContainerPort) (p : ContainerContainerPort -> Bool) =>
+  listContainerContainerPortReverse (listContainerContainerPortFold ListContainerContainerPort xs listContainerContainerPortNil (fun (acc : ListContainerContainerPort) (h : ContainerContainerPort) => select ListContainerContainerPort (p h) (listContainerContainerPortCons h acc) acc))
+
+def listContainerContainerPortMap : ListContainerContainerPort -> (ContainerContainerPort -> ContainerContainerPort) -> ListContainerContainerPort := fun (xs : ListContainerContainerPort) (g : ContainerContainerPort -> ContainerContainerPort) =>
+  listContainerContainerPortReverse (listContainerContainerPortFold ListContainerContainerPort xs listContainerContainerPortNil (fun (acc : ListContainerContainerPort) (h : ContainerContainerPort) => listContainerContainerPortCons (g h) acc))
+
+def rec listContainerVolumeMountReverseOnto : ListContainerVolumeMount -> ListContainerVolumeMount -> ListContainerVolumeMount := fun (xs : ListContainerVolumeMount) (acc : ListContainerVolumeMount) =>
+  match xs as self in ListContainerVolumeMount return ListContainerVolumeMount with | listContainerVolumeMountNil => acc | listContainerVolumeMountCons h t => listContainerVolumeMountReverseOnto t (listContainerVolumeMountCons h acc)
+
+def listContainerVolumeMountReverse : ListContainerVolumeMount -> ListContainerVolumeMount := fun (xs : ListContainerVolumeMount) => listContainerVolumeMountReverseOnto xs listContainerVolumeMountNil
+
+def listContainerVolumeMountAppend : ListContainerVolumeMount -> ListContainerVolumeMount -> ListContainerVolumeMount := fun (xs : ListContainerVolumeMount) (ys : ListContainerVolumeMount) => listContainerVolumeMountReverseOnto (listContainerVolumeMountReverse xs) ys
+
+def rec listContainerVolumeMountFold : (0 B : Type 0) -> ListContainerVolumeMount -> B -> (B -> ContainerVolumeMount -> B) -> B :=
+  fun (0 B : Type 0) (xs : ListContainerVolumeMount) (acc : B) (step : B -> ContainerVolumeMount -> B) =>
+  match xs as self in ListContainerVolumeMount return B with | listContainerVolumeMountNil => acc | listContainerVolumeMountCons h t => listContainerVolumeMountFold B t (step acc h) step
+
+def rec listContainerVolumeMountFind : ListContainerVolumeMount -> (ContainerVolumeMount -> Bool) -> Option (ContainerVolumeMount) := fun (xs : ListContainerVolumeMount) (p : ContainerVolumeMount -> Bool) =>
+  match xs as self in ListContainerVolumeMount return Option (ContainerVolumeMount) with | listContainerVolumeMountNil => none (ContainerVolumeMount)
+  | listContainerVolumeMountCons h t => (case (p h) with | 1 (u : Unit) => some (ContainerVolumeMount) h | 0 (u : Unit) => listContainerVolumeMountFind t p)
+
+def listContainerVolumeMountEvery : ListContainerVolumeMount -> (ContainerVolumeMount -> Bool) -> Bool := fun (xs : ListContainerVolumeMount) (p : ContainerVolumeMount -> Bool) =>
+  boolNot (optionIsSome (ContainerVolumeMount) (listContainerVolumeMountFind xs (fun (x : ContainerVolumeMount) => boolNot (p x))))
+
+def listContainerVolumeMountFilter : ListContainerVolumeMount -> (ContainerVolumeMount -> Bool) -> ListContainerVolumeMount := fun (xs : ListContainerVolumeMount) (p : ContainerVolumeMount -> Bool) =>
+  listContainerVolumeMountReverse (listContainerVolumeMountFold ListContainerVolumeMount xs listContainerVolumeMountNil (fun (acc : ListContainerVolumeMount) (h : ContainerVolumeMount) => select ListContainerVolumeMount (p h) (listContainerVolumeMountCons h acc) acc))
+
+def listContainerVolumeMountMap : ListContainerVolumeMount -> (ContainerVolumeMount -> ContainerVolumeMount) -> ListContainerVolumeMount := fun (xs : ListContainerVolumeMount) (g : ContainerVolumeMount -> ContainerVolumeMount) =>
+  listContainerVolumeMountReverse (listContainerVolumeMountFold ListContainerVolumeMount xs listContainerVolumeMountNil (fun (acc : ListContainerVolumeMount) (h : ContainerVolumeMount) => listContainerVolumeMountCons (g h) acc))
+
+def rec listContainerTReverseOnto : ListContainerT -> ListContainerT -> ListContainerT := fun (xs : ListContainerT) (acc : ListContainerT) =>
+  match xs as self in ListContainerT return ListContainerT with | listContainerTNil => acc | listContainerTCons h t => listContainerTReverseOnto t (listContainerTCons h acc)
+
+def listContainerTReverse : ListContainerT -> ListContainerT := fun (xs : ListContainerT) => listContainerTReverseOnto xs listContainerTNil
+
+def listContainerTAppend : ListContainerT -> ListContainerT -> ListContainerT := fun (xs : ListContainerT) (ys : ListContainerT) => listContainerTReverseOnto (listContainerTReverse xs) ys
+
+def rec listContainerTFold : (0 B : Type 0) -> ListContainerT -> B -> (B -> ContainerT -> B) -> B :=
+  fun (0 B : Type 0) (xs : ListContainerT) (acc : B) (step : B -> ContainerT -> B) =>
+  match xs as self in ListContainerT return B with | listContainerTNil => acc | listContainerTCons h t => listContainerTFold B t (step acc h) step
+
+def rec listContainerTFind : ListContainerT -> (ContainerT -> Bool) -> Option (ContainerT) := fun (xs : ListContainerT) (p : ContainerT -> Bool) =>
+  match xs as self in ListContainerT return Option (ContainerT) with | listContainerTNil => none (ContainerT)
+  | listContainerTCons h t => (case (p h) with | 1 (u : Unit) => some (ContainerT) h | 0 (u : Unit) => listContainerTFind t p)
+
+def listContainerTEvery : ListContainerT -> (ContainerT -> Bool) -> Bool := fun (xs : ListContainerT) (p : ContainerT -> Bool) =>
+  boolNot (optionIsSome (ContainerT) (listContainerTFind xs (fun (x : ContainerT) => boolNot (p x))))
+
+def listContainerTFilter : ListContainerT -> (ContainerT -> Bool) -> ListContainerT := fun (xs : ListContainerT) (p : ContainerT -> Bool) =>
+  listContainerTReverse (listContainerTFold ListContainerT xs listContainerTNil (fun (acc : ListContainerT) (h : ContainerT) => select ListContainerT (p h) (listContainerTCons h acc) acc))
+
+def listContainerTMap : ListContainerT -> (ContainerT -> ContainerT) -> ListContainerT := fun (xs : ListContainerT) (g : ContainerT -> ContainerT) =>
+  listContainerTReverse (listContainerTFold ListContainerT xs listContainerTNil (fun (acc : ListContainerT) (h : ContainerT) => listContainerTCons (g h) acc))
+
+def rec listVolumeKeyToPathReverseOnto : ListVolumeKeyToPath -> ListVolumeKeyToPath -> ListVolumeKeyToPath := fun (xs : ListVolumeKeyToPath) (acc : ListVolumeKeyToPath) =>
+  match xs as self in ListVolumeKeyToPath return ListVolumeKeyToPath with | listVolumeKeyToPathNil => acc | listVolumeKeyToPathCons h t => listVolumeKeyToPathReverseOnto t (listVolumeKeyToPathCons h acc)
+
+def listVolumeKeyToPathReverse : ListVolumeKeyToPath -> ListVolumeKeyToPath := fun (xs : ListVolumeKeyToPath) => listVolumeKeyToPathReverseOnto xs listVolumeKeyToPathNil
+
+def listVolumeKeyToPathAppend : ListVolumeKeyToPath -> ListVolumeKeyToPath -> ListVolumeKeyToPath := fun (xs : ListVolumeKeyToPath) (ys : ListVolumeKeyToPath) => listVolumeKeyToPathReverseOnto (listVolumeKeyToPathReverse xs) ys
+
+def rec listVolumeKeyToPathFold : (0 B : Type 0) -> ListVolumeKeyToPath -> B -> (B -> VolumeKeyToPath -> B) -> B :=
+  fun (0 B : Type 0) (xs : ListVolumeKeyToPath) (acc : B) (step : B -> VolumeKeyToPath -> B) =>
+  match xs as self in ListVolumeKeyToPath return B with | listVolumeKeyToPathNil => acc | listVolumeKeyToPathCons h t => listVolumeKeyToPathFold B t (step acc h) step
+
+def rec listVolumeKeyToPathFind : ListVolumeKeyToPath -> (VolumeKeyToPath -> Bool) -> Option (VolumeKeyToPath) := fun (xs : ListVolumeKeyToPath) (p : VolumeKeyToPath -> Bool) =>
+  match xs as self in ListVolumeKeyToPath return Option (VolumeKeyToPath) with | listVolumeKeyToPathNil => none (VolumeKeyToPath)
+  | listVolumeKeyToPathCons h t => (case (p h) with | 1 (u : Unit) => some (VolumeKeyToPath) h | 0 (u : Unit) => listVolumeKeyToPathFind t p)
+
+def listVolumeKeyToPathEvery : ListVolumeKeyToPath -> (VolumeKeyToPath -> Bool) -> Bool := fun (xs : ListVolumeKeyToPath) (p : VolumeKeyToPath -> Bool) =>
+  boolNot (optionIsSome (VolumeKeyToPath) (listVolumeKeyToPathFind xs (fun (x : VolumeKeyToPath) => boolNot (p x))))
+
+def listVolumeKeyToPathFilter : ListVolumeKeyToPath -> (VolumeKeyToPath -> Bool) -> ListVolumeKeyToPath := fun (xs : ListVolumeKeyToPath) (p : VolumeKeyToPath -> Bool) =>
+  listVolumeKeyToPathReverse (listVolumeKeyToPathFold ListVolumeKeyToPath xs listVolumeKeyToPathNil (fun (acc : ListVolumeKeyToPath) (h : VolumeKeyToPath) => select ListVolumeKeyToPath (p h) (listVolumeKeyToPathCons h acc) acc))
+
+def listVolumeKeyToPathMap : ListVolumeKeyToPath -> (VolumeKeyToPath -> VolumeKeyToPath) -> ListVolumeKeyToPath := fun (xs : ListVolumeKeyToPath) (g : VolumeKeyToPath -> VolumeKeyToPath) =>
+  listVolumeKeyToPathReverse (listVolumeKeyToPathFold ListVolumeKeyToPath xs listVolumeKeyToPathNil (fun (acc : ListVolumeKeyToPath) (h : VolumeKeyToPath) => listVolumeKeyToPathCons (g h) acc))
+
+def rec listVolumeVolumeProjectionReverseOnto : ListVolumeVolumeProjection -> ListVolumeVolumeProjection -> ListVolumeVolumeProjection := fun (xs : ListVolumeVolumeProjection) (acc : ListVolumeVolumeProjection) =>
+  match xs as self in ListVolumeVolumeProjection return ListVolumeVolumeProjection with | listVolumeVolumeProjectionNil => acc | listVolumeVolumeProjectionCons h t => listVolumeVolumeProjectionReverseOnto t (listVolumeVolumeProjectionCons h acc)
+
+def listVolumeVolumeProjectionReverse : ListVolumeVolumeProjection -> ListVolumeVolumeProjection := fun (xs : ListVolumeVolumeProjection) => listVolumeVolumeProjectionReverseOnto xs listVolumeVolumeProjectionNil
+
+def listVolumeVolumeProjectionAppend : ListVolumeVolumeProjection -> ListVolumeVolumeProjection -> ListVolumeVolumeProjection := fun (xs : ListVolumeVolumeProjection) (ys : ListVolumeVolumeProjection) => listVolumeVolumeProjectionReverseOnto (listVolumeVolumeProjectionReverse xs) ys
+
+def rec listVolumeVolumeProjectionFold : (0 B : Type 0) -> ListVolumeVolumeProjection -> B -> (B -> VolumeVolumeProjection -> B) -> B :=
+  fun (0 B : Type 0) (xs : ListVolumeVolumeProjection) (acc : B) (step : B -> VolumeVolumeProjection -> B) =>
+  match xs as self in ListVolumeVolumeProjection return B with | listVolumeVolumeProjectionNil => acc | listVolumeVolumeProjectionCons h t => listVolumeVolumeProjectionFold B t (step acc h) step
+
+def rec listVolumeVolumeProjectionFind : ListVolumeVolumeProjection -> (VolumeVolumeProjection -> Bool) -> Option (VolumeVolumeProjection) := fun (xs : ListVolumeVolumeProjection) (p : VolumeVolumeProjection -> Bool) =>
+  match xs as self in ListVolumeVolumeProjection return Option (VolumeVolumeProjection) with | listVolumeVolumeProjectionNil => none (VolumeVolumeProjection)
+  | listVolumeVolumeProjectionCons h t => (case (p h) with | 1 (u : Unit) => some (VolumeVolumeProjection) h | 0 (u : Unit) => listVolumeVolumeProjectionFind t p)
+
+def listVolumeVolumeProjectionEvery : ListVolumeVolumeProjection -> (VolumeVolumeProjection -> Bool) -> Bool := fun (xs : ListVolumeVolumeProjection) (p : VolumeVolumeProjection -> Bool) =>
+  boolNot (optionIsSome (VolumeVolumeProjection) (listVolumeVolumeProjectionFind xs (fun (x : VolumeVolumeProjection) => boolNot (p x))))
+
+def listVolumeVolumeProjectionFilter : ListVolumeVolumeProjection -> (VolumeVolumeProjection -> Bool) -> ListVolumeVolumeProjection := fun (xs : ListVolumeVolumeProjection) (p : VolumeVolumeProjection -> Bool) =>
+  listVolumeVolumeProjectionReverse (listVolumeVolumeProjectionFold ListVolumeVolumeProjection xs listVolumeVolumeProjectionNil (fun (acc : ListVolumeVolumeProjection) (h : VolumeVolumeProjection) => select ListVolumeVolumeProjection (p h) (listVolumeVolumeProjectionCons h acc) acc))
+
+def listVolumeVolumeProjectionMap : ListVolumeVolumeProjection -> (VolumeVolumeProjection -> VolumeVolumeProjection) -> ListVolumeVolumeProjection := fun (xs : ListVolumeVolumeProjection) (g : VolumeVolumeProjection -> VolumeVolumeProjection) =>
+  listVolumeVolumeProjectionReverse (listVolumeVolumeProjectionFold ListVolumeVolumeProjection xs listVolumeVolumeProjectionNil (fun (acc : ListVolumeVolumeProjection) (h : VolumeVolumeProjection) => listVolumeVolumeProjectionCons (g h) acc))
+
+def rec listVolumeDownwardApiVolumeFileReverseOnto : ListVolumeDownwardApiVolumeFile -> ListVolumeDownwardApiVolumeFile -> ListVolumeDownwardApiVolumeFile := fun (xs : ListVolumeDownwardApiVolumeFile) (acc : ListVolumeDownwardApiVolumeFile) =>
+  match xs as self in ListVolumeDownwardApiVolumeFile return ListVolumeDownwardApiVolumeFile with | listVolumeDownwardApiVolumeFileNil => acc | listVolumeDownwardApiVolumeFileCons h t => listVolumeDownwardApiVolumeFileReverseOnto t (listVolumeDownwardApiVolumeFileCons h acc)
+
+def listVolumeDownwardApiVolumeFileReverse : ListVolumeDownwardApiVolumeFile -> ListVolumeDownwardApiVolumeFile := fun (xs : ListVolumeDownwardApiVolumeFile) => listVolumeDownwardApiVolumeFileReverseOnto xs listVolumeDownwardApiVolumeFileNil
+
+def listVolumeDownwardApiVolumeFileAppend : ListVolumeDownwardApiVolumeFile -> ListVolumeDownwardApiVolumeFile -> ListVolumeDownwardApiVolumeFile := fun (xs : ListVolumeDownwardApiVolumeFile) (ys : ListVolumeDownwardApiVolumeFile) => listVolumeDownwardApiVolumeFileReverseOnto (listVolumeDownwardApiVolumeFileReverse xs) ys
+
+def rec listVolumeDownwardApiVolumeFileFold : (0 B : Type 0) -> ListVolumeDownwardApiVolumeFile -> B -> (B -> VolumeDownwardApiVolumeFile -> B) -> B :=
+  fun (0 B : Type 0) (xs : ListVolumeDownwardApiVolumeFile) (acc : B) (step : B -> VolumeDownwardApiVolumeFile -> B) =>
+  match xs as self in ListVolumeDownwardApiVolumeFile return B with | listVolumeDownwardApiVolumeFileNil => acc | listVolumeDownwardApiVolumeFileCons h t => listVolumeDownwardApiVolumeFileFold B t (step acc h) step
+
+def rec listVolumeDownwardApiVolumeFileFind : ListVolumeDownwardApiVolumeFile -> (VolumeDownwardApiVolumeFile -> Bool) -> Option (VolumeDownwardApiVolumeFile) := fun (xs : ListVolumeDownwardApiVolumeFile) (p : VolumeDownwardApiVolumeFile -> Bool) =>
+  match xs as self in ListVolumeDownwardApiVolumeFile return Option (VolumeDownwardApiVolumeFile) with | listVolumeDownwardApiVolumeFileNil => none (VolumeDownwardApiVolumeFile)
+  | listVolumeDownwardApiVolumeFileCons h t => (case (p h) with | 1 (u : Unit) => some (VolumeDownwardApiVolumeFile) h | 0 (u : Unit) => listVolumeDownwardApiVolumeFileFind t p)
+
+def listVolumeDownwardApiVolumeFileEvery : ListVolumeDownwardApiVolumeFile -> (VolumeDownwardApiVolumeFile -> Bool) -> Bool := fun (xs : ListVolumeDownwardApiVolumeFile) (p : VolumeDownwardApiVolumeFile -> Bool) =>
+  boolNot (optionIsSome (VolumeDownwardApiVolumeFile) (listVolumeDownwardApiVolumeFileFind xs (fun (x : VolumeDownwardApiVolumeFile) => boolNot (p x))))
+
+def listVolumeDownwardApiVolumeFileFilter : ListVolumeDownwardApiVolumeFile -> (VolumeDownwardApiVolumeFile -> Bool) -> ListVolumeDownwardApiVolumeFile := fun (xs : ListVolumeDownwardApiVolumeFile) (p : VolumeDownwardApiVolumeFile -> Bool) =>
+  listVolumeDownwardApiVolumeFileReverse (listVolumeDownwardApiVolumeFileFold ListVolumeDownwardApiVolumeFile xs listVolumeDownwardApiVolumeFileNil (fun (acc : ListVolumeDownwardApiVolumeFile) (h : VolumeDownwardApiVolumeFile) => select ListVolumeDownwardApiVolumeFile (p h) (listVolumeDownwardApiVolumeFileCons h acc) acc))
+
+def listVolumeDownwardApiVolumeFileMap : ListVolumeDownwardApiVolumeFile -> (VolumeDownwardApiVolumeFile -> VolumeDownwardApiVolumeFile) -> ListVolumeDownwardApiVolumeFile := fun (xs : ListVolumeDownwardApiVolumeFile) (g : VolumeDownwardApiVolumeFile -> VolumeDownwardApiVolumeFile) =>
+  listVolumeDownwardApiVolumeFileReverse (listVolumeDownwardApiVolumeFileFold ListVolumeDownwardApiVolumeFile xs listVolumeDownwardApiVolumeFileNil (fun (acc : ListVolumeDownwardApiVolumeFile) (h : VolumeDownwardApiVolumeFile) => listVolumeDownwardApiVolumeFileCons (g h) acc))
+
+def rec listVolumeTReverseOnto : ListVolumeT -> ListVolumeT -> ListVolumeT := fun (xs : ListVolumeT) (acc : ListVolumeT) =>
+  match xs as self in ListVolumeT return ListVolumeT with | listVolumeTNil => acc | listVolumeTCons h t => listVolumeTReverseOnto t (listVolumeTCons h acc)
+
+def listVolumeTReverse : ListVolumeT -> ListVolumeT := fun (xs : ListVolumeT) => listVolumeTReverseOnto xs listVolumeTNil
+
+def listVolumeTAppend : ListVolumeT -> ListVolumeT -> ListVolumeT := fun (xs : ListVolumeT) (ys : ListVolumeT) => listVolumeTReverseOnto (listVolumeTReverse xs) ys
+
+def rec listVolumeTFold : (0 B : Type 0) -> ListVolumeT -> B -> (B -> VolumeT -> B) -> B :=
+  fun (0 B : Type 0) (xs : ListVolumeT) (acc : B) (step : B -> VolumeT -> B) =>
+  match xs as self in ListVolumeT return B with | listVolumeTNil => acc | listVolumeTCons h t => listVolumeTFold B t (step acc h) step
+
+def rec listVolumeTFind : ListVolumeT -> (VolumeT -> Bool) -> Option (VolumeT) := fun (xs : ListVolumeT) (p : VolumeT -> Bool) =>
+  match xs as self in ListVolumeT return Option (VolumeT) with | listVolumeTNil => none (VolumeT)
+  | listVolumeTCons h t => (case (p h) with | 1 (u : Unit) => some (VolumeT) h | 0 (u : Unit) => listVolumeTFind t p)
+
+def listVolumeTEvery : ListVolumeT -> (VolumeT -> Bool) -> Bool := fun (xs : ListVolumeT) (p : VolumeT -> Bool) =>
+  boolNot (optionIsSome (VolumeT) (listVolumeTFind xs (fun (x : VolumeT) => boolNot (p x))))
+
+def listVolumeTFilter : ListVolumeT -> (VolumeT -> Bool) -> ListVolumeT := fun (xs : ListVolumeT) (p : VolumeT -> Bool) =>
+  listVolumeTReverse (listVolumeTFold ListVolumeT xs listVolumeTNil (fun (acc : ListVolumeT) (h : VolumeT) => select ListVolumeT (p h) (listVolumeTCons h acc) acc))
+
+def listVolumeTMap : ListVolumeT -> (VolumeT -> VolumeT) -> ListVolumeT := fun (xs : ListVolumeT) (g : VolumeT -> VolumeT) =>
+  listVolumeTReverse (listVolumeTFold ListVolumeT xs listVolumeTNil (fun (acc : ListVolumeT) (h : VolumeT) => listVolumeTCons (g h) acc))
+
+def rec listTolerationTReverseOnto : ListTolerationT -> ListTolerationT -> ListTolerationT := fun (xs : ListTolerationT) (acc : ListTolerationT) =>
+  match xs as self in ListTolerationT return ListTolerationT with | listTolerationTNil => acc | listTolerationTCons h t => listTolerationTReverseOnto t (listTolerationTCons h acc)
+
+def listTolerationTReverse : ListTolerationT -> ListTolerationT := fun (xs : ListTolerationT) => listTolerationTReverseOnto xs listTolerationTNil
+
+def listTolerationTAppend : ListTolerationT -> ListTolerationT -> ListTolerationT := fun (xs : ListTolerationT) (ys : ListTolerationT) => listTolerationTReverseOnto (listTolerationTReverse xs) ys
+
+def rec listTolerationTFold : (0 B : Type 0) -> ListTolerationT -> B -> (B -> TolerationT -> B) -> B :=
+  fun (0 B : Type 0) (xs : ListTolerationT) (acc : B) (step : B -> TolerationT -> B) =>
+  match xs as self in ListTolerationT return B with | listTolerationTNil => acc | listTolerationTCons h t => listTolerationTFold B t (step acc h) step
+
+def rec listTolerationTFind : ListTolerationT -> (TolerationT -> Bool) -> Option (TolerationT) := fun (xs : ListTolerationT) (p : TolerationT -> Bool) =>
+  match xs as self in ListTolerationT return Option (TolerationT) with | listTolerationTNil => none (TolerationT)
+  | listTolerationTCons h t => (case (p h) with | 1 (u : Unit) => some (TolerationT) h | 0 (u : Unit) => listTolerationTFind t p)
+
+def listTolerationTEvery : ListTolerationT -> (TolerationT -> Bool) -> Bool := fun (xs : ListTolerationT) (p : TolerationT -> Bool) =>
+  boolNot (optionIsSome (TolerationT) (listTolerationTFind xs (fun (x : TolerationT) => boolNot (p x))))
+
+def listTolerationTFilter : ListTolerationT -> (TolerationT -> Bool) -> ListTolerationT := fun (xs : ListTolerationT) (p : TolerationT -> Bool) =>
+  listTolerationTReverse (listTolerationTFold ListTolerationT xs listTolerationTNil (fun (acc : ListTolerationT) (h : TolerationT) => select ListTolerationT (p h) (listTolerationTCons h acc) acc))
+
+def listTolerationTMap : ListTolerationT -> (TolerationT -> TolerationT) -> ListTolerationT := fun (xs : ListTolerationT) (g : TolerationT -> TolerationT) =>
+  listTolerationTReverse (listTolerationTFold ListTolerationT xs listTolerationTNil (fun (acc : ListTolerationT) (h : TolerationT) => listTolerationTCons (g h) acc))
+
+def rec listLocalObjectReferenceTReverseOnto : ListLocalObjectReferenceT -> ListLocalObjectReferenceT -> ListLocalObjectReferenceT := fun (xs : ListLocalObjectReferenceT) (acc : ListLocalObjectReferenceT) =>
+  match xs as self in ListLocalObjectReferenceT return ListLocalObjectReferenceT with | listLocalObjectReferenceTNil => acc | listLocalObjectReferenceTCons h t => listLocalObjectReferenceTReverseOnto t (listLocalObjectReferenceTCons h acc)
+
+def listLocalObjectReferenceTReverse : ListLocalObjectReferenceT -> ListLocalObjectReferenceT := fun (xs : ListLocalObjectReferenceT) => listLocalObjectReferenceTReverseOnto xs listLocalObjectReferenceTNil
+
+def listLocalObjectReferenceTAppend : ListLocalObjectReferenceT -> ListLocalObjectReferenceT -> ListLocalObjectReferenceT := fun (xs : ListLocalObjectReferenceT) (ys : ListLocalObjectReferenceT) => listLocalObjectReferenceTReverseOnto (listLocalObjectReferenceTReverse xs) ys
+
+def rec listLocalObjectReferenceTFold : (0 B : Type 0) -> ListLocalObjectReferenceT -> B -> (B -> LocalObjectReferenceT -> B) -> B :=
+  fun (0 B : Type 0) (xs : ListLocalObjectReferenceT) (acc : B) (step : B -> LocalObjectReferenceT -> B) =>
+  match xs as self in ListLocalObjectReferenceT return B with | listLocalObjectReferenceTNil => acc | listLocalObjectReferenceTCons h t => listLocalObjectReferenceTFold B t (step acc h) step
+
+def rec listLocalObjectReferenceTFind : ListLocalObjectReferenceT -> (LocalObjectReferenceT -> Bool) -> Option (LocalObjectReferenceT) := fun (xs : ListLocalObjectReferenceT) (p : LocalObjectReferenceT -> Bool) =>
+  match xs as self in ListLocalObjectReferenceT return Option (LocalObjectReferenceT) with | listLocalObjectReferenceTNil => none (LocalObjectReferenceT)
+  | listLocalObjectReferenceTCons h t => (case (p h) with | 1 (u : Unit) => some (LocalObjectReferenceT) h | 0 (u : Unit) => listLocalObjectReferenceTFind t p)
+
+def listLocalObjectReferenceTEvery : ListLocalObjectReferenceT -> (LocalObjectReferenceT -> Bool) -> Bool := fun (xs : ListLocalObjectReferenceT) (p : LocalObjectReferenceT -> Bool) =>
+  boolNot (optionIsSome (LocalObjectReferenceT) (listLocalObjectReferenceTFind xs (fun (x : LocalObjectReferenceT) => boolNot (p x))))
+
+def listLocalObjectReferenceTFilter : ListLocalObjectReferenceT -> (LocalObjectReferenceT -> Bool) -> ListLocalObjectReferenceT := fun (xs : ListLocalObjectReferenceT) (p : LocalObjectReferenceT -> Bool) =>
+  listLocalObjectReferenceTReverse (listLocalObjectReferenceTFold ListLocalObjectReferenceT xs listLocalObjectReferenceTNil (fun (acc : ListLocalObjectReferenceT) (h : LocalObjectReferenceT) => select ListLocalObjectReferenceT (p h) (listLocalObjectReferenceTCons h acc) acc))
+
+def listLocalObjectReferenceTMap : ListLocalObjectReferenceT -> (LocalObjectReferenceT -> LocalObjectReferenceT) -> ListLocalObjectReferenceT := fun (xs : ListLocalObjectReferenceT) (g : LocalObjectReferenceT -> LocalObjectReferenceT) =>
+  listLocalObjectReferenceTReverse (listLocalObjectReferenceTFold ListLocalObjectReferenceT xs listLocalObjectReferenceTNil (fun (acc : ListLocalObjectReferenceT) (h : LocalObjectReferenceT) => listLocalObjectReferenceTCons (g h) acc))
+
+def rec listPersistentVolumeClaimTReverseOnto : ListPersistentVolumeClaimT -> ListPersistentVolumeClaimT -> ListPersistentVolumeClaimT := fun (xs : ListPersistentVolumeClaimT) (acc : ListPersistentVolumeClaimT) =>
+  match xs as self in ListPersistentVolumeClaimT return ListPersistentVolumeClaimT with | listPersistentVolumeClaimTNil => acc | listPersistentVolumeClaimTCons h t => listPersistentVolumeClaimTReverseOnto t (listPersistentVolumeClaimTCons h acc)
+
+def listPersistentVolumeClaimTReverse : ListPersistentVolumeClaimT -> ListPersistentVolumeClaimT := fun (xs : ListPersistentVolumeClaimT) => listPersistentVolumeClaimTReverseOnto xs listPersistentVolumeClaimTNil
+
+def listPersistentVolumeClaimTAppend : ListPersistentVolumeClaimT -> ListPersistentVolumeClaimT -> ListPersistentVolumeClaimT := fun (xs : ListPersistentVolumeClaimT) (ys : ListPersistentVolumeClaimT) => listPersistentVolumeClaimTReverseOnto (listPersistentVolumeClaimTReverse xs) ys
+
+def rec listPersistentVolumeClaimTFold : (0 B : Type 0) -> ListPersistentVolumeClaimT -> B -> (B -> PersistentVolumeClaimT -> B) -> B :=
+  fun (0 B : Type 0) (xs : ListPersistentVolumeClaimT) (acc : B) (step : B -> PersistentVolumeClaimT -> B) =>
+  match xs as self in ListPersistentVolumeClaimT return B with | listPersistentVolumeClaimTNil => acc | listPersistentVolumeClaimTCons h t => listPersistentVolumeClaimTFold B t (step acc h) step
+
+def rec listPersistentVolumeClaimTFind : ListPersistentVolumeClaimT -> (PersistentVolumeClaimT -> Bool) -> Option (PersistentVolumeClaimT) := fun (xs : ListPersistentVolumeClaimT) (p : PersistentVolumeClaimT -> Bool) =>
+  match xs as self in ListPersistentVolumeClaimT return Option (PersistentVolumeClaimT) with | listPersistentVolumeClaimTNil => none (PersistentVolumeClaimT)
+  | listPersistentVolumeClaimTCons h t => (case (p h) with | 1 (u : Unit) => some (PersistentVolumeClaimT) h | 0 (u : Unit) => listPersistentVolumeClaimTFind t p)
+
+def listPersistentVolumeClaimTEvery : ListPersistentVolumeClaimT -> (PersistentVolumeClaimT -> Bool) -> Bool := fun (xs : ListPersistentVolumeClaimT) (p : PersistentVolumeClaimT -> Bool) =>
+  boolNot (optionIsSome (PersistentVolumeClaimT) (listPersistentVolumeClaimTFind xs (fun (x : PersistentVolumeClaimT) => boolNot (p x))))
+
+def listPersistentVolumeClaimTFilter : ListPersistentVolumeClaimT -> (PersistentVolumeClaimT -> Bool) -> ListPersistentVolumeClaimT := fun (xs : ListPersistentVolumeClaimT) (p : PersistentVolumeClaimT -> Bool) =>
+  listPersistentVolumeClaimTReverse (listPersistentVolumeClaimTFold ListPersistentVolumeClaimT xs listPersistentVolumeClaimTNil (fun (acc : ListPersistentVolumeClaimT) (h : PersistentVolumeClaimT) => select ListPersistentVolumeClaimT (p h) (listPersistentVolumeClaimTCons h acc) acc))
+
+def listPersistentVolumeClaimTMap : ListPersistentVolumeClaimT -> (PersistentVolumeClaimT -> PersistentVolumeClaimT) -> ListPersistentVolumeClaimT := fun (xs : ListPersistentVolumeClaimT) (g : PersistentVolumeClaimT -> PersistentVolumeClaimT) =>
+  listPersistentVolumeClaimTReverse (listPersistentVolumeClaimTFold ListPersistentVolumeClaimT xs listPersistentVolumeClaimTNil (fun (acc : ListPersistentVolumeClaimT) (h : PersistentVolumeClaimT) => listPersistentVolumeClaimTCons (g h) acc))
+
+def rec listVreplicaSetTReverseOnto : ListVreplicaSetT -> ListVreplicaSetT -> ListVreplicaSetT := fun (xs : ListVreplicaSetT) (acc : ListVreplicaSetT) =>
+  match xs as self in ListVreplicaSetT return ListVreplicaSetT with | listVreplicaSetTNil => acc | listVreplicaSetTCons h t => listVreplicaSetTReverseOnto t (listVreplicaSetTCons h acc)
+
+def listVreplicaSetTReverse : ListVreplicaSetT -> ListVreplicaSetT := fun (xs : ListVreplicaSetT) => listVreplicaSetTReverseOnto xs listVreplicaSetTNil
+
+def listVreplicaSetTAppend : ListVreplicaSetT -> ListVreplicaSetT -> ListVreplicaSetT := fun (xs : ListVreplicaSetT) (ys : ListVreplicaSetT) => listVreplicaSetTReverseOnto (listVreplicaSetTReverse xs) ys
+
+def rec listVreplicaSetTFold : (0 B : Type 0) -> ListVreplicaSetT -> B -> (B -> VreplicaSetT -> B) -> B :=
+  fun (0 B : Type 0) (xs : ListVreplicaSetT) (acc : B) (step : B -> VreplicaSetT -> B) =>
+  match xs as self in ListVreplicaSetT return B with | listVreplicaSetTNil => acc | listVreplicaSetTCons h t => listVreplicaSetTFold B t (step acc h) step
+
+def rec listVreplicaSetTFind : ListVreplicaSetT -> (VreplicaSetT -> Bool) -> Option (VreplicaSetT) := fun (xs : ListVreplicaSetT) (p : VreplicaSetT -> Bool) =>
+  match xs as self in ListVreplicaSetT return Option (VreplicaSetT) with | listVreplicaSetTNil => none (VreplicaSetT)
+  | listVreplicaSetTCons h t => (case (p h) with | 1 (u : Unit) => some (VreplicaSetT) h | 0 (u : Unit) => listVreplicaSetTFind t p)
+
+def listVreplicaSetTEvery : ListVreplicaSetT -> (VreplicaSetT -> Bool) -> Bool := fun (xs : ListVreplicaSetT) (p : VreplicaSetT -> Bool) =>
+  boolNot (optionIsSome (VreplicaSetT) (listVreplicaSetTFind xs (fun (x : VreplicaSetT) => boolNot (p x))))
+
+def listVreplicaSetTFilter : ListVreplicaSetT -> (VreplicaSetT -> Bool) -> ListVreplicaSetT := fun (xs : ListVreplicaSetT) (p : VreplicaSetT -> Bool) =>
+  listVreplicaSetTReverse (listVreplicaSetTFold ListVreplicaSetT xs listVreplicaSetTNil (fun (acc : ListVreplicaSetT) (h : VreplicaSetT) => select ListVreplicaSetT (p h) (listVreplicaSetTCons h acc) acc))
+
+def listVreplicaSetTMap : ListVreplicaSetT -> (VreplicaSetT -> VreplicaSetT) -> ListVreplicaSetT := fun (xs : ListVreplicaSetT) (g : VreplicaSetT -> VreplicaSetT) =>
+  listVreplicaSetTReverse (listVreplicaSetTFold ListVreplicaSetT xs listVreplicaSetTNil (fun (acc : ListVreplicaSetT) (h : VreplicaSetT) => listVreplicaSetTCons (g h) acc))
+
+def rec listOptionPodTReverseOnto : ListOptionPodT -> ListOptionPodT -> ListOptionPodT := fun (xs : ListOptionPodT) (acc : ListOptionPodT) =>
+  match xs as self in ListOptionPodT return ListOptionPodT with | listOptionPodTNil => acc | listOptionPodTCons h t => listOptionPodTReverseOnto t (listOptionPodTCons h acc)
+
+def listOptionPodTReverse : ListOptionPodT -> ListOptionPodT := fun (xs : ListOptionPodT) => listOptionPodTReverseOnto xs listOptionPodTNil
+
+def listOptionPodTAppend : ListOptionPodT -> ListOptionPodT -> ListOptionPodT := fun (xs : ListOptionPodT) (ys : ListOptionPodT) => listOptionPodTReverseOnto (listOptionPodTReverse xs) ys
+
+def rec listOptionPodTFold : (0 B : Type 0) -> ListOptionPodT -> B -> (B -> Option (PodT) -> B) -> B :=
+  fun (0 B : Type 0) (xs : ListOptionPodT) (acc : B) (step : B -> Option (PodT) -> B) =>
+  match xs as self in ListOptionPodT return B with | listOptionPodTNil => acc | listOptionPodTCons h t => listOptionPodTFold B t (step acc h) step
+
+def rec listOptionPodTFind : ListOptionPodT -> (Option (PodT) -> Bool) -> Option (Option (PodT)) := fun (xs : ListOptionPodT) (p : Option (PodT) -> Bool) =>
+  match xs as self in ListOptionPodT return Option (Option (PodT)) with | listOptionPodTNil => none (Option (PodT))
+  | listOptionPodTCons h t => (case (p h) with | 1 (u : Unit) => some (Option (PodT)) h | 0 (u : Unit) => listOptionPodTFind t p)
+
+def listOptionPodTEvery : ListOptionPodT -> (Option (PodT) -> Bool) -> Bool := fun (xs : ListOptionPodT) (p : Option (PodT) -> Bool) =>
+  boolNot (optionIsSome (Option (PodT)) (listOptionPodTFind xs (fun (x : Option (PodT)) => boolNot (p x))))
+
+def listOptionPodTFilter : ListOptionPodT -> (Option (PodT) -> Bool) -> ListOptionPodT := fun (xs : ListOptionPodT) (p : Option (PodT) -> Bool) =>
+  listOptionPodTReverse (listOptionPodTFold ListOptionPodT xs listOptionPodTNil (fun (acc : ListOptionPodT) (h : Option (PodT)) => select ListOptionPodT (p h) (listOptionPodTCons h acc) acc))
+
+def listOptionPodTMap : ListOptionPodT -> (Option (PodT) -> Option (PodT)) -> ListOptionPodT := fun (xs : ListOptionPodT) (g : Option (PodT) -> Option (PodT)) =>
+  listOptionPodTReverse (listOptionPodTFold ListOptionPodT xs listOptionPodTNil (fun (acc : ListOptionPodT) (h : Option (PodT)) => listOptionPodTCons (g h) acc))
+
+def rec listPodTReverseOnto : ListPodT -> ListPodT -> ListPodT := fun (xs : ListPodT) (acc : ListPodT) =>
+  match xs as self in ListPodT return ListPodT with | listPodTNil => acc | listPodTCons h t => listPodTReverseOnto t (listPodTCons h acc)
+
+def listPodTReverse : ListPodT -> ListPodT := fun (xs : ListPodT) => listPodTReverseOnto xs listPodTNil
+
+def listPodTAppend : ListPodT -> ListPodT -> ListPodT := fun (xs : ListPodT) (ys : ListPodT) => listPodTReverseOnto (listPodTReverse xs) ys
+
+def rec listPodTFold : (0 B : Type 0) -> ListPodT -> B -> (B -> PodT -> B) -> B :=
+  fun (0 B : Type 0) (xs : ListPodT) (acc : B) (step : B -> PodT -> B) =>
+  match xs as self in ListPodT return B with | listPodTNil => acc | listPodTCons h t => listPodTFold B t (step acc h) step
+
+def rec listPodTFind : ListPodT -> (PodT -> Bool) -> Option (PodT) := fun (xs : ListPodT) (p : PodT -> Bool) =>
+  match xs as self in ListPodT return Option (PodT) with | listPodTNil => none (PodT)
+  | listPodTCons h t => (case (p h) with | 1 (u : Unit) => some (PodT) h | 0 (u : Unit) => listPodTFind t p)
+
+def listPodTEvery : ListPodT -> (PodT -> Bool) -> Bool := fun (xs : ListPodT) (p : PodT -> Bool) =>
+  boolNot (optionIsSome (PodT) (listPodTFind xs (fun (x : PodT) => boolNot (p x))))
+
+def listPodTFilter : ListPodT -> (PodT -> Bool) -> ListPodT := fun (xs : ListPodT) (p : PodT -> Bool) =>
+  listPodTReverse (listPodTFold ListPodT xs listPodTNil (fun (acc : ListPodT) (h : PodT) => select ListPodT (p h) (listPodTCons h acc) acc))
+
+def listPodTMap : ListPodT -> (PodT -> PodT) -> ListPodT := fun (xs : ListPodT) (g : PodT -> PodT) =>
+  listPodTReverse (listPodTFold ListPodT xs listPodTNil (fun (acc : ListPodT) (h : PodT) => listPodTCons (g h) acc))

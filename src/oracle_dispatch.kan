@@ -1,0 +1,25 @@
+def oracleHandle : InstalledTypes -> Request -> ApiState -> ApiOutput := fun (it : InstalledTypes) (req : Request) (s : ApiState) =>
+  match req as self in ApiMethodApiRequest return ApiOutput with
+  | apiMethodApiRequestGetRequest r => tuple (s, makeResponseGet (oracleGet (apiMethodGetRequestKey r) s))
+  | apiMethodApiRequestListRequest r => tuple (s, makeResponseList (oracleList (apiMethodListRequestKind r) (apiMethodListRequestNamespace r) s))
+  | apiMethodApiRequestCreateRequest r =>
+    let result : ApiObjectOutput := oracleCreate it (apiMethodCreateRequestNamespace r) (apiMethodCreateRequestObj r) s in tuple (result.0, makeResponseCreate result.1)
+  | apiMethodApiRequestDeleteRequest r =>
+    let result : ApiDeleteOutput := oracleDelete (apiMethodDeleteRequestKey r) (apiMethodDeleteRequestPreconditions r) s in tuple (result.0, makeResponseDelete result.1)
+  | apiMethodApiRequestUpdateRequest r =>
+    let result : ApiObjectOutput := oracleUpdate it false (apiMethodUpdateRequestNamespace r) (apiMethodUpdateRequestName r) (apiMethodUpdateRequestObj r) s in tuple (result.0, makeResponseUpdate result.1)
+  | apiMethodApiRequestUpdateStatusRequest r =>
+    let result : ApiObjectOutput := oracleUpdate it true (apiMethodUpdateStatusRequestNamespace r) (apiMethodUpdateStatusRequestName r) (apiMethodUpdateStatusRequestObj r) s in tuple (result.0, makeResponseUpdateStatus result.1)
+  | apiMethodApiRequestGetThenDeleteRequest r =>
+    let result : ApiDeleteOutput := oracleGetThenDelete (apiMethodGetThenDeleteRequestKey r) (apiMethodGetThenDeleteRequestOwnerRef r) s in tuple (result.0, makeResponseGetThenDelete result.1)
+  | apiMethodApiRequestGetThenUpdateRequest r =>
+    let result : ApiObjectOutput := oracleGetThenUpdate it false (apiMethodGetThenUpdateRequestNamespace r) (apiMethodGetThenUpdateRequestName r) (apiMethodGetThenUpdateRequestOwnerRef r) (apiMethodGetThenUpdateRequestObj r) s in tuple (result.0, makeResponseGetThenUpdate result.1)
+  | apiMethodApiRequestGetThenUpdateStatusRequest r =>
+    let result : ApiObjectOutput := oracleGetThenUpdate it true (apiMethodGetThenUpdateStatusRequestNamespace r) (apiMethodGetThenUpdateStatusRequestName r) (apiMethodGetThenUpdateStatusRequestOwnerRef r) (apiMethodGetThenUpdateStatusRequestObj r) s in tuple (result.0, makeResponseGetThenUpdateStatus result.1)
+
+def oracleHandleMessage : InstalledTypes -> Message -> ApiState -> prod (ApiState, Message) := fun (it : InstalledTypes) (msg : Message) (s : ApiState) => match msg.3 as self in Content return prod (ApiState, Message) with
+  | contentRequest req => let out : ApiOutput := oracleHandle it req s in tuple (out.0, messageFormResponse msg out.1)
+  | contentResponse r => tuple (s, msg) | contentExternalRequest r => tuple (s, msg) | contentExternalResponse r => tuple (s, msg)
+def oracleAgrees : InstalledTypes -> Request -> ApiState -> Bool := fun (it : InstalledTypes) (req : Request) (s : ApiState) =>
+  let ref : ApiOutput := oracleHandle it req s in let actual : ApiOutput := apiHandle it req s in
+  boolAnd (apiStateEqual ref.0 actual.0) (apiMethodApiResponseEqual ref.1 actual.1)

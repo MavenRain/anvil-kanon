@@ -1,0 +1,20 @@
+-- Eventually stable reconciliation over resource-specific desired-state predicates.
+def desiredStateIs : CommonKind -> ObjectMetaT -> (DynamicObjectT -> Bool) -> ClusterState -> Bool :=
+  fun (kind : CommonKind) (md : ObjectMetaT) (sameSpec : DynamicObjectT -> Bool) (s : ClusterState) =>
+  boolAnd (optionIsSome Bytes (objectMetaTName md)) (boolAnd (optionIsSome Bytes (objectMetaTNamespace md))
+    (optionFold DynamicObjectT Bool false (fun (obj : DynamicObjectT) => let stored : ObjectMetaT := dynamicObjectTMetadata obj in
+      boolAnd (sameSpec obj) (boolAnd (optionEqual Int intEqual (objectMetaTUid stored) (objectMetaTUid md))
+        (boolNot (optionIsSome Bytes (objectMetaTDeletionTimestamp stored))))) (resourceStoreGet (assuranceRef kind md) s.0.0)))
+def vrsDesiredStateIs : Vrs -> ClusterState -> Bool := fun (cr : Vrs) => desiredStateIs vreplicaSetTKind (vreplicaSetTMetadata cr)
+  (fun (obj : DynamicObjectT) => optionFold Vrs Bool false (fun (v : Vrs) => vreplicaSetVrsSpecEqual (vreplicaSetTSpec cr) (vreplicaSetTSpec v)) (resultToOption Vrs (vreplicaSetTUnmarshal obj)))
+def vstsDesiredStateIs : Stateful -> ClusterState -> Bool := fun (cr : Stateful) => desiredStateIs vStatefulSetTKind (vStatefulSetTMetadata cr)
+  (fun (obj : DynamicObjectT) => optionFold Stateful Bool false (fun (v : Stateful) => statefulSetSsSpecEqual (vStatefulSetTSpec cr) (vStatefulSetTSpec v)) (resultToOption Stateful (vStatefulSetTUnmarshal obj)))
+def esrKeyName : CommonKind -> ObjectMetaT -> Bytes := fun (kind : CommonKind) (md : ObjectMetaT) =>
+  select Bytes (boolAnd (optionIsSome Bytes (objectMetaTName md)) (optionIsSome Bytes (objectMetaTNamespace md)))
+    (bytesAppend (optionValue Bytes b"" (objectMetaTName md)) (bytesAppend b"/" (optionValue Bytes b"" (objectMetaTNamespace md)))) b"unkeyed"
+def esrPerCr : Bytes -> (ClusterState -> Bool) -> (ClusterState -> Bool) -> Formula ClusterState := fun (key : Bytes) (desired : ClusterState -> Bool) (matches : ClusterState -> Bool) =>
+  formulaLeadsTo ClusterState (formulaAlways ClusterState (formulaState ClusterState (bytesAppend b"desired[" (bytesAppend key b"]")) desired))
+    (formulaAlways ClusterState (formulaState ClusterState (bytesAppend b"matches[" (bytesAppend key b"]")) matches))
+def esrAll : (0 A : Type 0) -> Sequence A -> (A -> Bytes) -> (A -> ClusterState -> Bool) -> (A -> ClusterState -> Bool) -> Formula ClusterState :=
+  fun (0 A : Type 0) (crs : Sequence A) (key : A -> Bytes) (desired : A -> ClusterState -> Bool) (matches : A -> ClusterState -> Bool) =>
+  sequenceFold A (Formula ClusterState) crs (formulaTrue ClusterState) (fun (acc : Formula ClusterState) (cr : A) => formulaConj ClusterState acc (esrPerCr (key cr) (desired cr) (matches cr)))

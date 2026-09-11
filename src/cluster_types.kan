@@ -1,0 +1,73 @@
+-- Source cluster records, with stateless unit hosts erased.
+def ExternalProgram : Type 0 := prod (Value, (Value -> Value -> ResourceStore -> prod (Value, Value)))
+def ControllerBundle : Type 0 := prod (ControllerProgram, Option ExternalProgram)
+def Actor : Type 0 := prod (ControllerState, Option Value, Bool)
+def actorEqual : Actor -> Actor -> Bool := fun (a : Actor) (b : Actor) => boolAnd (controllerStateEqual a.0 b.0) (boolAnd (optionEqual Value valueEqual a.1 b.1) (boolEqual a.2 b.2))
+
+mu ActorMap : Type 0 := | actorMapNil : ActorMap | actorMapCons (key : Int) (value : Actor) (tail : ActorMap) : ActorMap
+def rec actorMapGet : Int -> ActorMap -> Option Actor := fun (key : Int) (s : ActorMap) =>
+  match s as self in ActorMap return Option Actor with | actorMapNil => none Actor
+  | actorMapCons k v t => (case (intEqual key k) with | 1 (u : Unit) => some Actor v | 0 (u : Unit) => actorMapGet key t)
+def rec actorMapSet : Int -> Actor -> ActorMap -> ActorMap := fun (key : Int) (value : Actor) (s : ActorMap) =>
+  match s as self in ActorMap return ActorMap with | actorMapNil => actorMapCons key value actorMapNil
+  | actorMapCons k v t => (case (intEqual key k) with | 1 (u : Unit) => actorMapCons key value t
+    | 0 (u : Unit) => (case (intLess key k) with | 1 (u : Unit) => actorMapCons key value s | 0 (u : Unit) => actorMapCons k v (actorMapSet key value t)))
+def rec actorMapSize : ActorMap -> Nat := fun (s : ActorMap) => match s as self in ActorMap return Nat with
+  | actorMapNil => 0 | actorMapCons k v t => natAdd 1 (actorMapSize t)
+def rec actorMapFold : (0 A : Type 0) -> ActorMap -> A -> (Int -> Actor -> A -> A) -> A := fun (0 A : Type 0) (s : ActorMap) (acc : A) (f : Int -> Actor -> A -> A) =>
+  match s as self in ActorMap return A with | actorMapNil => acc | actorMapCons k v t => actorMapFold A t (f k v acc) f
+
+def rec actorMapEqual : ActorMap -> ActorMap -> Bool := fun (a : ActorMap) (b : ActorMap) =>
+  match a as self in ActorMap return Bool with | actorMapNil => natEq (actorMapSize b) 0
+  | actorMapCons k v t => (match b as self in ActorMap return Bool with | actorMapNil => false
+    | actorMapCons l w r => boolAnd (intEqual k l) (boolAnd (actorEqual v w) (actorMapEqual t r)))
+
+mu ModelMap : Type 0 := | modelMapNil : ModelMap | modelMapCons (key : Int) (value : ControllerBundle) (tail : ModelMap) : ModelMap
+def rec modelMapGet : Int -> ModelMap -> Option ControllerBundle := fun (key : Int) (s : ModelMap) =>
+  match s as self in ModelMap return Option ControllerBundle with | modelMapNil => none ControllerBundle
+  | modelMapCons k v t => (case (intEqual key k) with | 1 (u : Unit) => some ControllerBundle v | 0 (u : Unit) => modelMapGet key t)
+def rec modelMapSet : Int -> ControllerBundle -> ModelMap -> ModelMap := fun (key : Int) (value : ControllerBundle) (s : ModelMap) =>
+  match s as self in ModelMap return ModelMap with | modelMapNil => modelMapCons key value modelMapNil
+  | modelMapCons k v t => (case (intEqual key k) with | 1 (u : Unit) => modelMapCons key value t
+    | 0 (u : Unit) => (case (intLess key k) with | 1 (u : Unit) => modelMapCons key value s | 0 (u : Unit) => modelMapCons k v (modelMapSet key value t)))
+def rec modelMapSize : ModelMap -> Nat := fun (s : ModelMap) => match s as self in ModelMap return Nat with
+  | modelMapNil => 0 | modelMapCons k v t => natAdd 1 (modelMapSize t)
+def rec modelMapFold : (0 A : Type 0) -> ModelMap -> A -> (Int -> ControllerBundle -> A -> A) -> A := fun (0 A : Type 0) (s : ModelMap) (acc : A) (f : Int -> ControllerBundle -> A -> A) =>
+  match s as self in ModelMap return A with | modelMapNil => acc | modelMapCons k v t => modelMapFold A t (f k v acc) f
+
+def ClusterConfig : Type 0 := prod (InstalledTypes, ModelMap)
+def ClusterState : Type 0 := prod (ApiState, ActorMap, MessagePool, Int, Bool, Bool)
+def clusterStateEqual : ClusterState -> ClusterState -> Bool := fun (a : ClusterState) (b : ClusterState) =>
+  boolAnd (apiStateEqual a.0 b.0) (boolAnd (actorMapEqual a.1 b.1) (boolAnd (messagePoolEqual a.2 b.2)
+    (boolAnd (intEqual a.3 b.3) (boolAnd (boolEqual a.4 b.4) (boolEqual a.5 b.5)))))
+mu MonkeyStep : Type 0 := | monkeyCreate : MonkeyStep | monkeyUpdate : MonkeyStep | monkeyUpdateStatus : MonkeyStep | monkeyDelete : MonkeyStep
+mu ClusterStep : Type 0 :=
+| stepApi (recv : Option Message) : ClusterStep
+| stepBuiltin (key : CommonObjectRef) : ClusterStep
+| stepController (id : Int) (recv : Option Message) (key : Option CommonObjectRef) : ClusterStep
+| stepSchedule (id : Int) (key : CommonObjectRef) : ClusterStep
+| stepRestart (id : Int) : ClusterStep
+| stepDisableCrash (id : Int) : ClusterStep
+| stepDrop (msg : Message) (error : ApiError) : ClusterStep
+| stepDisableDrop : ClusterStep
+| stepMonkey (pod : PodT) : ClusterStep
+| stepDisableMonkey : ClusterStep
+| stepExternal (id : Int) (recv : Option Message) : ClusterStep
+| stepStutter : ClusterStep
+mu ClusterStates : Type 0 := | clusterStatesNil : ClusterStates | clusterStatesCons (state : ClusterState) (tail : ClusterStates) : ClusterStates
+def rec clusterStatesAppend : ClusterStates -> ClusterStates -> ClusterStates := fun (a : ClusterStates) (b : ClusterStates) => match a as self in ClusterStates return ClusterStates with
+  | clusterStatesNil => b | clusterStatesCons h t => clusterStatesCons h (clusterStatesAppend t b)
+def clusterStatesOption : Option ClusterState -> ClusterStates := fun (o : Option ClusterState) => optionFold ClusterState ClusterStates clusterStatesNil (fun (s : ClusterState) => clusterStatesCons s clusterStatesNil) o
+def rec clusterStatesContains : ClusterState -> ClusterStates -> Bool := fun (s : ClusterState) (xs : ClusterStates) => match xs as self in ClusterStates return Bool with
+  | clusterStatesNil => false | clusterStatesCons h t => boolOr (clusterStateEqual s h) (clusterStatesContains s t)
+mu Successors : Type 0 := | successorsNil : Successors | successorsCons (step : ClusterStep) (state : ClusterState) (tail : Successors) : Successors
+def rec successorsAppend : Successors -> Successors -> Successors := fun (a : Successors) (b : Successors) => match a as self in Successors return Successors with
+  | successorsNil => b | successorsCons step state tail => successorsCons step state (successorsAppend tail b)
+def rec successorsFor : ClusterStep -> ClusterStates -> Successors := fun (step : ClusterStep) (xs : ClusterStates) => match xs as self in ClusterStates return Successors with
+  | clusterStatesNil => successorsNil | clusterStatesCons h t => successorsCons step h (successorsFor step t)
+def rec successorsStates : Successors -> ClusterStates := fun (xs : Successors) => match xs as self in Successors return ClusterStates with
+  | successorsNil => clusterStatesNil | successorsCons step state tail => clusterStatesCons state (successorsStates tail)
+def rec successorsFold : (0 A : Type 0) -> Successors -> A -> (A -> ClusterStep -> ClusterState -> A) -> A := fun (0 A : Type 0) (xs : Successors) (acc : A) (f : A -> ClusterStep -> ClusterState -> A) =>
+  match xs as self in Successors return A with | successorsNil => acc | successorsCons step state tail => successorsFold A tail (f acc step state) f
+def Bound : Type 0 := prod (Int, Int, Int, Int, Int, Int, Int, ListPodT)
+def boundDefault : Bound := tuple (nonnegative 8, nonnegative 4, nonnegative 2, nonnegative 16, nonnegative 32, nonnegative 8, nonnegative 16, listPodTNil)

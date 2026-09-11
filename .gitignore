@@ -1,0 +1,5 @@
+build/
+.kanon-exec/
+.kanon-wait/
+node_modules/
+*.tmp

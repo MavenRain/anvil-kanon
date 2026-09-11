@@ -1,0 +1,4 @@
+(executable
+ (name port_oracle)
+ (libraries anvil_support anvil_k8s_objects anvil_controllers anvil_reconciler anvil_cluster anvil_checker anvil_assurance anvil_proof anvil_exec comp_cat yojson)
+ (flags (:standard -open Anvil_support -open Anvil_k8s_objects -open Anvil_controllers -open Anvil_reconciler -open Anvil_cluster -open Anvil_checker -open Anvil_assurance -open Anvil_proof -open Anvil_exec)))

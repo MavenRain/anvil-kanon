@@ -1,0 +1,1905 @@
+{
+  "AffinityT": {
+    "kind": "alias",
+    "source": "lib/k8s_objects/affinity.ml",
+    "type": "Ghost"
+  },
+  "ApiMethodApiError": {
+    "kind": "enum",
+    "source": "lib/k8s_objects/api_method.ml",
+    "variants": [
+      [
+        "Bad_request",
+        null
+      ],
+      [
+        "Conflict",
+        null
+      ],
+      [
+        "Forbidden",
+        null
+      ],
+      [
+        "Invalid",
+        null
+      ],
+      [
+        "Object_not_found",
+        null
+      ],
+      [
+        "Object_already_exists",
+        null
+      ],
+      [
+        "Not_supported",
+        null
+      ],
+      [
+        "Internal_error",
+        null
+      ],
+      [
+        "Timeout",
+        null
+      ],
+      [
+        "Server_timeout",
+        null
+      ],
+      [
+        "Transaction_abort",
+        null
+      ],
+      [
+        "Other",
+        null
+      ]
+    ]
+  },
+  "ApiMethodPreconditions": {
+    "kind": "record",
+    "source": "lib/k8s_objects/api_method.ml",
+    "module": "api_method",
+    "fields": [
+      [
+        "uid",
+        "Option (Int)"
+      ],
+      [
+        "resource_version",
+        "Option (Int)"
+      ]
+    ]
+  },
+  "CommonKind": {
+    "kind": "enum",
+    "source": "lib/k8s_objects/common.ml",
+    "variants": [
+      [
+        "Config_map",
+        null
+      ],
+      [
+        "Custom_resource",
+        "Bytes"
+      ],
+      [
+        "Daemon_set",
+        null
+      ],
+      [
+        "Persistent_volume_claim",
+        null
+      ],
+      [
+        "Pod",
+        null
+      ],
+      [
+        "Role",
+        null
+      ],
+      [
+        "Role_binding",
+        null
+      ],
+      [
+        "Stateful_set",
+        null
+      ],
+      [
+        "Service",
+        null
+      ],
+      [
+        "Service_account",
+        null
+      ],
+      [
+        "Secret",
+        null
+      ]
+    ]
+  },
+  "ApiMethodApiResource": {
+    "kind": "record",
+    "source": "lib/k8s_objects/api_method.ml",
+    "module": "api_method",
+    "fields": [
+      [
+        "kind",
+        "CommonKind"
+      ]
+    ]
+  },
+  "CommonObjectRef": {
+    "kind": "record",
+    "source": "lib/k8s_objects/common.ml",
+    "module": "common",
+    "fields": [
+      [
+        "kind",
+        "CommonKind"
+      ],
+      [
+        "name",
+        "Bytes"
+      ],
+      [
+        "namespace",
+        "Bytes"
+      ]
+    ]
+  },
+  "ApiMethodGetRequest": {
+    "kind": "record",
+    "source": "lib/k8s_objects/api_method.ml",
+    "module": "api_method",
+    "fields": [
+      [
+        "key",
+        "CommonObjectRef"
+      ]
+    ]
+  },
+  "ApiMethodListRequest": {
+    "kind": "record",
+    "source": "lib/k8s_objects/api_method.ml",
+    "module": "api_method",
+    "fields": [
+      [
+        "kind",
+        "CommonKind"
+      ],
+      [
+        "namespace",
+        "Bytes"
+      ]
+    ]
+  },
+  "OwnerReferenceT": {
+    "kind": "record",
+    "source": "lib/k8s_objects/owner_reference.ml",
+    "module": "owner_reference",
+    "fields": [
+      [
+        "block_owner_deletion",
+        "Option (Bool)"
+      ],
+      [
+        "controller",
+        "Option (Bool)"
+      ],
+      [
+        "kind",
+        "CommonKind"
+      ],
+      [
+        "name",
+        "Bytes"
+      ],
+      [
+        "uid",
+        "Int"
+      ]
+    ]
+  },
+  "ListOwnerReferenceT": {
+    "kind": "list",
+    "element": "OwnerReferenceT"
+  },
+  "ListBytes": {
+    "kind": "list",
+    "element": "Bytes"
+  },
+  "ObjectMetaT": {
+    "kind": "record",
+    "source": "lib/k8s_objects/object_meta.ml",
+    "module": "object_meta",
+    "fields": [
+      [
+        "name",
+        "Option (Bytes)"
+      ],
+      [
+        "generate_name",
+        "Option (Bytes)"
+      ],
+      [
+        "namespace",
+        "Option (Bytes)"
+      ],
+      [
+        "resource_version",
+        "Option (Int)"
+      ],
+      [
+        "uid",
+        "Option (Int)"
+      ],
+      [
+        "labels",
+        "Option (StringMap)"
+      ],
+      [
+        "annotations",
+        "Option (StringMap)"
+      ],
+      [
+        "owner_references",
+        "Option (ListOwnerReferenceT)"
+      ],
+      [
+        "finalizers",
+        "Option (ListBytes)"
+      ],
+      [
+        "deletion_timestamp",
+        "Option (Bytes)"
+      ]
+    ]
+  },
+  "DynamicObjectT": {
+    "kind": "record",
+    "source": "lib/k8s_objects/dynamic_object.ml",
+    "module": "dynamic_object",
+    "fields": [
+      [
+        "kind",
+        "CommonKind"
+      ],
+      [
+        "metadata",
+        "ObjectMetaT"
+      ],
+      [
+        "spec",
+        "Value"
+      ],
+      [
+        "status",
+        "Value"
+      ]
+    ]
+  },
+  "ApiMethodCreateRequest": {
+    "kind": "record",
+    "source": "lib/k8s_objects/api_method.ml",
+    "module": "api_method",
+    "fields": [
+      [
+        "namespace",
+        "Bytes"
+      ],
+      [
+        "obj",
+        "DynamicObjectT"
+      ]
+    ]
+  },
+  "ApiMethodDeleteRequest": {
+    "kind": "record",
+    "source": "lib/k8s_objects/api_method.ml",
+    "module": "api_method",
+    "fields": [
+      [
+        "key",
+        "CommonObjectRef"
+      ],
+      [
+        "preconditions",
+        "Option (ApiMethodPreconditions)"
+      ]
+    ]
+  },
+  "ApiMethodUpdateRequest": {
+    "kind": "record",
+    "source": "lib/k8s_objects/api_method.ml",
+    "module": "api_method",
+    "fields": [
+      [
+        "namespace",
+        "Bytes"
+      ],
+      [
+        "name",
+        "Bytes"
+      ],
+      [
+        "obj",
+        "DynamicObjectT"
+      ]
+    ]
+  },
+  "ApiMethodUpdateStatusRequest": {
+    "kind": "record",
+    "source": "lib/k8s_objects/api_method.ml",
+    "module": "api_method",
+    "fields": [
+      [
+        "namespace",
+        "Bytes"
+      ],
+      [
+        "name",
+        "Bytes"
+      ],
+      [
+        "obj",
+        "DynamicObjectT"
+      ]
+    ]
+  },
+  "ApiMethodGetThenDeleteRequest": {
+    "kind": "record",
+    "source": "lib/k8s_objects/api_method.ml",
+    "module": "api_method",
+    "fields": [
+      [
+        "key",
+        "CommonObjectRef"
+      ],
+      [
+        "owner_ref",
+        "OwnerReferenceT"
+      ]
+    ]
+  },
+  "ApiMethodGetThenUpdateRequest": {
+    "kind": "record",
+    "source": "lib/k8s_objects/api_method.ml",
+    "module": "api_method",
+    "fields": [
+      [
+        "namespace",
+        "Bytes"
+      ],
+      [
+        "name",
+        "Bytes"
+      ],
+      [
+        "owner_ref",
+        "OwnerReferenceT"
+      ],
+      [
+        "obj",
+        "DynamicObjectT"
+      ]
+    ]
+  },
+  "ApiMethodGetThenUpdateStatusRequest": {
+    "kind": "record",
+    "source": "lib/k8s_objects/api_method.ml",
+    "module": "api_method",
+    "fields": [
+      [
+        "namespace",
+        "Bytes"
+      ],
+      [
+        "name",
+        "Bytes"
+      ],
+      [
+        "owner_ref",
+        "OwnerReferenceT"
+      ],
+      [
+        "obj",
+        "DynamicObjectT"
+      ]
+    ]
+  },
+  "ApiMethodApiRequest": {
+    "kind": "enum",
+    "source": "lib/k8s_objects/api_method.ml",
+    "variants": [
+      [
+        "Get_request",
+        "ApiMethodGetRequest"
+      ],
+      [
+        "List_request",
+        "ApiMethodListRequest"
+      ],
+      [
+        "Create_request",
+        "ApiMethodCreateRequest"
+      ],
+      [
+        "Delete_request",
+        "ApiMethodDeleteRequest"
+      ],
+      [
+        "Update_request",
+        "ApiMethodUpdateRequest"
+      ],
+      [
+        "Update_status_request",
+        "ApiMethodUpdateStatusRequest"
+      ],
+      [
+        "Get_then_delete_request",
+        "ApiMethodGetThenDeleteRequest"
+      ],
+      [
+        "Get_then_update_request",
+        "ApiMethodGetThenUpdateRequest"
+      ],
+      [
+        "Get_then_update_status_request",
+        "ApiMethodGetThenUpdateStatusRequest"
+      ]
+    ]
+  },
+  "ApiMethodGetResponse": {
+    "kind": "record",
+    "source": "lib/k8s_objects/api_method.ml",
+    "module": "api_method",
+    "fields": [
+      [
+        "res",
+        "Either (ApiMethodApiError) (DynamicObjectT)"
+      ]
+    ]
+  },
+  "ListDynamicObjectT": {
+    "kind": "list",
+    "element": "DynamicObjectT"
+  },
+  "ApiMethodListResponse": {
+    "kind": "record",
+    "source": "lib/k8s_objects/api_method.ml",
+    "module": "api_method",
+    "fields": [
+      [
+        "res",
+        "Either (ApiMethodApiError) (ListDynamicObjectT)"
+      ]
+    ]
+  },
+  "ApiMethodCreateResponse": {
+    "kind": "record",
+    "source": "lib/k8s_objects/api_method.ml",
+    "module": "api_method",
+    "fields": [
+      [
+        "res",
+        "Either (ApiMethodApiError) (DynamicObjectT)"
+      ]
+    ]
+  },
+  "ApiMethodDeleteResponse": {
+    "kind": "record",
+    "source": "lib/k8s_objects/api_method.ml",
+    "module": "api_method",
+    "fields": [
+      [
+        "res",
+        "Either (ApiMethodApiError) (Ghost)"
+      ]
+    ]
+  },
+  "ApiMethodUpdateResponse": {
+    "kind": "record",
+    "source": "lib/k8s_objects/api_method.ml",
+    "module": "api_method",
+    "fields": [
+      [
+        "res",
+        "Either (ApiMethodApiError) (DynamicObjectT)"
+      ]
+    ]
+  },
+  "ApiMethodUpdateStatusResponse": {
+    "kind": "record",
+    "source": "lib/k8s_objects/api_method.ml",
+    "module": "api_method",
+    "fields": [
+      [
+        "res",
+        "Either (ApiMethodApiError) (DynamicObjectT)"
+      ]
+    ]
+  },
+  "ApiMethodGetThenDeleteResponse": {
+    "kind": "record",
+    "source": "lib/k8s_objects/api_method.ml",
+    "module": "api_method",
+    "fields": [
+      [
+        "res",
+        "Either (ApiMethodApiError) (Ghost)"
+      ]
+    ]
+  },
+  "ApiMethodGetThenUpdateResponse": {
+    "kind": "record",
+    "source": "lib/k8s_objects/api_method.ml",
+    "module": "api_method",
+    "fields": [
+      [
+        "res",
+        "Either (ApiMethodApiError) (DynamicObjectT)"
+      ]
+    ]
+  },
+  "ApiMethodGetThenUpdateStatusResponse": {
+    "kind": "record",
+    "source": "lib/k8s_objects/api_method.ml",
+    "module": "api_method",
+    "fields": [
+      [
+        "res",
+        "Either (ApiMethodApiError) (DynamicObjectT)"
+      ]
+    ]
+  },
+  "ApiMethodApiResponse": {
+    "kind": "enum",
+    "source": "lib/k8s_objects/api_method.ml",
+    "variants": [
+      [
+        "Get_response",
+        "ApiMethodGetResponse"
+      ],
+      [
+        "List_response",
+        "ApiMethodListResponse"
+      ],
+      [
+        "Create_response",
+        "ApiMethodCreateResponse"
+      ],
+      [
+        "Delete_response",
+        "ApiMethodDeleteResponse"
+      ],
+      [
+        "Update_response",
+        "ApiMethodUpdateResponse"
+      ],
+      [
+        "Update_status_response",
+        "ApiMethodUpdateStatusResponse"
+      ],
+      [
+        "Get_then_delete_response",
+        "ApiMethodGetThenDeleteResponse"
+      ],
+      [
+        "Get_then_update_response",
+        "ApiMethodGetThenUpdateResponse"
+      ],
+      [
+        "Get_then_update_status_response",
+        "ApiMethodGetThenUpdateStatusResponse"
+      ]
+    ]
+  },
+  "ContainerExecAction": {
+    "kind": "record",
+    "source": "lib/k8s_objects/container.ml",
+    "module": "container",
+    "fields": [
+      [
+        "command",
+        "Option (ListBytes)"
+      ]
+    ]
+  },
+  "ContainerTcpSocketAction": {
+    "kind": "record",
+    "source": "lib/k8s_objects/container.ml",
+    "module": "container",
+    "fields": [
+      [
+        "host",
+        "Option (Bytes)"
+      ],
+      [
+        "port",
+        "Int"
+      ]
+    ]
+  },
+  "ContainerLifecycleHandler": {
+    "kind": "record",
+    "source": "lib/k8s_objects/container.ml",
+    "module": "container",
+    "fields": [
+      [
+        "exec_",
+        "Option (ContainerExecAction)"
+      ]
+    ]
+  },
+  "ContainerLifecycle": {
+    "kind": "record",
+    "source": "lib/k8s_objects/container.ml",
+    "module": "container",
+    "fields": [
+      [
+        "pre_stop",
+        "Option (ContainerLifecycleHandler)"
+      ]
+    ]
+  },
+  "ContainerContainerPort": {
+    "kind": "record",
+    "source": "lib/k8s_objects/container.ml",
+    "module": "container",
+    "fields": [
+      [
+        "container_port",
+        "Int"
+      ],
+      [
+        "name",
+        "Option (Bytes)"
+      ],
+      [
+        "protocol",
+        "Option (Bytes)"
+      ]
+    ]
+  },
+  "ContainerVolumeMount": {
+    "kind": "record",
+    "source": "lib/k8s_objects/container.ml",
+    "module": "container",
+    "fields": [
+      [
+        "mount_path",
+        "Bytes"
+      ],
+      [
+        "name",
+        "Bytes"
+      ],
+      [
+        "read_only",
+        "Option (Bool)"
+      ],
+      [
+        "sub_path",
+        "Option (Bytes)"
+      ],
+      [
+        "mount_propagation",
+        "Option (Bytes)"
+      ]
+    ]
+  },
+  "ObjectFieldSelectorT": {
+    "kind": "record",
+    "source": "lib/k8s_objects/object_field_selector.ml",
+    "module": "object_field_selector",
+    "fields": [
+      [
+        "field_path",
+        "Bytes"
+      ],
+      [
+        "api_version",
+        "Option (Bytes)"
+      ]
+    ]
+  },
+  "ContainerEnvVarSource": {
+    "kind": "record",
+    "source": "lib/k8s_objects/container.ml",
+    "module": "container",
+    "fields": [
+      [
+        "field_ref",
+        "Option (ObjectFieldSelectorT)"
+      ]
+    ]
+  },
+  "ContainerEnvVar": {
+    "kind": "record",
+    "source": "lib/k8s_objects/container.ml",
+    "module": "container",
+    "fields": [
+      [
+        "name",
+        "Bytes"
+      ],
+      [
+        "value",
+        "Option (Bytes)"
+      ],
+      [
+        "value_from",
+        "Option (ContainerEnvVarSource)"
+      ]
+    ]
+  },
+  "ContainerProbe": {
+    "kind": "record",
+    "source": "lib/k8s_objects/container.ml",
+    "module": "container",
+    "fields": [
+      [
+        "exec_",
+        "Option (ContainerExecAction)"
+      ],
+      [
+        "failure_threshold",
+        "Option (Int)"
+      ],
+      [
+        "initial_delay_seconds",
+        "Option (Int)"
+      ],
+      [
+        "period_seconds",
+        "Option (Int)"
+      ],
+      [
+        "success_threshold",
+        "Option (Int)"
+      ],
+      [
+        "tcp_socket",
+        "Option (ContainerTcpSocketAction)"
+      ],
+      [
+        "timeout_seconds",
+        "Option (Int)"
+      ]
+    ]
+  },
+  "ContainerSecurityContext": {
+    "kind": "alias",
+    "source": "lib/k8s_objects/container.ml",
+    "type": "Ghost"
+  },
+  "ListContainerEnvVar": {
+    "kind": "list",
+    "element": "ContainerEnvVar"
+  },
+  "ListContainerContainerPort": {
+    "kind": "list",
+    "element": "ContainerContainerPort"
+  },
+  "ListContainerVolumeMount": {
+    "kind": "list",
+    "element": "ContainerVolumeMount"
+  },
+  "ResourceRequirementsT": {
+    "kind": "record",
+    "source": "lib/k8s_objects/resource_requirements.ml",
+    "module": "resource_requirements",
+    "fields": [
+      [
+        "limits",
+        "Option (StringMap)"
+      ],
+      [
+        "requests",
+        "Option (StringMap)"
+      ]
+    ]
+  },
+  "ContainerT": {
+    "kind": "record",
+    "source": "lib/k8s_objects/container.ml",
+    "module": "container",
+    "fields": [
+      [
+        "env",
+        "Option (ListContainerEnvVar)"
+      ],
+      [
+        "image",
+        "Option (Bytes)"
+      ],
+      [
+        "name",
+        "Bytes"
+      ],
+      [
+        "ports",
+        "Option (ListContainerContainerPort)"
+      ],
+      [
+        "volume_mounts",
+        "Option (ListContainerVolumeMount)"
+      ],
+      [
+        "lifecycle",
+        "Option (ContainerLifecycle)"
+      ],
+      [
+        "resources",
+        "Option (ResourceRequirementsT)"
+      ],
+      [
+        "readiness_probe",
+        "Option (ContainerProbe)"
+      ],
+      [
+        "liveness_probe",
+        "Option (ContainerProbe)"
+      ],
+      [
+        "command",
+        "Option (ListBytes)"
+      ],
+      [
+        "image_pull_policy",
+        "Option (Bytes)"
+      ],
+      [
+        "args",
+        "Option (ListBytes)"
+      ],
+      [
+        "security_context",
+        "Option (ContainerSecurityContext)"
+      ]
+    ]
+  },
+  "DeploymentStrategyStrategyType": {
+    "kind": "enum",
+    "source": "lib/k8s_objects/deployment_strategy.ml",
+    "variants": [
+      [
+        "Recreate",
+        null
+      ],
+      [
+        "Rolling_update",
+        null
+      ]
+    ]
+  },
+  "DeploymentStrategyRollingUpdate": {
+    "kind": "record",
+    "source": "lib/k8s_objects/deployment_strategy.ml",
+    "module": "deployment_strategy",
+    "fields": [
+      [
+        "max_surge",
+        "Option (Int)"
+      ],
+      [
+        "max_unavailable",
+        "Option (Int)"
+      ]
+    ]
+  },
+  "DeploymentStrategyT": {
+    "kind": "record",
+    "source": "lib/k8s_objects/deployment_strategy.ml",
+    "module": "deployment_strategy",
+    "fields": [
+      [
+        "type_",
+        "Option (DeploymentStrategyStrategyType)"
+      ],
+      [
+        "rolling_update",
+        "Option (DeploymentStrategyRollingUpdate)"
+      ]
+    ]
+  },
+  "LabelSelectorT": {
+    "kind": "record",
+    "source": "lib/k8s_objects/label_selector.ml",
+    "module": "label_selector",
+    "fields": [
+      [
+        "match_labels",
+        "Option (StringMap)"
+      ]
+    ]
+  },
+  "LocalObjectReferenceT": {
+    "kind": "alias",
+    "source": "lib/k8s_objects/local_object_reference.ml",
+    "type": "Ghost"
+  },
+  "VolumeResourceRequirementsT": {
+    "kind": "record",
+    "source": "lib/k8s_objects/volume_resource_requirements.ml",
+    "module": "volume_resource_requirements",
+    "fields": [
+      [
+        "limits",
+        "Option (StringMap)"
+      ],
+      [
+        "requests",
+        "Option (StringMap)"
+      ]
+    ]
+  },
+  "PersistentVolumeClaimSpec": {
+    "kind": "record",
+    "source": "lib/k8s_objects/persistent_volume_claim.ml",
+    "module": "persistent_volume_claim",
+    "fields": [
+      [
+        "storage_class_name",
+        "Option (Bytes)"
+      ],
+      [
+        "access_modes",
+        "Option (ListBytes)"
+      ],
+      [
+        "resources",
+        "Option (VolumeResourceRequirementsT)"
+      ]
+    ]
+  },
+  "PersistentVolumeClaimStatus": {
+    "kind": "alias",
+    "source": "lib/k8s_objects/persistent_volume_claim.ml",
+    "type": "Ghost"
+  },
+  "PersistentVolumeClaimT": {
+    "kind": "record",
+    "source": "lib/k8s_objects/persistent_volume_claim.ml",
+    "module": "persistent_volume_claim",
+    "fields": [
+      [
+        "metadata",
+        "ObjectMetaT"
+      ],
+      [
+        "spec",
+        "Option (PersistentVolumeClaimSpec)"
+      ],
+      [
+        "status",
+        "Option (PersistentVolumeClaimStatus)"
+      ]
+    ]
+  },
+  "PodSecurityContextT": {
+    "kind": "alias",
+    "source": "lib/k8s_objects/pod_security_context.ml",
+    "type": "Ghost"
+  },
+  "ListContainerT": {
+    "kind": "list",
+    "element": "ContainerT"
+  },
+  "VolumeHostPathVolumeSource": {
+    "kind": "record",
+    "source": "lib/k8s_objects/volume.ml",
+    "module": "volume",
+    "fields": [
+      [
+        "path",
+        "Bytes"
+      ]
+    ]
+  },
+  "VolumeConfigMapVolumeSource": {
+    "kind": "record",
+    "source": "lib/k8s_objects/volume.ml",
+    "module": "volume",
+    "fields": [
+      [
+        "name",
+        "Option (Bytes)"
+      ]
+    ]
+  },
+  "VolumeKeyToPath": {
+    "kind": "record",
+    "source": "lib/k8s_objects/volume.ml",
+    "module": "volume",
+    "fields": [
+      [
+        "key",
+        "Bytes"
+      ],
+      [
+        "path",
+        "Bytes"
+      ]
+    ]
+  },
+  "ListVolumeKeyToPath": {
+    "kind": "list",
+    "element": "VolumeKeyToPath"
+  },
+  "VolumeConfigMapProjection": {
+    "kind": "record",
+    "source": "lib/k8s_objects/volume.ml",
+    "module": "volume",
+    "fields": [
+      [
+        "items",
+        "Option (ListVolumeKeyToPath)"
+      ],
+      [
+        "name",
+        "Option (Bytes)"
+      ]
+    ]
+  },
+  "VolumeSecretProjection": {
+    "kind": "record",
+    "source": "lib/k8s_objects/volume.ml",
+    "module": "volume",
+    "fields": [
+      [
+        "items",
+        "Option (ListVolumeKeyToPath)"
+      ],
+      [
+        "name",
+        "Option (Bytes)"
+      ]
+    ]
+  },
+  "VolumeVolumeProjection": {
+    "kind": "record",
+    "source": "lib/k8s_objects/volume.ml",
+    "module": "volume",
+    "fields": [
+      [
+        "config_map",
+        "Option (VolumeConfigMapProjection)"
+      ],
+      [
+        "secret",
+        "Option (VolumeSecretProjection)"
+      ]
+    ]
+  },
+  "ListVolumeVolumeProjection": {
+    "kind": "list",
+    "element": "VolumeVolumeProjection"
+  },
+  "VolumeProjectedVolumeSource": {
+    "kind": "record",
+    "source": "lib/k8s_objects/volume.ml",
+    "module": "volume",
+    "fields": [
+      [
+        "sources",
+        "Option (ListVolumeVolumeProjection)"
+      ]
+    ]
+  },
+  "VolumeSecretVolumeSource": {
+    "kind": "record",
+    "source": "lib/k8s_objects/volume.ml",
+    "module": "volume",
+    "fields": [
+      [
+        "secret_name",
+        "Option (Bytes)"
+      ]
+    ]
+  },
+  "VolumeDownwardApiVolumeFile": {
+    "kind": "record",
+    "source": "lib/k8s_objects/volume.ml",
+    "module": "volume",
+    "fields": [
+      [
+        "field_ref",
+        "Option (ObjectFieldSelectorT)"
+      ],
+      [
+        "path",
+        "Bytes"
+      ]
+    ]
+  },
+  "ListVolumeDownwardApiVolumeFile": {
+    "kind": "list",
+    "element": "VolumeDownwardApiVolumeFile"
+  },
+  "VolumeDownwardApiVolumeSource": {
+    "kind": "record",
+    "source": "lib/k8s_objects/volume.ml",
+    "module": "volume",
+    "fields": [
+      [
+        "items",
+        "Option (ListVolumeDownwardApiVolumeFile)"
+      ]
+    ]
+  },
+  "VolumeEmptyDirVolumeSource": {
+    "kind": "record",
+    "source": "lib/k8s_objects/volume.ml",
+    "module": "volume",
+    "fields": [
+      [
+        "medium",
+        "Option (Bytes)"
+      ],
+      [
+        "size_limit",
+        "Option (Bytes)"
+      ]
+    ]
+  },
+  "VolumePersistentVolumeClaimVolumeSource": {
+    "kind": "record",
+    "source": "lib/k8s_objects/volume.ml",
+    "module": "volume",
+    "fields": [
+      [
+        "claim_name",
+        "Bytes"
+      ],
+      [
+        "read_only",
+        "Option (Bool)"
+      ]
+    ]
+  },
+  "VolumeT": {
+    "kind": "record",
+    "source": "lib/k8s_objects/volume.ml",
+    "module": "volume",
+    "fields": [
+      [
+        "host_path",
+        "Option (VolumeHostPathVolumeSource)"
+      ],
+      [
+        "config_map",
+        "Option (VolumeConfigMapVolumeSource)"
+      ],
+      [
+        "name",
+        "Bytes"
+      ],
+      [
+        "projected",
+        "Option (VolumeProjectedVolumeSource)"
+      ],
+      [
+        "secret",
+        "Option (VolumeSecretVolumeSource)"
+      ],
+      [
+        "downward_api",
+        "Option (VolumeDownwardApiVolumeSource)"
+      ],
+      [
+        "empty_dir",
+        "Option (VolumeEmptyDirVolumeSource)"
+      ],
+      [
+        "persistent_volume_claim",
+        "Option (VolumePersistentVolumeClaimVolumeSource)"
+      ]
+    ]
+  },
+  "ListVolumeT": {
+    "kind": "list",
+    "element": "VolumeT"
+  },
+  "TolerationT": {
+    "kind": "alias",
+    "source": "lib/k8s_objects/toleration.ml",
+    "type": "Ghost"
+  },
+  "ListTolerationT": {
+    "kind": "list",
+    "element": "TolerationT"
+  },
+  "ListLocalObjectReferenceT": {
+    "kind": "list",
+    "element": "LocalObjectReferenceT"
+  },
+  "PodSpecT": {
+    "kind": "record",
+    "source": "lib/k8s_objects/pod_spec.ml",
+    "module": "pod_spec",
+    "fields": [
+      [
+        "affinity",
+        "Option (AffinityT)"
+      ],
+      [
+        "containers",
+        "ListContainerT"
+      ],
+      [
+        "volumes",
+        "Option (ListVolumeT)"
+      ],
+      [
+        "init_containers",
+        "Option (ListContainerT)"
+      ],
+      [
+        "service_account_name",
+        "Option (Bytes)"
+      ],
+      [
+        "tolerations",
+        "Option (ListTolerationT)"
+      ],
+      [
+        "node_selector",
+        "Option (StringMap)"
+      ],
+      [
+        "runtime_class_name",
+        "Option (Bytes)"
+      ],
+      [
+        "dns_policy",
+        "Option (Bytes)"
+      ],
+      [
+        "priority_class_name",
+        "Option (Bytes)"
+      ],
+      [
+        "scheduler_name",
+        "Option (Bytes)"
+      ],
+      [
+        "security_context",
+        "Option (PodSecurityContextT)"
+      ],
+      [
+        "host_network",
+        "Option (Bool)"
+      ],
+      [
+        "termination_grace_period_seconds",
+        "Option (Int)"
+      ],
+      [
+        "image_pull_secrets",
+        "Option (ListLocalObjectReferenceT)"
+      ],
+      [
+        "hostname",
+        "Option (Bytes)"
+      ],
+      [
+        "subdomain",
+        "Option (Bytes)"
+      ]
+    ]
+  },
+  "PodTemplateSpecT": {
+    "kind": "record",
+    "source": "lib/k8s_objects/pod_template_spec.ml",
+    "module": "pod_template_spec",
+    "fields": [
+      [
+        "metadata",
+        "Option (ObjectMetaT)"
+      ],
+      [
+        "spec",
+        "Option (PodSpecT)"
+      ]
+    ]
+  },
+  "ConfigMapT": {
+    "kind": "record",
+    "source": "lib/k8s_objects/views/config_map.ml",
+    "module": "config_map",
+    "fields": [
+      [
+        "metadata",
+        "ObjectMetaT"
+      ],
+      [
+        "data",
+        "Option (StringMap)"
+      ]
+    ]
+  },
+  "ConfigMapSpec": {
+    "kind": "alias",
+    "source": "lib/k8s_objects/views/config_map.ml",
+    "type": "Option (StringMap)"
+  },
+  "ConfigMapStatus": {
+    "kind": "alias",
+    "source": "lib/k8s_objects/views/config_map.ml",
+    "type": "Ghost"
+  },
+  "PodT": {
+    "kind": "record",
+    "source": "lib/k8s_objects/views/pod.ml",
+    "module": "pod",
+    "fields": [
+      [
+        "metadata",
+        "ObjectMetaT"
+      ],
+      [
+        "spec",
+        "Option (PodSpecT)"
+      ],
+      [
+        "status",
+        "Option (Ghost)"
+      ]
+    ]
+  },
+  "PodSpec": {
+    "kind": "alias",
+    "source": "lib/k8s_objects/views/pod.ml",
+    "type": "Option (PodSpecT)"
+  },
+  "PodStatus": {
+    "kind": "alias",
+    "source": "lib/k8s_objects/views/pod.ml",
+    "type": "Option (Ghost)"
+  },
+  "StatefulSetOrdinals": {
+    "kind": "record",
+    "source": "lib/k8s_objects/views/stateful_set.ml",
+    "module": "stateful_set",
+    "fields": [
+      [
+        "start",
+        "Option (Int)"
+      ]
+    ]
+  },
+  "StatefulSetRollingUpdate": {
+    "kind": "record",
+    "source": "lib/k8s_objects/views/stateful_set.ml",
+    "module": "stateful_set",
+    "fields": [
+      [
+        "partition",
+        "Option (Int)"
+      ],
+      [
+        "max_unavailable",
+        "Option (Int)"
+      ]
+    ]
+  },
+  "StatefulSetUpdateStrategy": {
+    "kind": "record",
+    "source": "lib/k8s_objects/views/stateful_set.ml",
+    "module": "stateful_set",
+    "fields": [
+      [
+        "type_",
+        "Option (Bytes)"
+      ],
+      [
+        "rolling_update",
+        "Option (StatefulSetRollingUpdate)"
+      ]
+    ]
+  },
+  "StatefulSetRetentionPolicy": {
+    "kind": "record",
+    "source": "lib/k8s_objects/views/stateful_set.ml",
+    "module": "stateful_set",
+    "fields": [
+      [
+        "when_deleted",
+        "Option (Bytes)"
+      ],
+      [
+        "when_scaled",
+        "Option (Bytes)"
+      ]
+    ]
+  },
+  "ListPersistentVolumeClaimT": {
+    "kind": "list",
+    "element": "PersistentVolumeClaimT"
+  },
+  "StatefulSetSsSpec": {
+    "kind": "record",
+    "source": "lib/k8s_objects/views/stateful_set.ml",
+    "module": "stateful_set",
+    "fields": [
+      [
+        "min_ready_seconds",
+        "Option (Int)"
+      ],
+      [
+        "ordinals",
+        "Option (StatefulSetOrdinals)"
+      ],
+      [
+        "persistent_volume_claim_retention_policy",
+        "Option (StatefulSetRetentionPolicy)"
+      ],
+      [
+        "pod_management_policy",
+        "Option (Bytes)"
+      ],
+      [
+        "replicas",
+        "Option (Int)"
+      ],
+      [
+        "revision_history_limit",
+        "Option (Int)"
+      ],
+      [
+        "selector",
+        "LabelSelectorT"
+      ],
+      [
+        "service_name",
+        "Bytes"
+      ],
+      [
+        "template",
+        "PodTemplateSpecT"
+      ],
+      [
+        "update_strategy",
+        "Option (StatefulSetUpdateStrategy)"
+      ],
+      [
+        "volume_claim_templates",
+        "Option (ListPersistentVolumeClaimT)"
+      ]
+    ]
+  },
+  "StatefulSetSsStatus": {
+    "kind": "record",
+    "source": "lib/k8s_objects/views/stateful_set.ml",
+    "module": "stateful_set",
+    "fields": [
+      [
+        "ready_replicas",
+        "Option (Int)"
+      ]
+    ]
+  },
+  "StatefulSetT": {
+    "kind": "record",
+    "source": "lib/k8s_objects/views/stateful_set.ml",
+    "module": "stateful_set",
+    "fields": [
+      [
+        "metadata",
+        "ObjectMetaT"
+      ],
+      [
+        "spec",
+        "Option (StatefulSetSsSpec)"
+      ],
+      [
+        "status",
+        "Option (StatefulSetSsStatus)"
+      ]
+    ]
+  },
+  "StatefulSetSpec": {
+    "kind": "alias",
+    "source": "lib/k8s_objects/views/stateful_set.ml",
+    "type": "Option (StatefulSetSsSpec)"
+  },
+  "StatefulSetStatus": {
+    "kind": "alias",
+    "source": "lib/k8s_objects/views/stateful_set.ml",
+    "type": "Option (StatefulSetSsStatus)"
+  },
+  "VDeploymentVdSpec": {
+    "kind": "record",
+    "source": "lib/controllers/v_deployment.ml",
+    "module": "v_deployment",
+    "fields": [
+      [
+        "replicas",
+        "Option (Int)"
+      ],
+      [
+        "selector",
+        "LabelSelectorT"
+      ],
+      [
+        "template",
+        "PodTemplateSpecT"
+      ],
+      [
+        "min_ready_seconds",
+        "Option (Int)"
+      ],
+      [
+        "progress_deadline_seconds",
+        "Option (Int)"
+      ],
+      [
+        "strategy",
+        "Option (DeploymentStrategyT)"
+      ],
+      [
+        "revision_history_limit",
+        "Option (Int)"
+      ],
+      [
+        "paused",
+        "Option (Bool)"
+      ]
+    ]
+  },
+  "VDeploymentStatus": {
+    "kind": "alias",
+    "source": "lib/controllers/v_deployment.ml",
+    "type": "Ghost"
+  },
+  "VDeploymentT": {
+    "kind": "record",
+    "source": "lib/controllers/v_deployment.ml",
+    "module": "v_deployment",
+    "fields": [
+      [
+        "metadata",
+        "ObjectMetaT"
+      ],
+      [
+        "spec",
+        "VDeploymentVdSpec"
+      ],
+      [
+        "status",
+        "VDeploymentStatus"
+      ]
+    ]
+  },
+  "VDeploymentSpec": {
+    "kind": "alias",
+    "source": "lib/controllers/v_deployment.ml",
+    "type": "VDeploymentVdSpec"
+  },
+  "VDeploymentReconcilerStep": {
+    "kind": "enum",
+    "source": "lib/controllers/v_deployment_reconciler.ml",
+    "variants": [
+      [
+        "Init",
+        null
+      ],
+      [
+        "After_list_vrs",
+        null
+      ],
+      [
+        "After_create_new_vrs",
+        null
+      ],
+      [
+        "After_scale_new_vrs",
+        null
+      ],
+      [
+        "After_ensure_new_vrs",
+        null
+      ],
+      [
+        "After_scale_down_old_vrs",
+        null
+      ],
+      [
+        "Done",
+        null
+      ],
+      [
+        "Error",
+        null
+      ]
+    ]
+  },
+  "VreplicaSetVrsSpec": {
+    "kind": "record",
+    "source": "lib/controllers/vreplica_set.ml",
+    "module": "vreplica_set",
+    "fields": [
+      [
+        "replicas",
+        "Option (Int)"
+      ],
+      [
+        "selector",
+        "LabelSelectorT"
+      ],
+      [
+        "template",
+        "Option (PodTemplateSpecT)"
+      ]
+    ]
+  },
+  "VreplicaSetVrsStatus": {
+    "kind": "record",
+    "source": "lib/controllers/vreplica_set.ml",
+    "module": "vreplica_set",
+    "fields": [
+      [
+        "replicas",
+        "Int"
+      ]
+    ]
+  },
+  "VreplicaSetT": {
+    "kind": "record",
+    "source": "lib/controllers/vreplica_set.ml",
+    "module": "vreplica_set",
+    "fields": [
+      [
+        "metadata",
+        "ObjectMetaT"
+      ],
+      [
+        "spec",
+        "VreplicaSetVrsSpec"
+      ],
+      [
+        "status",
+        "Option (VreplicaSetVrsStatus)"
+      ]
+    ]
+  },
+  "ListVreplicaSetT": {
+    "kind": "list",
+    "element": "VreplicaSetT"
+  },
+  "VDeploymentReconcilerS": {
+    "kind": "record",
+    "source": "lib/controllers/v_deployment_reconciler.ml",
+    "module": "v_deployment_reconciler",
+    "fields": [
+      [
+        "reconcile_step",
+        "VDeploymentReconcilerStep"
+      ],
+      [
+        "new_vrs",
+        "Option (VreplicaSetT)"
+      ],
+      [
+        "old_vrs_list",
+        "ListVreplicaSetT"
+      ],
+      [
+        "old_vrs_index",
+        "Int"
+      ]
+    ]
+  },
+  "VStatefulSetT": {
+    "kind": "record",
+    "source": "lib/controllers/v_stateful_set.ml",
+    "module": "v_stateful_set",
+    "fields": [
+      [
+        "metadata",
+        "ObjectMetaT"
+      ],
+      [
+        "spec",
+        "StatefulSetSsSpec"
+      ],
+      [
+        "status",
+        "Option (StatefulSetSsStatus)"
+      ]
+    ]
+  },
+  "VStatefulSetSpec": {
+    "kind": "alias",
+    "source": "lib/controllers/v_stateful_set.ml",
+    "type": "StatefulSetSsSpec"
+  },
+  "VStatefulSetStatus": {
+    "kind": "alias",
+    "source": "lib/controllers/v_stateful_set.ml",
+    "type": "Option (StatefulSetSsStatus)"
+  },
+  "VStatefulSetReconcilerStep": {
+    "kind": "enum",
+    "source": "lib/controllers/v_stateful_set_reconciler.ml",
+    "variants": [
+      [
+        "Init",
+        null
+      ],
+      [
+        "After_list_pod",
+        null
+      ],
+      [
+        "Get_pvc",
+        null
+      ],
+      [
+        "After_get_pvc",
+        null
+      ],
+      [
+        "Create_pvc",
+        null
+      ],
+      [
+        "After_create_pvc",
+        null
+      ],
+      [
+        "Skip_pvc",
+        null
+      ],
+      [
+        "Create_needed",
+        null
+      ],
+      [
+        "After_create_needed",
+        null
+      ],
+      [
+        "Update_needed",
+        null
+      ],
+      [
+        "After_update_needed",
+        null
+      ],
+      [
+        "Delete_condemned",
+        null
+      ],
+      [
+        "After_delete_condemned",
+        null
+      ],
+      [
+        "Delete_outdated",
+        null
+      ],
+      [
+        "After_delete_outdated",
+        null
+      ],
+      [
+        "Done",
+        null
+      ],
+      [
+        "Error",
+        null
+      ]
+    ]
+  },
+  "ListOptionPodT": {
+    "kind": "list",
+    "element": "Option (PodT)"
+  },
+  "ListPodT": {
+    "kind": "list",
+    "element": "PodT"
+  },
+  "VStatefulSetReconcilerS": {
+    "kind": "record",
+    "source": "lib/controllers/v_stateful_set_reconciler.ml",
+    "module": "v_stateful_set_reconciler",
+    "fields": [
+      [
+        "reconcile_step",
+        "VStatefulSetReconcilerStep"
+      ],
+      [
+        "needed",
+        "ListOptionPodT"
+      ],
+      [
+        "needed_index",
+        "Int"
+      ],
+      [
+        "condemned",
+        "ListPodT"
+      ],
+      [
+        "condemned_index",
+        "Int"
+      ],
+      [
+        "pvcs",
+        "ListPersistentVolumeClaimT"
+      ],
+      [
+        "pvc_index",
+        "Int"
+      ]
+    ]
+  },
+  "VreplicaSetSpec": {
+    "kind": "alias",
+    "source": "lib/controllers/vreplica_set.ml",
+    "type": "VreplicaSetVrsSpec"
+  },
+  "VreplicaSetStatus": {
+    "kind": "alias",
+    "source": "lib/controllers/vreplica_set.ml",
+    "type": "Option (VreplicaSetVrsStatus)"
+  },
+  "VreplicaSetReconcilerStep": {
+    "kind": "enum",
+    "source": "lib/controllers/vreplica_set_reconciler.ml",
+    "variants": [
+      [
+        "Init",
+        null
+      ],
+      [
+        "After_list_pods",
+        null
+      ],
+      [
+        "After_create_pod",
+        "Int"
+      ],
+      [
+        "After_delete_pod",
+        "Int"
+      ],
+      [
+        "After_update_vrs_status",
+        null
+      ],
+      [
+        "Done",
+        null
+      ],
+      [
+        "Error",
+        null
+      ]
+    ]
+  },
+  "VreplicaSetReconcilerS": {
+    "kind": "record",
+    "source": "lib/controllers/vreplica_set_reconciler.ml",
+    "module": "vreplica_set_reconciler",
+    "fields": [
+      [
+        "reconcile_step",
+        "VreplicaSetReconcilerStep"
+      ],
+      [
+        "filtered_pods",
+        "Option (ListPodT)"
+      ]
+    ]
+  }
+}

@@ -1,0 +1,70 @@
+-- Resource state and transition validation from the source RESOURCE instances.
+def validTemplate : LabelSelectorT -> PodTemplateSpecT -> Bool := fun (selector : LabelSelectorT) (tmpl : PodTemplateSpecT) =>
+  boolAnd (optionFold StringMap Bool false (fun (m : StringMap) => natLt 0 (stringMapSize m)) (labelSelectorTMatchLabels selector))
+    (boolAnd (optionIsSome PodSpecT (podTemplateSpecTSpec tmpl))
+      (optionFold ObjectMetaT Bool false (fun (m : ObjectMetaT) =>
+        optionFold StringMap Bool false (fun (labels : StringMap) => selectorMatches selector labels) (objectMetaTLabels m)) (podTemplateSpecTMetadata tmpl)))
+def vrsValid : VreplicaSetT -> Bool := fun (cr : VreplicaSetT) =>
+  let spec : VreplicaSetVrsSpec := vreplicaSetTSpec cr in
+  boolAnd (optionFold Int Bool true intIsNonnegative (vreplicaSetVrsSpecReplicas spec))
+    (optionFold PodTemplateSpecT Bool false (validTemplate (vreplicaSetVrsSpecSelector spec)) (vreplicaSetVrsSpecTemplate spec))
+def statefulSpecImmutableEqual : StatefulSetSsSpec -> StatefulSetSsSpec -> Bool := fun (a : StatefulSetSsSpec) (b : StatefulSetSsSpec) =>
+  boolAnd (optionEqual Int intEqual (statefulSetSsSpecMinReadySeconds a) (statefulSetSsSpecMinReadySeconds b))
+  (boolAnd (optionEqual StatefulSetOrdinals statefulSetOrdinalsEqual (statefulSetSsSpecOrdinals a) (statefulSetSsSpecOrdinals b))
+  (boolAnd (optionEqual Bytes bytesEqual (statefulSetSsSpecPodManagementPolicy a) (statefulSetSsSpecPodManagementPolicy b))
+  (boolAnd (optionEqual Int intEqual (statefulSetSsSpecRevisionHistoryLimit a) (statefulSetSsSpecRevisionHistoryLimit b))
+  (boolAnd (labelSelectorTEqual (statefulSetSsSpecSelector a) (statefulSetSsSpecSelector b))
+  (boolAnd (bytesEqual (statefulSetSsSpecServiceName a) (statefulSetSsSpecServiceName b))
+  (boolAnd (optionEqual StatefulSetUpdateStrategy statefulSetUpdateStrategyEqual (statefulSetSsSpecUpdateStrategy a) (statefulSetSsSpecUpdateStrategy b))
+    (optionEqual ListPersistentVolumeClaimT listPersistentVolumeClaimTEqual (statefulSetSsSpecVolumeClaimTemplates a) (statefulSetSsSpecVolumeClaimTemplates b))))))))
+def statefulSetValid : StatefulSetT -> Bool := fun (cr : StatefulSetT) =>
+  optionFold StatefulSetSsSpec Bool false (fun (s : StatefulSetSsSpec) =>
+    optionFold Int Bool true intIsNonnegative (statefulSetSsSpecReplicas s)) (statefulSetTSpec cr)
+def statefulSetTransitionValid : StatefulSetT -> StatefulSetT -> Bool := fun (new : StatefulSetT) (old : StatefulSetT) =>
+  optionFold StatefulSetSsSpec Bool false (fun (s : StatefulSetSsSpec) =>
+    optionFold StatefulSetSsSpec Bool false (statefulSpecImmutableEqual s) (statefulSetTSpec old)) (statefulSetTSpec new)
+def deploymentRollingValid : DeploymentStrategyRollingUpdate -> Bool := fun (r : DeploymentStrategyRollingUpdate) =>
+  boolAnd (optionFold Int Bool true intIsNonnegative (deploymentStrategyRollingUpdateMaxSurge r))
+  (boolAnd (optionFold Int Bool true intIsNonnegative (deploymentStrategyRollingUpdateMaxUnavailable r))
+    (boolNot (boolAnd (optionEqual Int intEqual (deploymentStrategyRollingUpdateMaxSurge r) (some Int (nonnegative 0)))
+      (optionEqual Int intEqual (deploymentStrategyRollingUpdateMaxUnavailable r) (some Int (nonnegative 0))))))
+def deploymentStrategyValid : DeploymentStrategyT -> Bool := fun (s : DeploymentStrategyT) =>
+  optionFold DeploymentStrategyStrategyType Bool true (fun (typ : DeploymentStrategyStrategyType) =>
+    match typ as self in DeploymentStrategyStrategyType return Bool with
+    | deploymentStrategyStrategyTypeRecreate => boolNot (optionIsSome DeploymentStrategyRollingUpdate (deploymentStrategyTRollingUpdate s))
+    | deploymentStrategyStrategyTypeRollingUpdate => optionFold DeploymentStrategyRollingUpdate Bool true deploymentRollingValid (deploymentStrategyTRollingUpdate s)) (deploymentStrategyTType s)
+def deploymentValid : VDeploymentT -> Bool := fun (cr : VDeploymentT) =>
+  let s : VDeploymentVdSpec := vDeploymentTSpec cr in
+  let timing : Bool := optionFold Int Bool
+    (optionFold Int Bool true intPositiveFlag (vDeploymentVdSpecProgressDeadlineSeconds s))
+    (fun (minimum : Int) => boolAnd (intIsNonnegative minimum)
+      (intLess minimum (optionValue Int (nonnegative 600) (vDeploymentVdSpecProgressDeadlineSeconds s)))) (vDeploymentVdSpecMinReadySeconds s) in
+  boolAnd (optionFold Int Bool true intIsNonnegative (vDeploymentVdSpecReplicas s))
+  (boolAnd timing (boolAnd (optionFold DeploymentStrategyT Bool true deploymentStrategyValid (vDeploymentVdSpecStrategy s))
+    (validTemplate (vDeploymentVdSpecSelector s) (vDeploymentVdSpecTemplate s))))
+def statefulRollingValid : StatefulSetRollingUpdate -> Bool := fun (r : StatefulSetRollingUpdate) =>
+  boolAnd (optionFold Int Bool true intIsNonnegative (statefulSetRollingUpdatePartition r))
+    (optionFold Int Bool true intPositiveFlag (statefulSetRollingUpdateMaxUnavailable r))
+def statefulStrategyValid : StatefulSetUpdateStrategy -> Bool := fun (s : StatefulSetUpdateStrategy) =>
+  optionFold Bytes Bool true (fun (typ : Bytes) =>
+    boolOr (boolAnd (bytesEqual typ b"OnDelete") (boolNot (optionIsSome StatefulSetRollingUpdate (statefulSetUpdateStrategyRollingUpdate s))))
+    (boolAnd (bytesEqual typ b"RollingUpdate") (optionFold StatefulSetRollingUpdate Bool true statefulRollingValid (statefulSetUpdateStrategyRollingUpdate s))))
+    (statefulSetUpdateStrategyType s)
+def statefulPvcTemplateValid : PersistentVolumeClaimT -> Bool := fun (pvc : PersistentVolumeClaimT) =>
+  let m : ObjectMetaT := persistentVolumeClaimTMetadata pvc in
+  boolAnd (optionIsSome PersistentVolumeClaimSpec (persistentVolumeClaimTSpec pvc))
+  (boolAnd (optionIsSome Bytes (objectMetaTNamespace m))
+    (optionFold Bytes Bool false (fun (name : Bytes) => boolNot (bytesContainsByte name 45)) (objectMetaTName m)))
+def vstsValid : VStatefulSetT -> Bool := fun (cr : VStatefulSetT) =>
+  let s : StatefulSetSsSpec := vStatefulSetTSpec cr in
+  let tmpl : PodTemplateSpecT := statefulSetSsSpecTemplate s in
+  let reserved : Bool := optionFold ObjectMetaT Bool true (fun (m : ObjectMetaT) =>
+    optionFold StringMap Bool true (fun (labels : StringMap) =>
+      boolAnd (boolNot (optionIsSome Bytes (stringMapGet b"statefulset.kubernetes.io/pod-name" labels)))
+        (boolNot (optionIsSome Bytes (stringMapGet b"apps.kubernetes.io/pod-index" labels)))) (objectMetaTLabels m)) (podTemplateSpecTMetadata tmpl) in
+  boolAnd (validTemplate (statefulSetSsSpecSelector s) tmpl)
+  (boolAnd reserved (boolAnd (optionFold Int Bool true intIsNonnegative (statefulSetSsSpecReplicas s))
+  (boolAnd (optionFold StatefulSetUpdateStrategy Bool true statefulStrategyValid (statefulSetSsSpecUpdateStrategy s))
+  (boolAnd (optionFold ListPersistentVolumeClaimT Bool true (fun (xs : ListPersistentVolumeClaimT) => listPersistentVolumeClaimTEvery xs statefulPvcTemplateValid) (statefulSetSsSpecVolumeClaimTemplates s))
+  (boolAnd (optionFold Int Bool true intIsNonnegative (statefulSetSsSpecMinReadySeconds s))
+    (optionFold StatefulSetOrdinals Bool true (fun (o : StatefulSetOrdinals) => optionFold Int Bool true intIsNonnegative (statefulSetOrdinalsStart o)) (statefulSetSsSpecOrdinals s)))))))

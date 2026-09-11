@@ -1,0 +1,1095 @@
+-- Generated field-view codecs. Resource marshalling is separate.
+
+def commonKindEncode : CommonKind -> Value := fun (k : CommonKind) =>
+  match k as self in CommonKind return Value with
+  | commonKindConfigMap => jsonString b"ConfigMap"
+  | commonKindCustomResource s => jsonObject (jsonObjectCons b"customResource" (jsonString s) jsonObjectNil)
+  | commonKindDaemonSet => jsonString b"DaemonSet"
+  | commonKindPersistentVolumeClaim => jsonString b"PersistentVolumeClaim"
+  | commonKindPod => jsonString b"Pod"
+  | commonKindRole => jsonString b"Role"
+  | commonKindRoleBinding => jsonString b"RoleBinding"
+  | commonKindStatefulSet => jsonString b"StatefulSet"
+  | commonKindService => jsonString b"Service"
+  | commonKindServiceAccount => jsonString b"ServiceAccount"
+  | commonKindSecret => jsonString b"Secret"
+
+def kindDecodeTag : Bytes -> Result CommonKind := fun (tag : Bytes) => (case (bytesEqual tag b"ConfigMap") with | 1 (u : Unit) => ok CommonKind commonKindConfigMap | 0 (u : Unit) => (case (bytesEqual tag b"DaemonSet") with | 1 (u : Unit) => ok CommonKind commonKindDaemonSet | 0 (u : Unit) => (case (bytesEqual tag b"PersistentVolumeClaim") with | 1 (u : Unit) => ok CommonKind commonKindPersistentVolumeClaim | 0 (u : Unit) => (case (bytesEqual tag b"Pod") with | 1 (u : Unit) => ok CommonKind commonKindPod | 0 (u : Unit) => (case (bytesEqual tag b"Role") with | 1 (u : Unit) => ok CommonKind commonKindRole | 0 (u : Unit) => (case (bytesEqual tag b"RoleBinding") with | 1 (u : Unit) => ok CommonKind commonKindRoleBinding | 0 (u : Unit) => (case (bytesEqual tag b"StatefulSet") with | 1 (u : Unit) => ok CommonKind commonKindStatefulSet | 0 (u : Unit) => (case (bytesEqual tag b"Service") with | 1 (u : Unit) => ok CommonKind commonKindService | 0 (u : Unit) => (case (bytesEqual tag b"ServiceAccount") with | 1 (u : Unit) => ok CommonKind commonKindServiceAccount | 0 (u : Unit) => (case (bytesEqual tag b"Secret") with | 1 (u : Unit) => ok CommonKind commonKindSecret | 0 (u : Unit) => err CommonKind (decodeError b"kind" (bytesAppend b"unknown kind tag: " tag))))))))))))
+
+def kindDecodeMember : Members -> Result CommonKind := fun (m : Members) =>
+  match m as self in JsonTree sort return Result CommonKind with
+  | jsonNull => err CommonKind (decodeError b"kind" b"unrecognized kind encoding")
+  | jsonBool x => err CommonKind (decodeError b"kind" b"unrecognized kind encoding")
+  | jsonInt x => err CommonKind (decodeError b"kind" b"unrecognized kind encoding")
+  | jsonIntLiteral x => err CommonKind (decodeError b"kind" b"unrecognized kind encoding")
+  | jsonFloat x => err CommonKind (decodeError b"kind" b"unrecognized kind encoding")
+  | jsonString x => err CommonKind (decodeError b"kind" b"unrecognized kind encoding")
+  | jsonArray x => err CommonKind (decodeError b"kind" b"unrecognized kind encoding")
+  | jsonObject x => err CommonKind (decodeError b"kind" b"unrecognized kind encoding")
+  | jsonArrayNil => err CommonKind (decodeError b"kind" b"unrecognized kind encoding")
+  | jsonArrayCons h t => err CommonKind (decodeError b"kind" b"unrecognized kind encoding")
+  | jsonObjectNil => err CommonKind (decodeError b"kind" b"unrecognized kind encoding")
+  | jsonObjectCons k v t => (case (boolAnd (bytesEqual k b"customResource") (jsonTreeEmpty objectSort t)) with | 0 (u : Unit) => err CommonKind (decodeError b"kind" b"unrecognized kind encoding") | 1 (u : Unit) => (case (jsonGetString v) with | 1 (s : Bytes) => ok CommonKind (commonKindCustomResource s) | 0 (e : Error) => err CommonKind (decodeError b"kind" b"unrecognized kind encoding")))
+
+def commonKindDecode : Value -> Result CommonKind := fun (j : Value) =>
+  match j as self in JsonTree sort return Result CommonKind with
+  | jsonNull => err CommonKind (decodeError b"kind" b"unrecognized kind encoding")
+  | jsonBool x => err CommonKind (decodeError b"kind" b"unrecognized kind encoding")
+  | jsonInt x => err CommonKind (decodeError b"kind" b"unrecognized kind encoding")
+  | jsonIntLiteral x => err CommonKind (decodeError b"kind" b"unrecognized kind encoding")
+  | jsonFloat x => err CommonKind (decodeError b"kind" b"unrecognized kind encoding")
+  | jsonString x => kindDecodeTag x
+  | jsonArray x => err CommonKind (decodeError b"kind" b"unrecognized kind encoding")
+  | jsonObject x => kindDecodeMember x
+  | jsonArrayNil => err CommonKind (decodeError b"kind" b"unrecognized kind encoding")
+  | jsonArrayCons h t => err CommonKind (decodeError b"kind" b"unrecognized kind encoding")
+  | jsonObjectNil => err CommonKind (decodeError b"kind" b"unrecognized kind encoding")
+  | jsonObjectCons k v t => err CommonKind (decodeError b"kind" b"unrecognized kind encoding")
+
+def commonKindDecodeRender : Value -> Bytes := fun (j : Value) =>
+  case (commonKindDecode j) with | 0 (e : Error) => bytesAppend b"error: " (errorText e)
+  | 1 (x : CommonKind) => valueRender (commonKindEncode x)
+
+def commonObjectRefEncode : CommonObjectRef -> Value := fun (x : CommonObjectRef) => jsonObject (jsonObjectCons b"kind" (commonKindEncode (commonObjectRefKind x)) (jsonObjectCons b"name" (jsonEncodeBytes (commonObjectRefName x)) (jsonObjectCons b"namespace" (jsonEncodeBytes (commonObjectRefNamespace x)) (jsonObjectNil))))
+
+def commonObjectRefDecode : Value -> Result CommonObjectRef := fun (j : Value) => resultBind (CommonKind) CommonObjectRef (jsonField (CommonKind) j b"kind" (commonKindDecode)) (fun (field0 : CommonKind) => resultBind (Bytes) CommonObjectRef (jsonField (Bytes) j b"name" (jsonGetString)) (fun (field1 : Bytes) => resultBind (Bytes) CommonObjectRef (jsonField (Bytes) j b"namespace" (jsonGetString)) (fun (field2 : Bytes) => ok CommonObjectRef (commonObjectRefMake field0 field1 field2))))
+
+def commonObjectRefDecodeRender : Value -> Bytes := fun (j : Value) =>
+  case (commonObjectRefDecode j) with | 0 (e : Error) => bytesAppend b"error: " (errorText e)
+  | 1 (x : CommonObjectRef) => valueRender (commonObjectRefEncode x)
+
+def ownerReferenceTEncode : OwnerReferenceT -> Value := fun (x : OwnerReferenceT) => jsonObject (jsonOptionalMember (Bool) b"blockOwnerDeletion" (jsonEncodeBool) (ownerReferenceTBlockOwnerDeletion x) (jsonOptionalMember (Bool) b"controller" (jsonEncodeBool) (ownerReferenceTController x) (jsonObjectCons b"kind" (commonKindEncode (ownerReferenceTKind x)) (jsonObjectCons b"name" (jsonEncodeBytes (ownerReferenceTName x)) (jsonObjectCons b"uid" (jsonEncodeInt (ownerReferenceTUid x)) (jsonObjectNil))))))
+
+def ownerReferenceTDecode : Value -> Result OwnerReferenceT := fun (j : Value) => resultBind (Option (Bool)) OwnerReferenceT (jsonOptionalField (Bool) j b"blockOwnerDeletion" (jsonGetBool)) (fun (field0 : Option (Bool)) => resultBind (Option (Bool)) OwnerReferenceT (jsonOptionalField (Bool) j b"controller" (jsonGetBool)) (fun (field1 : Option (Bool)) => resultBind (CommonKind) OwnerReferenceT (jsonField (CommonKind) j b"kind" (commonKindDecode)) (fun (field2 : CommonKind) => resultBind (Bytes) OwnerReferenceT (jsonField (Bytes) j b"name" (jsonGetString)) (fun (field3 : Bytes) => resultBind (Int) OwnerReferenceT (jsonField (Int) j b"uid" (jsonGetInt)) (fun (field4 : Int) => ok OwnerReferenceT (ownerReferenceTMake field0 field1 field2 field3 field4))))))
+
+def ownerReferenceTDecodeRender : Value -> Bytes := fun (j : Value) =>
+  case (ownerReferenceTDecode j) with | 0 (e : Error) => bytesAppend b"error: " (errorText e)
+  | 1 (x : OwnerReferenceT) => valueRender (ownerReferenceTEncode x)
+
+def rec listOwnerReferenceTEncodeItems : ListOwnerReferenceT -> Values := fun (xs : ListOwnerReferenceT) =>
+  match xs as self in ListOwnerReferenceT return Values with
+  | listOwnerReferenceTNil => jsonArrayNil
+  | listOwnerReferenceTCons h t => jsonArrayCons (ownerReferenceTEncode h) (listOwnerReferenceTEncodeItems t)
+
+def listOwnerReferenceTEncode : ListOwnerReferenceT -> Value := fun (xs : ListOwnerReferenceT) => jsonArray (listOwnerReferenceTEncodeItems xs)
+
+def rec listOwnerReferenceTDecodeItems : Values -> Result ListOwnerReferenceT := fun (xs : Values) =>
+  match xs as self in JsonTree sort return Result ListOwnerReferenceT with
+  | jsonNull => err ListOwnerReferenceT (decodeError b"list" b"expected a JSON array")
+  | jsonBool x => err ListOwnerReferenceT (decodeError b"list" b"expected a JSON array")
+  | jsonInt x => err ListOwnerReferenceT (decodeError b"list" b"expected a JSON array")
+  | jsonIntLiteral x => err ListOwnerReferenceT (decodeError b"list" b"expected a JSON array")
+  | jsonFloat x => err ListOwnerReferenceT (decodeError b"list" b"expected a JSON array")
+  | jsonString x => err ListOwnerReferenceT (decodeError b"list" b"expected a JSON array")
+  | jsonArray x => err ListOwnerReferenceT (decodeError b"list" b"expected a JSON array")
+  | jsonObject x => err ListOwnerReferenceT (decodeError b"list" b"expected a JSON array")
+  | jsonArrayNil => ok ListOwnerReferenceT listOwnerReferenceTNil
+  | jsonArrayCons h t => resultBind (OwnerReferenceT) ListOwnerReferenceT (ownerReferenceTDecode h) (fun (value : OwnerReferenceT) => resultMap ListOwnerReferenceT ListOwnerReferenceT (fun (tail : ListOwnerReferenceT) => listOwnerReferenceTCons value tail) (listOwnerReferenceTDecodeItems t))
+  | jsonObjectNil => err ListOwnerReferenceT (decodeError b"list" b"expected a JSON array")
+  | jsonObjectCons k v t => err ListOwnerReferenceT (decodeError b"list" b"expected a JSON array")
+
+def listOwnerReferenceTDecode : Value -> Result ListOwnerReferenceT := fun (j : Value) => resultBind Values ListOwnerReferenceT (jsonGetArray j) listOwnerReferenceTDecodeItems
+
+def listOwnerReferenceTDecodeRender : Value -> Bytes := fun (j : Value) =>
+  case (listOwnerReferenceTDecode j) with | 0 (e : Error) => bytesAppend b"error: " (errorText e)
+  | 1 (x : ListOwnerReferenceT) => valueRender (listOwnerReferenceTEncode x)
+
+def rec listBytesEncodeItems : ListBytes -> Values := fun (xs : ListBytes) =>
+  match xs as self in ListBytes return Values with
+  | listBytesNil => jsonArrayNil
+  | listBytesCons h t => jsonArrayCons (jsonEncodeBytes h) (listBytesEncodeItems t)
+
+def listBytesEncode : ListBytes -> Value := fun (xs : ListBytes) => jsonArray (listBytesEncodeItems xs)
+
+def rec listBytesDecodeItems : Values -> Result ListBytes := fun (xs : Values) =>
+  match xs as self in JsonTree sort return Result ListBytes with
+  | jsonNull => err ListBytes (decodeError b"list" b"expected a JSON array")
+  | jsonBool x => err ListBytes (decodeError b"list" b"expected a JSON array")
+  | jsonInt x => err ListBytes (decodeError b"list" b"expected a JSON array")
+  | jsonIntLiteral x => err ListBytes (decodeError b"list" b"expected a JSON array")
+  | jsonFloat x => err ListBytes (decodeError b"list" b"expected a JSON array")
+  | jsonString x => err ListBytes (decodeError b"list" b"expected a JSON array")
+  | jsonArray x => err ListBytes (decodeError b"list" b"expected a JSON array")
+  | jsonObject x => err ListBytes (decodeError b"list" b"expected a JSON array")
+  | jsonArrayNil => ok ListBytes listBytesNil
+  | jsonArrayCons h t => resultBind (Bytes) ListBytes (jsonGetString h) (fun (value : Bytes) => resultMap ListBytes ListBytes (fun (tail : ListBytes) => listBytesCons value tail) (listBytesDecodeItems t))
+  | jsonObjectNil => err ListBytes (decodeError b"list" b"expected a JSON array")
+  | jsonObjectCons k v t => err ListBytes (decodeError b"list" b"expected a JSON array")
+
+def listBytesDecode : Value -> Result ListBytes := fun (j : Value) => resultBind Values ListBytes (jsonGetArray j) listBytesDecodeItems
+
+def listBytesDecodeRender : Value -> Bytes := fun (j : Value) =>
+  case (listBytesDecode j) with | 0 (e : Error) => bytesAppend b"error: " (errorText e)
+  | 1 (x : ListBytes) => valueRender (listBytesEncode x)
+
+def objectMetaTEncode : ObjectMetaT -> Value := fun (x : ObjectMetaT) => jsonObject (jsonOptionalMember (Bytes) b"name" (jsonEncodeBytes) (objectMetaTName x) (jsonOptionalMember (Bytes) b"generateName" (jsonEncodeBytes) (objectMetaTGenerateName x) (jsonOptionalMember (Bytes) b"namespace" (jsonEncodeBytes) (objectMetaTNamespace x) (jsonOptionalMember (Int) b"resourceVersion" (jsonEncodeInt) (objectMetaTResourceVersion x) (jsonOptionalMember (Int) b"uid" (jsonEncodeInt) (objectMetaTUid x) (jsonOptionalMember (StringMap) b"labels" (jsonEncodeMap) (objectMetaTLabels x) (jsonOptionalMember (StringMap) b"annotations" (jsonEncodeMap) (objectMetaTAnnotations x) (jsonOptionalMember (ListOwnerReferenceT) b"ownerReferences" (listOwnerReferenceTEncode) (objectMetaTOwnerReferences x) (jsonOptionalMember (ListBytes) b"finalizers" (listBytesEncode) (objectMetaTFinalizers x) (jsonOptionalMember (Bytes) b"deletionTimestamp" (jsonEncodeBytes) (objectMetaTDeletionTimestamp x) (jsonObjectNil)))))))))))
+
+def objectMetaTDecode : Value -> Result ObjectMetaT := fun (j : Value) => resultBind (Option (Bytes)) ObjectMetaT (jsonOptionalField (Bytes) j b"name" (jsonGetString)) (fun (field0 : Option (Bytes)) => resultBind (Option (Bytes)) ObjectMetaT (jsonOptionalField (Bytes) j b"generateName" (jsonGetString)) (fun (field1 : Option (Bytes)) => resultBind (Option (Bytes)) ObjectMetaT (jsonOptionalField (Bytes) j b"namespace" (jsonGetString)) (fun (field2 : Option (Bytes)) => resultBind (Option (Int)) ObjectMetaT (jsonOptionalField (Int) j b"resourceVersion" (jsonGetInt)) (fun (field3 : Option (Int)) => resultBind (Option (Int)) ObjectMetaT (jsonOptionalField (Int) j b"uid" (jsonGetInt)) (fun (field4 : Option (Int)) => resultBind (Option (StringMap)) ObjectMetaT (jsonOptionalField (StringMap) j b"labels" (jsonDecodeMap)) (fun (field5 : Option (StringMap)) => resultBind (Option (StringMap)) ObjectMetaT (jsonOptionalField (StringMap) j b"annotations" (jsonDecodeMap)) (fun (field6 : Option (StringMap)) => resultBind (Option (ListOwnerReferenceT)) ObjectMetaT (jsonOptionalField (ListOwnerReferenceT) j b"ownerReferences" (listOwnerReferenceTDecode)) (fun (field7 : Option (ListOwnerReferenceT)) => resultBind (Option (ListBytes)) ObjectMetaT (jsonOptionalField (ListBytes) j b"finalizers" (listBytesDecode)) (fun (field8 : Option (ListBytes)) => resultBind (Option (Bytes)) ObjectMetaT (jsonOptionalField (Bytes) j b"deletionTimestamp" (jsonGetString)) (fun (field9 : Option (Bytes)) => ok ObjectMetaT (objectMetaTMake field0 field1 field2 field3 field4 field5 field6 field7 field8 field9)))))))))))
+
+def objectMetaTDecodeRender : Value -> Bytes := fun (j : Value) =>
+  case (objectMetaTDecode j) with | 0 (e : Error) => bytesAppend b"error: " (errorText e)
+  | 1 (x : ObjectMetaT) => valueRender (objectMetaTEncode x)
+
+def dynamicObjectTEncode : DynamicObjectT -> Value := fun (x : DynamicObjectT) => jsonObject (jsonObjectCons b"kind" (commonKindEncode (dynamicObjectTKind x)) (jsonObjectCons b"metadata" (objectMetaTEncode (dynamicObjectTMetadata x)) (jsonObjectCons b"spec" (jsonEncodeValue (dynamicObjectTSpec x)) (jsonObjectCons b"status" (jsonEncodeValue (dynamicObjectTStatus x)) (jsonObjectNil)))))
+
+def dynamicObjectTDecode : Value -> Result DynamicObjectT := fun (j : Value) => resultBind (CommonKind) DynamicObjectT (jsonField (CommonKind) j b"kind" (commonKindDecode)) (fun (field0 : CommonKind) => resultBind (ObjectMetaT) DynamicObjectT (jsonField (ObjectMetaT) j b"metadata" (objectMetaTDecode)) (fun (field1 : ObjectMetaT) => resultBind (Value) DynamicObjectT (jsonField (Value) j b"spec" (jsonDecodeValue)) (fun (field2 : Value) => resultBind (Value) DynamicObjectT (jsonField (Value) j b"status" (jsonDecodeValue)) (fun (field3 : Value) => ok DynamicObjectT (dynamicObjectTMake field0 field1 field2 field3)))))
+
+def dynamicObjectTDecodeRender : Value -> Bytes := fun (j : Value) =>
+  case (dynamicObjectTDecode j) with | 0 (e : Error) => bytesAppend b"error: " (errorText e)
+  | 1 (x : DynamicObjectT) => valueRender (dynamicObjectTEncode x)
+
+def containerExecActionEncode : ContainerExecAction -> Value := fun (x : ContainerExecAction) => jsonObject (jsonOptionalMember (ListBytes) b"command" (listBytesEncode) (containerExecActionCommand x) (jsonObjectNil))
+
+def containerExecActionDecode : Value -> Result ContainerExecAction := fun (j : Value) => resultBind (Option (ListBytes)) ContainerExecAction (jsonOptionalField (ListBytes) j b"command" (listBytesDecode)) (fun (field0 : Option (ListBytes)) => ok ContainerExecAction (containerExecActionMake field0))
+
+def containerExecActionDecodeRender : Value -> Bytes := fun (j : Value) =>
+  case (containerExecActionDecode j) with | 0 (e : Error) => bytesAppend b"error: " (errorText e)
+  | 1 (x : ContainerExecAction) => valueRender (containerExecActionEncode x)
+
+def containerTcpSocketActionEncode : ContainerTcpSocketAction -> Value := fun (x : ContainerTcpSocketAction) => jsonObject (jsonOptionalMember (Bytes) b"host" (jsonEncodeBytes) (containerTcpSocketActionHost x) (jsonObjectCons b"port" (jsonEncodeInt (containerTcpSocketActionPort x)) (jsonObjectNil)))
+
+def containerTcpSocketActionDecode : Value -> Result ContainerTcpSocketAction := fun (j : Value) => resultBind (Option (Bytes)) ContainerTcpSocketAction (jsonOptionalField (Bytes) j b"host" (jsonGetString)) (fun (field0 : Option (Bytes)) => resultBind (Int) ContainerTcpSocketAction (jsonField (Int) j b"port" (jsonGetInt)) (fun (field1 : Int) => ok ContainerTcpSocketAction (containerTcpSocketActionMake field0 field1)))
+
+def containerTcpSocketActionDecodeRender : Value -> Bytes := fun (j : Value) =>
+  case (containerTcpSocketActionDecode j) with | 0 (e : Error) => bytesAppend b"error: " (errorText e)
+  | 1 (x : ContainerTcpSocketAction) => valueRender (containerTcpSocketActionEncode x)
+
+def containerLifecycleHandlerEncode : ContainerLifecycleHandler -> Value := fun (x : ContainerLifecycleHandler) => jsonObject (jsonOptionalMember (ContainerExecAction) b"exec" (containerExecActionEncode) (containerLifecycleHandlerExec x) (jsonObjectNil))
+
+def containerLifecycleHandlerDecode : Value -> Result ContainerLifecycleHandler := fun (j : Value) => resultBind (Option (ContainerExecAction)) ContainerLifecycleHandler (jsonOptionalField (ContainerExecAction) j b"exec" (containerExecActionDecode)) (fun (field0 : Option (ContainerExecAction)) => ok ContainerLifecycleHandler (containerLifecycleHandlerMake field0))
+
+def containerLifecycleHandlerDecodeRender : Value -> Bytes := fun (j : Value) =>
+  case (containerLifecycleHandlerDecode j) with | 0 (e : Error) => bytesAppend b"error: " (errorText e)
+  | 1 (x : ContainerLifecycleHandler) => valueRender (containerLifecycleHandlerEncode x)
+
+def containerLifecycleEncode : ContainerLifecycle -> Value := fun (x : ContainerLifecycle) => jsonObject (jsonOptionalMember (ContainerLifecycleHandler) b"preStop" (containerLifecycleHandlerEncode) (containerLifecyclePreStop x) (jsonObjectNil))
+
+def containerLifecycleDecode : Value -> Result ContainerLifecycle := fun (j : Value) => resultBind (Option (ContainerLifecycleHandler)) ContainerLifecycle (jsonOptionalField (ContainerLifecycleHandler) j b"preStop" (containerLifecycleHandlerDecode)) (fun (field0 : Option (ContainerLifecycleHandler)) => ok ContainerLifecycle (containerLifecycleMake field0))
+
+def containerLifecycleDecodeRender : Value -> Bytes := fun (j : Value) =>
+  case (containerLifecycleDecode j) with | 0 (e : Error) => bytesAppend b"error: " (errorText e)
+  | 1 (x : ContainerLifecycle) => valueRender (containerLifecycleEncode x)
+
+def containerContainerPortEncode : ContainerContainerPort -> Value := fun (x : ContainerContainerPort) => jsonObject (jsonObjectCons b"containerPort" (jsonEncodeInt (containerContainerPortContainerPort x)) (jsonOptionalMember (Bytes) b"name" (jsonEncodeBytes) (containerContainerPortName x) (jsonOptionalMember (Bytes) b"protocol" (jsonEncodeBytes) (containerContainerPortProtocol x) (jsonObjectNil))))
+
+def containerContainerPortDecode : Value -> Result ContainerContainerPort := fun (j : Value) => resultBind (Int) ContainerContainerPort (jsonField (Int) j b"containerPort" (jsonGetInt)) (fun (field0 : Int) => resultBind (Option (Bytes)) ContainerContainerPort (jsonOptionalField (Bytes) j b"name" (jsonGetString)) (fun (field1 : Option (Bytes)) => resultBind (Option (Bytes)) ContainerContainerPort (jsonOptionalField (Bytes) j b"protocol" (jsonGetString)) (fun (field2 : Option (Bytes)) => ok ContainerContainerPort (containerContainerPortMake field0 field1 field2))))
+
+def containerContainerPortDecodeRender : Value -> Bytes := fun (j : Value) =>
+  case (containerContainerPortDecode j) with | 0 (e : Error) => bytesAppend b"error: " (errorText e)
+  | 1 (x : ContainerContainerPort) => valueRender (containerContainerPortEncode x)
+
+def containerVolumeMountEncode : ContainerVolumeMount -> Value := fun (x : ContainerVolumeMount) => jsonObject (jsonObjectCons b"mountPath" (jsonEncodeBytes (containerVolumeMountMountPath x)) (jsonObjectCons b"name" (jsonEncodeBytes (containerVolumeMountName x)) (jsonOptionalMember (Bool) b"readOnly" (jsonEncodeBool) (containerVolumeMountReadOnly x) (jsonOptionalMember (Bytes) b"subPath" (jsonEncodeBytes) (containerVolumeMountSubPath x) (jsonOptionalMember (Bytes) b"mountPropagation" (jsonEncodeBytes) (containerVolumeMountMountPropagation x) (jsonObjectNil))))))
+
+def containerVolumeMountDecode : Value -> Result ContainerVolumeMount := fun (j : Value) => resultBind (Bytes) ContainerVolumeMount (jsonField (Bytes) j b"mountPath" (jsonGetString)) (fun (field0 : Bytes) => resultBind (Bytes) ContainerVolumeMount (jsonField (Bytes) j b"name" (jsonGetString)) (fun (field1 : Bytes) => resultBind (Option (Bool)) ContainerVolumeMount (jsonOptionalField (Bool) j b"readOnly" (jsonGetBool)) (fun (field2 : Option (Bool)) => resultBind (Option (Bytes)) ContainerVolumeMount (jsonOptionalField (Bytes) j b"subPath" (jsonGetString)) (fun (field3 : Option (Bytes)) => resultBind (Option (Bytes)) ContainerVolumeMount (jsonOptionalField (Bytes) j b"mountPropagation" (jsonGetString)) (fun (field4 : Option (Bytes)) => ok ContainerVolumeMount (containerVolumeMountMake field0 field1 field2 field3 field4))))))
+
+def containerVolumeMountDecodeRender : Value -> Bytes := fun (j : Value) =>
+  case (containerVolumeMountDecode j) with | 0 (e : Error) => bytesAppend b"error: " (errorText e)
+  | 1 (x : ContainerVolumeMount) => valueRender (containerVolumeMountEncode x)
+
+def objectFieldSelectorTEncode : ObjectFieldSelectorT -> Value := fun (x : ObjectFieldSelectorT) => jsonObject (jsonObjectCons b"fieldPath" (jsonEncodeBytes (objectFieldSelectorTFieldPath x)) (jsonOptionalMember (Bytes) b"apiVersion" (jsonEncodeBytes) (objectFieldSelectorTApiVersion x) (jsonObjectNil)))
+
+def objectFieldSelectorTDecode : Value -> Result ObjectFieldSelectorT := fun (j : Value) => resultBind (Bytes) ObjectFieldSelectorT (jsonField (Bytes) j b"fieldPath" (jsonGetString)) (fun (field0 : Bytes) => resultBind (Option (Bytes)) ObjectFieldSelectorT (jsonOptionalField (Bytes) j b"apiVersion" (jsonGetString)) (fun (field1 : Option (Bytes)) => ok ObjectFieldSelectorT (objectFieldSelectorTMake field0 field1)))
+
+def objectFieldSelectorTDecodeRender : Value -> Bytes := fun (j : Value) =>
+  case (objectFieldSelectorTDecode j) with | 0 (e : Error) => bytesAppend b"error: " (errorText e)
+  | 1 (x : ObjectFieldSelectorT) => valueRender (objectFieldSelectorTEncode x)
+
+def containerEnvVarSourceEncode : ContainerEnvVarSource -> Value := fun (x : ContainerEnvVarSource) => jsonObject (jsonOptionalMember (ObjectFieldSelectorT) b"fieldRef" (objectFieldSelectorTEncode) (containerEnvVarSourceFieldRef x) (jsonObjectNil))
+
+def containerEnvVarSourceDecode : Value -> Result ContainerEnvVarSource := fun (j : Value) => resultBind (Option (ObjectFieldSelectorT)) ContainerEnvVarSource (jsonOptionalField (ObjectFieldSelectorT) j b"fieldRef" (objectFieldSelectorTDecode)) (fun (field0 : Option (ObjectFieldSelectorT)) => ok ContainerEnvVarSource (containerEnvVarSourceMake field0))
+
+def containerEnvVarSourceDecodeRender : Value -> Bytes := fun (j : Value) =>
+  case (containerEnvVarSourceDecode j) with | 0 (e : Error) => bytesAppend b"error: " (errorText e)
+  | 1 (x : ContainerEnvVarSource) => valueRender (containerEnvVarSourceEncode x)
+
+def containerEnvVarEncode : ContainerEnvVar -> Value := fun (x : ContainerEnvVar) => jsonObject (jsonObjectCons b"name" (jsonEncodeBytes (containerEnvVarName x)) (jsonOptionalMember (Bytes) b"value" (jsonEncodeBytes) (containerEnvVarValue x) (jsonOptionalMember (ContainerEnvVarSource) b"valueFrom" (containerEnvVarSourceEncode) (containerEnvVarValueFrom x) (jsonObjectNil))))
+
+def containerEnvVarDecode : Value -> Result ContainerEnvVar := fun (j : Value) => resultBind (Bytes) ContainerEnvVar (jsonField (Bytes) j b"name" (jsonGetString)) (fun (field0 : Bytes) => resultBind (Option (Bytes)) ContainerEnvVar (jsonOptionalField (Bytes) j b"value" (jsonGetString)) (fun (field1 : Option (Bytes)) => resultBind (Option (ContainerEnvVarSource)) ContainerEnvVar (jsonOptionalField (ContainerEnvVarSource) j b"valueFrom" (containerEnvVarSourceDecode)) (fun (field2 : Option (ContainerEnvVarSource)) => ok ContainerEnvVar (containerEnvVarMake field0 field1 field2))))
+
+def containerEnvVarDecodeRender : Value -> Bytes := fun (j : Value) =>
+  case (containerEnvVarDecode j) with | 0 (e : Error) => bytesAppend b"error: " (errorText e)
+  | 1 (x : ContainerEnvVar) => valueRender (containerEnvVarEncode x)
+
+def containerProbeEncode : ContainerProbe -> Value := fun (x : ContainerProbe) => jsonObject (jsonOptionalMember (ContainerExecAction) b"exec" (containerExecActionEncode) (containerProbeExec x) (jsonOptionalMember (Int) b"failureThreshold" (jsonEncodeInt) (containerProbeFailureThreshold x) (jsonOptionalMember (Int) b"initialDelaySeconds" (jsonEncodeInt) (containerProbeInitialDelaySeconds x) (jsonOptionalMember (Int) b"periodSeconds" (jsonEncodeInt) (containerProbePeriodSeconds x) (jsonOptionalMember (Int) b"successThreshold" (jsonEncodeInt) (containerProbeSuccessThreshold x) (jsonOptionalMember (ContainerTcpSocketAction) b"tcpSocket" (containerTcpSocketActionEncode) (containerProbeTcpSocket x) (jsonOptionalMember (Int) b"timeoutSeconds" (jsonEncodeInt) (containerProbeTimeoutSeconds x) (jsonObjectNil))))))))
+
+def containerProbeDecode : Value -> Result ContainerProbe := fun (j : Value) => resultBind (Option (ContainerExecAction)) ContainerProbe (jsonOptionalField (ContainerExecAction) j b"exec" (containerExecActionDecode)) (fun (field0 : Option (ContainerExecAction)) => resultBind (Option (Int)) ContainerProbe (jsonOptionalField (Int) j b"failureThreshold" (jsonGetInt)) (fun (field1 : Option (Int)) => resultBind (Option (Int)) ContainerProbe (jsonOptionalField (Int) j b"initialDelaySeconds" (jsonGetInt)) (fun (field2 : Option (Int)) => resultBind (Option (Int)) ContainerProbe (jsonOptionalField (Int) j b"periodSeconds" (jsonGetInt)) (fun (field3 : Option (Int)) => resultBind (Option (Int)) ContainerProbe (jsonOptionalField (Int) j b"successThreshold" (jsonGetInt)) (fun (field4 : Option (Int)) => resultBind (Option (ContainerTcpSocketAction)) ContainerProbe (jsonOptionalField (ContainerTcpSocketAction) j b"tcpSocket" (containerTcpSocketActionDecode)) (fun (field5 : Option (ContainerTcpSocketAction)) => resultBind (Option (Int)) ContainerProbe (jsonOptionalField (Int) j b"timeoutSeconds" (jsonGetInt)) (fun (field6 : Option (Int)) => ok ContainerProbe (containerProbeMake field0 field1 field2 field3 field4 field5 field6))))))))
+
+def containerProbeDecodeRender : Value -> Bytes := fun (j : Value) =>
+  case (containerProbeDecode j) with | 0 (e : Error) => bytesAppend b"error: " (errorText e)
+  | 1 (x : ContainerProbe) => valueRender (containerProbeEncode x)
+
+def resourceRequirementsTEncode : ResourceRequirementsT -> Value := fun (x : ResourceRequirementsT) => jsonObject (jsonOptionalMember (StringMap) b"limits" (jsonEncodeMap) (resourceRequirementsTLimits x) (jsonOptionalMember (StringMap) b"requests" (jsonEncodeMap) (resourceRequirementsTRequests x) (jsonObjectNil)))
+
+def resourceRequirementsTDecode : Value -> Result ResourceRequirementsT := fun (j : Value) => resultBind (Option (StringMap)) ResourceRequirementsT (jsonOptionalField (StringMap) j b"limits" (jsonDecodeMap)) (fun (field0 : Option (StringMap)) => resultBind (Option (StringMap)) ResourceRequirementsT (jsonOptionalField (StringMap) j b"requests" (jsonDecodeMap)) (fun (field1 : Option (StringMap)) => ok ResourceRequirementsT (resourceRequirementsTMake field0 field1)))
+
+def resourceRequirementsTDecodeRender : Value -> Bytes := fun (j : Value) =>
+  case (resourceRequirementsTDecode j) with | 0 (e : Error) => bytesAppend b"error: " (errorText e)
+  | 1 (x : ResourceRequirementsT) => valueRender (resourceRequirementsTEncode x)
+
+def rec listContainerEnvVarEncodeItems : ListContainerEnvVar -> Values := fun (xs : ListContainerEnvVar) =>
+  match xs as self in ListContainerEnvVar return Values with
+  | listContainerEnvVarNil => jsonArrayNil
+  | listContainerEnvVarCons h t => jsonArrayCons (containerEnvVarEncode h) (listContainerEnvVarEncodeItems t)
+
+def listContainerEnvVarEncode : ListContainerEnvVar -> Value := fun (xs : ListContainerEnvVar) => jsonArray (listContainerEnvVarEncodeItems xs)
+
+def rec listContainerEnvVarDecodeItems : Values -> Result ListContainerEnvVar := fun (xs : Values) =>
+  match xs as self in JsonTree sort return Result ListContainerEnvVar with
+  | jsonNull => err ListContainerEnvVar (decodeError b"list" b"expected a JSON array")
+  | jsonBool x => err ListContainerEnvVar (decodeError b"list" b"expected a JSON array")
+  | jsonInt x => err ListContainerEnvVar (decodeError b"list" b"expected a JSON array")
+  | jsonIntLiteral x => err ListContainerEnvVar (decodeError b"list" b"expected a JSON array")
+  | jsonFloat x => err ListContainerEnvVar (decodeError b"list" b"expected a JSON array")
+  | jsonString x => err ListContainerEnvVar (decodeError b"list" b"expected a JSON array")
+  | jsonArray x => err ListContainerEnvVar (decodeError b"list" b"expected a JSON array")
+  | jsonObject x => err ListContainerEnvVar (decodeError b"list" b"expected a JSON array")
+  | jsonArrayNil => ok ListContainerEnvVar listContainerEnvVarNil
+  | jsonArrayCons h t => resultBind (ContainerEnvVar) ListContainerEnvVar (containerEnvVarDecode h) (fun (value : ContainerEnvVar) => resultMap ListContainerEnvVar ListContainerEnvVar (fun (tail : ListContainerEnvVar) => listContainerEnvVarCons value tail) (listContainerEnvVarDecodeItems t))
+  | jsonObjectNil => err ListContainerEnvVar (decodeError b"list" b"expected a JSON array")
+  | jsonObjectCons k v t => err ListContainerEnvVar (decodeError b"list" b"expected a JSON array")
+
+def listContainerEnvVarDecode : Value -> Result ListContainerEnvVar := fun (j : Value) => resultBind Values ListContainerEnvVar (jsonGetArray j) listContainerEnvVarDecodeItems
+
+def listContainerEnvVarDecodeRender : Value -> Bytes := fun (j : Value) =>
+  case (listContainerEnvVarDecode j) with | 0 (e : Error) => bytesAppend b"error: " (errorText e)
+  | 1 (x : ListContainerEnvVar) => valueRender (listContainerEnvVarEncode x)
+
+def rec listContainerContainerPortEncodeItems : ListContainerContainerPort -> Values := fun (xs : ListContainerContainerPort) =>
+  match xs as self in ListContainerContainerPort return Values with
+  | listContainerContainerPortNil => jsonArrayNil
+  | listContainerContainerPortCons h t => jsonArrayCons (containerContainerPortEncode h) (listContainerContainerPortEncodeItems t)
+
+def listContainerContainerPortEncode : ListContainerContainerPort -> Value := fun (xs : ListContainerContainerPort) => jsonArray (listContainerContainerPortEncodeItems xs)
+
+def rec listContainerContainerPortDecodeItems : Values -> Result ListContainerContainerPort := fun (xs : Values) =>
+  match xs as self in JsonTree sort return Result ListContainerContainerPort with
+  | jsonNull => err ListContainerContainerPort (decodeError b"list" b"expected a JSON array")
+  | jsonBool x => err ListContainerContainerPort (decodeError b"list" b"expected a JSON array")
+  | jsonInt x => err ListContainerContainerPort (decodeError b"list" b"expected a JSON array")
+  | jsonIntLiteral x => err ListContainerContainerPort (decodeError b"list" b"expected a JSON array")
+  | jsonFloat x => err ListContainerContainerPort (decodeError b"list" b"expected a JSON array")
+  | jsonString x => err ListContainerContainerPort (decodeError b"list" b"expected a JSON array")
+  | jsonArray x => err ListContainerContainerPort (decodeError b"list" b"expected a JSON array")
+  | jsonObject x => err ListContainerContainerPort (decodeError b"list" b"expected a JSON array")
+  | jsonArrayNil => ok ListContainerContainerPort listContainerContainerPortNil
+  | jsonArrayCons h t => resultBind (ContainerContainerPort) ListContainerContainerPort (containerContainerPortDecode h) (fun (value : ContainerContainerPort) => resultMap ListContainerContainerPort ListContainerContainerPort (fun (tail : ListContainerContainerPort) => listContainerContainerPortCons value tail) (listContainerContainerPortDecodeItems t))
+  | jsonObjectNil => err ListContainerContainerPort (decodeError b"list" b"expected a JSON array")
+  | jsonObjectCons k v t => err ListContainerContainerPort (decodeError b"list" b"expected a JSON array")
+
+def listContainerContainerPortDecode : Value -> Result ListContainerContainerPort := fun (j : Value) => resultBind Values ListContainerContainerPort (jsonGetArray j) listContainerContainerPortDecodeItems
+
+def listContainerContainerPortDecodeRender : Value -> Bytes := fun (j : Value) =>
+  case (listContainerContainerPortDecode j) with | 0 (e : Error) => bytesAppend b"error: " (errorText e)
+  | 1 (x : ListContainerContainerPort) => valueRender (listContainerContainerPortEncode x)
+
+def rec listContainerVolumeMountEncodeItems : ListContainerVolumeMount -> Values := fun (xs : ListContainerVolumeMount) =>
+  match xs as self in ListContainerVolumeMount return Values with
+  | listContainerVolumeMountNil => jsonArrayNil
+  | listContainerVolumeMountCons h t => jsonArrayCons (containerVolumeMountEncode h) (listContainerVolumeMountEncodeItems t)
+
+def listContainerVolumeMountEncode : ListContainerVolumeMount -> Value := fun (xs : ListContainerVolumeMount) => jsonArray (listContainerVolumeMountEncodeItems xs)
+
+def rec listContainerVolumeMountDecodeItems : Values -> Result ListContainerVolumeMount := fun (xs : Values) =>
+  match xs as self in JsonTree sort return Result ListContainerVolumeMount with
+  | jsonNull => err ListContainerVolumeMount (decodeError b"list" b"expected a JSON array")
+  | jsonBool x => err ListContainerVolumeMount (decodeError b"list" b"expected a JSON array")
+  | jsonInt x => err ListContainerVolumeMount (decodeError b"list" b"expected a JSON array")
+  | jsonIntLiteral x => err ListContainerVolumeMount (decodeError b"list" b"expected a JSON array")
+  | jsonFloat x => err ListContainerVolumeMount (decodeError b"list" b"expected a JSON array")
+  | jsonString x => err ListContainerVolumeMount (decodeError b"list" b"expected a JSON array")
+  | jsonArray x => err ListContainerVolumeMount (decodeError b"list" b"expected a JSON array")
+  | jsonObject x => err ListContainerVolumeMount (decodeError b"list" b"expected a JSON array")
+  | jsonArrayNil => ok ListContainerVolumeMount listContainerVolumeMountNil
+  | jsonArrayCons h t => resultBind (ContainerVolumeMount) ListContainerVolumeMount (containerVolumeMountDecode h) (fun (value : ContainerVolumeMount) => resultMap ListContainerVolumeMount ListContainerVolumeMount (fun (tail : ListContainerVolumeMount) => listContainerVolumeMountCons value tail) (listContainerVolumeMountDecodeItems t))
+  | jsonObjectNil => err ListContainerVolumeMount (decodeError b"list" b"expected a JSON array")
+  | jsonObjectCons k v t => err ListContainerVolumeMount (decodeError b"list" b"expected a JSON array")
+
+def listContainerVolumeMountDecode : Value -> Result ListContainerVolumeMount := fun (j : Value) => resultBind Values ListContainerVolumeMount (jsonGetArray j) listContainerVolumeMountDecodeItems
+
+def listContainerVolumeMountDecodeRender : Value -> Bytes := fun (j : Value) =>
+  case (listContainerVolumeMountDecode j) with | 0 (e : Error) => bytesAppend b"error: " (errorText e)
+  | 1 (x : ListContainerVolumeMount) => valueRender (listContainerVolumeMountEncode x)
+
+def containerSecurityContextEncode : ContainerSecurityContext -> Value := fun (x : ContainerSecurityContext) => jsonEncodeGhost x
+
+def containerSecurityContextDecode : Value -> Result ContainerSecurityContext := fun (j : Value) =>
+  case (jsonGetObject j) with | 1 (m : Members) => ok ContainerSecurityContext ghost
+  | 0 (e : Error) => err ContainerSecurityContext (decodeError b"SecurityContext" b"expected an object")
+
+def containerSecurityContextDecodeRender : Value -> Bytes := fun (j : Value) =>
+  case (containerSecurityContextDecode j) with | 0 (e : Error) => bytesAppend b"error: " (errorText e)
+  | 1 (x : ContainerSecurityContext) => valueRender (containerSecurityContextEncode x)
+
+def containerTEncode : ContainerT -> Value := fun (x : ContainerT) => jsonObject (jsonOptionalMember (ListContainerEnvVar) b"env" (listContainerEnvVarEncode) (containerTEnv x) (jsonOptionalMember (Bytes) b"image" (jsonEncodeBytes) (containerTImage x) (jsonObjectCons b"name" (jsonEncodeBytes (containerTName x)) (jsonOptionalMember (ListContainerContainerPort) b"ports" (listContainerContainerPortEncode) (containerTPorts x) (jsonOptionalMember (ListContainerVolumeMount) b"volumeMounts" (listContainerVolumeMountEncode) (containerTVolumeMounts x) (jsonOptionalMember (ContainerLifecycle) b"lifecycle" (containerLifecycleEncode) (containerTLifecycle x) (jsonOptionalMember (ResourceRequirementsT) b"resources" (resourceRequirementsTEncode) (containerTResources x) (jsonOptionalMember (ContainerProbe) b"readinessProbe" (containerProbeEncode) (containerTReadinessProbe x) (jsonOptionalMember (ContainerProbe) b"livenessProbe" (containerProbeEncode) (containerTLivenessProbe x) (jsonOptionalMember (ListBytes) b"command" (listBytesEncode) (containerTCommand x) (jsonOptionalMember (Bytes) b"imagePullPolicy" (jsonEncodeBytes) (containerTImagePullPolicy x) (jsonOptionalMember (ListBytes) b"args" (listBytesEncode) (containerTArgs x) (jsonOptionalMember (ContainerSecurityContext) b"securityContext" (containerSecurityContextEncode) (containerTSecurityContext x) (jsonObjectNil))))))))))))))
+
+def containerTDecode : Value -> Result ContainerT := fun (j : Value) => resultBind (Option (ListContainerEnvVar)) ContainerT (jsonOptionalField (ListContainerEnvVar) j b"env" (listContainerEnvVarDecode)) (fun (field0 : Option (ListContainerEnvVar)) => resultBind (Option (Bytes)) ContainerT (jsonOptionalField (Bytes) j b"image" (jsonGetString)) (fun (field1 : Option (Bytes)) => resultBind (Bytes) ContainerT (jsonField (Bytes) j b"name" (jsonGetString)) (fun (field2 : Bytes) => resultBind (Option (ListContainerContainerPort)) ContainerT (jsonOptionalField (ListContainerContainerPort) j b"ports" (listContainerContainerPortDecode)) (fun (field3 : Option (ListContainerContainerPort)) => resultBind (Option (ListContainerVolumeMount)) ContainerT (jsonOptionalField (ListContainerVolumeMount) j b"volumeMounts" (listContainerVolumeMountDecode)) (fun (field4 : Option (ListContainerVolumeMount)) => resultBind (Option (ContainerLifecycle)) ContainerT (jsonOptionalField (ContainerLifecycle) j b"lifecycle" (containerLifecycleDecode)) (fun (field5 : Option (ContainerLifecycle)) => resultBind (Option (ResourceRequirementsT)) ContainerT (jsonOptionalField (ResourceRequirementsT) j b"resources" (resourceRequirementsTDecode)) (fun (field6 : Option (ResourceRequirementsT)) => resultBind (Option (ContainerProbe)) ContainerT (jsonOptionalField (ContainerProbe) j b"readinessProbe" (containerProbeDecode)) (fun (field7 : Option (ContainerProbe)) => resultBind (Option (ContainerProbe)) ContainerT (jsonOptionalField (ContainerProbe) j b"livenessProbe" (containerProbeDecode)) (fun (field8 : Option (ContainerProbe)) => resultBind (Option (ListBytes)) ContainerT (jsonOptionalField (ListBytes) j b"command" (listBytesDecode)) (fun (field9 : Option (ListBytes)) => resultBind (Option (Bytes)) ContainerT (jsonOptionalField (Bytes) j b"imagePullPolicy" (jsonGetString)) (fun (field10 : Option (Bytes)) => resultBind (Option (ListBytes)) ContainerT (jsonOptionalField (ListBytes) j b"args" (listBytesDecode)) (fun (field11 : Option (ListBytes)) => resultBind (Option (ContainerSecurityContext)) ContainerT (jsonOptionalField (ContainerSecurityContext) j b"securityContext" (containerSecurityContextDecode)) (fun (field12 : Option (ContainerSecurityContext)) => ok ContainerT (containerTMake field0 field1 field2 field3 field4 field5 field6 field7 field8 field9 field10 field11 field12))))))))))))))
+
+def containerTDecodeRender : Value -> Bytes := fun (j : Value) =>
+  case (containerTDecode j) with | 0 (e : Error) => bytesAppend b"error: " (errorText e)
+  | 1 (x : ContainerT) => valueRender (containerTEncode x)
+
+def deploymentStrategyRollingUpdateEncode : DeploymentStrategyRollingUpdate -> Value := fun (x : DeploymentStrategyRollingUpdate) => jsonObject (jsonOptionalMember (Int) b"maxSurge" (jsonEncodeInt) (deploymentStrategyRollingUpdateMaxSurge x) (jsonOptionalMember (Int) b"maxUnavailable" (jsonEncodeInt) (deploymentStrategyRollingUpdateMaxUnavailable x) (jsonObjectNil)))
+
+def deploymentStrategyRollingUpdateDecode : Value -> Result DeploymentStrategyRollingUpdate := fun (j : Value) => resultBind (Option (Int)) DeploymentStrategyRollingUpdate (jsonOptionalField (Int) j b"maxSurge" (jsonGetInt)) (fun (field0 : Option (Int)) => resultBind (Option (Int)) DeploymentStrategyRollingUpdate (jsonOptionalField (Int) j b"maxUnavailable" (jsonGetInt)) (fun (field1 : Option (Int)) => ok DeploymentStrategyRollingUpdate (deploymentStrategyRollingUpdateMake field0 field1)))
+
+def deploymentStrategyRollingUpdateDecodeRender : Value -> Bytes := fun (j : Value) =>
+  case (deploymentStrategyRollingUpdateDecode j) with | 0 (e : Error) => bytesAppend b"error: " (errorText e)
+  | 1 (x : DeploymentStrategyRollingUpdate) => valueRender (deploymentStrategyRollingUpdateEncode x)
+
+def deploymentStrategyStrategyTypeEncode : DeploymentStrategyStrategyType -> Value := fun (x : DeploymentStrategyStrategyType) =>
+  match x as self in DeploymentStrategyStrategyType return Value with
+  | deploymentStrategyStrategyTypeRecreate => jsonString b"Recreate"
+  | deploymentStrategyStrategyTypeRollingUpdate => jsonString b"RollingUpdate"
+
+def deploymentStrategyStrategyTypeDecode : Value -> Result DeploymentStrategyStrategyType := fun (j : Value) =>
+  resultBind Bytes DeploymentStrategyStrategyType (jsonGetString j) (fun (tag : Bytes) =>
+    case (bytesEqual tag b"Recreate") with | 1 (u : Unit) => ok DeploymentStrategyStrategyType deploymentStrategyStrategyTypeRecreate
+    | 0 (u : Unit) => (case (bytesEqual tag b"RollingUpdate") with | 1 (u : Unit) => ok DeploymentStrategyStrategyType deploymentStrategyStrategyTypeRollingUpdate
+      | 0 (u : Unit) => err DeploymentStrategyStrategyType (decodeError b"deployment_strategy.type" tag)))
+
+def deploymentStrategyStrategyTypeDecodeRender : Value -> Bytes := fun (j : Value) =>
+  case (deploymentStrategyStrategyTypeDecode j) with | 0 (e : Error) => bytesAppend b"error: " (errorText e)
+  | 1 (x : DeploymentStrategyStrategyType) => valueRender (deploymentStrategyStrategyTypeEncode x)
+
+def deploymentStrategyTEncode : DeploymentStrategyT -> Value := fun (x : DeploymentStrategyT) => jsonObject (jsonOptionalMember (DeploymentStrategyStrategyType) b"type" (deploymentStrategyStrategyTypeEncode) (deploymentStrategyTType x) (jsonOptionalMember (DeploymentStrategyRollingUpdate) b"rollingUpdate" (deploymentStrategyRollingUpdateEncode) (deploymentStrategyTRollingUpdate x) (jsonObjectNil)))
+
+def deploymentStrategyTDecode : Value -> Result DeploymentStrategyT := fun (j : Value) => resultBind (Option (DeploymentStrategyStrategyType)) DeploymentStrategyT (jsonOptionalField (DeploymentStrategyStrategyType) j b"type" (deploymentStrategyStrategyTypeDecode)) (fun (field0 : Option (DeploymentStrategyStrategyType)) => resultBind (Option (DeploymentStrategyRollingUpdate)) DeploymentStrategyT (jsonOptionalField (DeploymentStrategyRollingUpdate) j b"rollingUpdate" (deploymentStrategyRollingUpdateDecode)) (fun (field1 : Option (DeploymentStrategyRollingUpdate)) => ok DeploymentStrategyT (deploymentStrategyTMake field0 field1)))
+
+def deploymentStrategyTDecodeRender : Value -> Bytes := fun (j : Value) =>
+  case (deploymentStrategyTDecode j) with | 0 (e : Error) => bytesAppend b"error: " (errorText e)
+  | 1 (x : DeploymentStrategyT) => valueRender (deploymentStrategyTEncode x)
+
+def labelSelectorTEncode : LabelSelectorT -> Value := fun (x : LabelSelectorT) => jsonObject (jsonOptionalMember (StringMap) b"matchLabels" (jsonEncodeMap) (labelSelectorTMatchLabels x) (jsonObjectNil))
+
+def labelSelectorTDecode : Value -> Result LabelSelectorT := fun (j : Value) => resultBind (Option (StringMap)) LabelSelectorT (jsonOptionalField (StringMap) j b"matchLabels" (jsonDecodeMap)) (fun (field0 : Option (StringMap)) => ok LabelSelectorT (labelSelectorTMake field0))
+
+def labelSelectorTDecodeRender : Value -> Bytes := fun (j : Value) =>
+  case (labelSelectorTDecode j) with | 0 (e : Error) => bytesAppend b"error: " (errorText e)
+  | 1 (x : LabelSelectorT) => valueRender (labelSelectorTEncode x)
+
+def volumeResourceRequirementsTEncode : VolumeResourceRequirementsT -> Value := fun (x : VolumeResourceRequirementsT) => jsonObject (jsonOptionalMember (StringMap) b"limits" (jsonEncodeMap) (volumeResourceRequirementsTLimits x) (jsonOptionalMember (StringMap) b"requests" (jsonEncodeMap) (volumeResourceRequirementsTRequests x) (jsonObjectNil)))
+
+def volumeResourceRequirementsTDecode : Value -> Result VolumeResourceRequirementsT := fun (j : Value) => resultBind (Option (StringMap)) VolumeResourceRequirementsT (jsonOptionalField (StringMap) j b"limits" (jsonDecodeMap)) (fun (field0 : Option (StringMap)) => resultBind (Option (StringMap)) VolumeResourceRequirementsT (jsonOptionalField (StringMap) j b"requests" (jsonDecodeMap)) (fun (field1 : Option (StringMap)) => ok VolumeResourceRequirementsT (volumeResourceRequirementsTMake field0 field1)))
+
+def volumeResourceRequirementsTDecodeRender : Value -> Bytes := fun (j : Value) =>
+  case (volumeResourceRequirementsTDecode j) with | 0 (e : Error) => bytesAppend b"error: " (errorText e)
+  | 1 (x : VolumeResourceRequirementsT) => valueRender (volumeResourceRequirementsTEncode x)
+
+def persistentVolumeClaimSpecEncode : PersistentVolumeClaimSpec -> Value := fun (x : PersistentVolumeClaimSpec) => jsonObject (jsonOptionalMember (Bytes) b"storageClassName" (jsonEncodeBytes) (persistentVolumeClaimSpecStorageClassName x) (jsonOptionalMember (ListBytes) b"accessModes" (listBytesEncode) (persistentVolumeClaimSpecAccessModes x) (jsonOptionalMember (VolumeResourceRequirementsT) b"resources" (volumeResourceRequirementsTEncode) (persistentVolumeClaimSpecResources x) (jsonObjectNil))))
+
+def persistentVolumeClaimSpecDecode : Value -> Result PersistentVolumeClaimSpec := fun (j : Value) => resultBind (Option (Bytes)) PersistentVolumeClaimSpec (jsonOptionalField (Bytes) j b"storageClassName" (jsonGetString)) (fun (field0 : Option (Bytes)) => resultBind (Option (ListBytes)) PersistentVolumeClaimSpec (jsonOptionalField (ListBytes) j b"accessModes" (listBytesDecode)) (fun (field1 : Option (ListBytes)) => resultBind (Option (VolumeResourceRequirementsT)) PersistentVolumeClaimSpec (jsonOptionalField (VolumeResourceRequirementsT) j b"resources" (volumeResourceRequirementsTDecode)) (fun (field2 : Option (VolumeResourceRequirementsT)) => ok PersistentVolumeClaimSpec (persistentVolumeClaimSpecMake field0 field1 field2))))
+
+def persistentVolumeClaimSpecDecodeRender : Value -> Bytes := fun (j : Value) =>
+  case (persistentVolumeClaimSpecDecode j) with | 0 (e : Error) => bytesAppend b"error: " (errorText e)
+  | 1 (x : PersistentVolumeClaimSpec) => valueRender (persistentVolumeClaimSpecEncode x)
+
+def persistentVolumeClaimStatusEncode : PersistentVolumeClaimStatus -> Value := fun (x : PersistentVolumeClaimStatus) => jsonEncodeGhost x
+
+def persistentVolumeClaimStatusDecode : Value -> Result PersistentVolumeClaimStatus := fun (j : Value) =>
+  case (jsonGetObject j) with | 1 (m : Members) => ok PersistentVolumeClaimStatus ghost
+  | 0 (e : Error) => err PersistentVolumeClaimStatus (decodeError b"PersistentVolumeClaimStatus" b"expected an object")
+
+def persistentVolumeClaimStatusDecodeRender : Value -> Bytes := fun (j : Value) =>
+  case (persistentVolumeClaimStatusDecode j) with | 0 (e : Error) => bytesAppend b"error: " (errorText e)
+  | 1 (x : PersistentVolumeClaimStatus) => valueRender (persistentVolumeClaimStatusEncode x)
+
+def persistentVolumeClaimTEncode : PersistentVolumeClaimT -> Value := fun (x : PersistentVolumeClaimT) => jsonObject (jsonObjectCons b"metadata" (objectMetaTEncode (persistentVolumeClaimTMetadata x)) (jsonOptionalMember (PersistentVolumeClaimSpec) b"spec" (persistentVolumeClaimSpecEncode) (persistentVolumeClaimTSpec x) (jsonOptionalMember (PersistentVolumeClaimStatus) b"status" (persistentVolumeClaimStatusEncode) (persistentVolumeClaimTStatus x) (jsonObjectNil))))
+
+def persistentVolumeClaimTDecode : Value -> Result PersistentVolumeClaimT := fun (j : Value) => resultBind (ObjectMetaT) PersistentVolumeClaimT (jsonField (ObjectMetaT) j b"metadata" (objectMetaTDecode)) (fun (field0 : ObjectMetaT) => resultBind (Option (PersistentVolumeClaimSpec)) PersistentVolumeClaimT (jsonOptionalField (PersistentVolumeClaimSpec) j b"spec" (persistentVolumeClaimSpecDecode)) (fun (field1 : Option (PersistentVolumeClaimSpec)) => resultBind (Option (PersistentVolumeClaimStatus)) PersistentVolumeClaimT (jsonOptionalField (PersistentVolumeClaimStatus) j b"status" (persistentVolumeClaimStatusDecode)) (fun (field2 : Option (PersistentVolumeClaimStatus)) => ok PersistentVolumeClaimT (persistentVolumeClaimTMake field0 field1 field2))))
+
+def persistentVolumeClaimTDecodeRender : Value -> Bytes := fun (j : Value) =>
+  case (persistentVolumeClaimTDecode j) with | 0 (e : Error) => bytesAppend b"error: " (errorText e)
+  | 1 (x : PersistentVolumeClaimT) => valueRender (persistentVolumeClaimTEncode x)
+
+def volumeHostPathVolumeSourceEncode : VolumeHostPathVolumeSource -> Value := fun (x : VolumeHostPathVolumeSource) => jsonObject (jsonObjectCons b"path" (jsonEncodeBytes (volumeHostPathVolumeSourcePath x)) (jsonObjectNil))
+
+def volumeHostPathVolumeSourceDecode : Value -> Result VolumeHostPathVolumeSource := fun (j : Value) => resultBind (Bytes) VolumeHostPathVolumeSource (jsonField (Bytes) j b"path" (jsonGetString)) (fun (field0 : Bytes) => ok VolumeHostPathVolumeSource (volumeHostPathVolumeSourceMake field0))
+
+def volumeHostPathVolumeSourceDecodeRender : Value -> Bytes := fun (j : Value) =>
+  case (volumeHostPathVolumeSourceDecode j) with | 0 (e : Error) => bytesAppend b"error: " (errorText e)
+  | 1 (x : VolumeHostPathVolumeSource) => valueRender (volumeHostPathVolumeSourceEncode x)
+
+def volumeConfigMapVolumeSourceEncode : VolumeConfigMapVolumeSource -> Value := fun (x : VolumeConfigMapVolumeSource) => jsonObject (jsonOptionalMember (Bytes) b"name" (jsonEncodeBytes) (volumeConfigMapVolumeSourceName x) (jsonObjectNil))
+
+def volumeConfigMapVolumeSourceDecode : Value -> Result VolumeConfigMapVolumeSource := fun (j : Value) => resultBind (Option (Bytes)) VolumeConfigMapVolumeSource (jsonOptionalField (Bytes) j b"name" (jsonGetString)) (fun (field0 : Option (Bytes)) => ok VolumeConfigMapVolumeSource (volumeConfigMapVolumeSourceMake field0))
+
+def volumeConfigMapVolumeSourceDecodeRender : Value -> Bytes := fun (j : Value) =>
+  case (volumeConfigMapVolumeSourceDecode j) with | 0 (e : Error) => bytesAppend b"error: " (errorText e)
+  | 1 (x : VolumeConfigMapVolumeSource) => valueRender (volumeConfigMapVolumeSourceEncode x)
+
+def volumeKeyToPathEncode : VolumeKeyToPath -> Value := fun (x : VolumeKeyToPath) => jsonObject (jsonObjectCons b"key" (jsonEncodeBytes (volumeKeyToPathKey x)) (jsonObjectCons b"path" (jsonEncodeBytes (volumeKeyToPathPath x)) (jsonObjectNil)))
+
+def volumeKeyToPathDecode : Value -> Result VolumeKeyToPath := fun (j : Value) => resultBind (Bytes) VolumeKeyToPath (jsonField (Bytes) j b"key" (jsonGetString)) (fun (field0 : Bytes) => resultBind (Bytes) VolumeKeyToPath (jsonField (Bytes) j b"path" (jsonGetString)) (fun (field1 : Bytes) => ok VolumeKeyToPath (volumeKeyToPathMake field0 field1)))
+
+def volumeKeyToPathDecodeRender : Value -> Bytes := fun (j : Value) =>
+  case (volumeKeyToPathDecode j) with | 0 (e : Error) => bytesAppend b"error: " (errorText e)
+  | 1 (x : VolumeKeyToPath) => valueRender (volumeKeyToPathEncode x)
+
+def rec listVolumeKeyToPathEncodeItems : ListVolumeKeyToPath -> Values := fun (xs : ListVolumeKeyToPath) =>
+  match xs as self in ListVolumeKeyToPath return Values with
+  | listVolumeKeyToPathNil => jsonArrayNil
+  | listVolumeKeyToPathCons h t => jsonArrayCons (volumeKeyToPathEncode h) (listVolumeKeyToPathEncodeItems t)
+
+def listVolumeKeyToPathEncode : ListVolumeKeyToPath -> Value := fun (xs : ListVolumeKeyToPath) => jsonArray (listVolumeKeyToPathEncodeItems xs)
+
+def rec listVolumeKeyToPathDecodeItems : Values -> Result ListVolumeKeyToPath := fun (xs : Values) =>
+  match xs as self in JsonTree sort return Result ListVolumeKeyToPath with
+  | jsonNull => err ListVolumeKeyToPath (decodeError b"list" b"expected a JSON array")
+  | jsonBool x => err ListVolumeKeyToPath (decodeError b"list" b"expected a JSON array")
+  | jsonInt x => err ListVolumeKeyToPath (decodeError b"list" b"expected a JSON array")
+  | jsonIntLiteral x => err ListVolumeKeyToPath (decodeError b"list" b"expected a JSON array")
+  | jsonFloat x => err ListVolumeKeyToPath (decodeError b"list" b"expected a JSON array")
+  | jsonString x => err ListVolumeKeyToPath (decodeError b"list" b"expected a JSON array")
+  | jsonArray x => err ListVolumeKeyToPath (decodeError b"list" b"expected a JSON array")
+  | jsonObject x => err ListVolumeKeyToPath (decodeError b"list" b"expected a JSON array")
+  | jsonArrayNil => ok ListVolumeKeyToPath listVolumeKeyToPathNil
+  | jsonArrayCons h t => resultBind (VolumeKeyToPath) ListVolumeKeyToPath (volumeKeyToPathDecode h) (fun (value : VolumeKeyToPath) => resultMap ListVolumeKeyToPath ListVolumeKeyToPath (fun (tail : ListVolumeKeyToPath) => listVolumeKeyToPathCons value tail) (listVolumeKeyToPathDecodeItems t))
+  | jsonObjectNil => err ListVolumeKeyToPath (decodeError b"list" b"expected a JSON array")
+  | jsonObjectCons k v t => err ListVolumeKeyToPath (decodeError b"list" b"expected a JSON array")
+
+def listVolumeKeyToPathDecode : Value -> Result ListVolumeKeyToPath := fun (j : Value) => resultBind Values ListVolumeKeyToPath (jsonGetArray j) listVolumeKeyToPathDecodeItems
+
+def listVolumeKeyToPathDecodeRender : Value -> Bytes := fun (j : Value) =>
+  case (listVolumeKeyToPathDecode j) with | 0 (e : Error) => bytesAppend b"error: " (errorText e)
+  | 1 (x : ListVolumeKeyToPath) => valueRender (listVolumeKeyToPathEncode x)
+
+def volumeConfigMapProjectionEncode : VolumeConfigMapProjection -> Value := fun (x : VolumeConfigMapProjection) => jsonObject (jsonOptionalMember (ListVolumeKeyToPath) b"items" (listVolumeKeyToPathEncode) (volumeConfigMapProjectionItems x) (jsonOptionalMember (Bytes) b"name" (jsonEncodeBytes) (volumeConfigMapProjectionName x) (jsonObjectNil)))
+
+def volumeConfigMapProjectionDecode : Value -> Result VolumeConfigMapProjection := fun (j : Value) => resultBind (Option (ListVolumeKeyToPath)) VolumeConfigMapProjection (jsonOptionalField (ListVolumeKeyToPath) j b"items" (listVolumeKeyToPathDecode)) (fun (field0 : Option (ListVolumeKeyToPath)) => resultBind (Option (Bytes)) VolumeConfigMapProjection (jsonOptionalField (Bytes) j b"name" (jsonGetString)) (fun (field1 : Option (Bytes)) => ok VolumeConfigMapProjection (volumeConfigMapProjectionMake field0 field1)))
+
+def volumeConfigMapProjectionDecodeRender : Value -> Bytes := fun (j : Value) =>
+  case (volumeConfigMapProjectionDecode j) with | 0 (e : Error) => bytesAppend b"error: " (errorText e)
+  | 1 (x : VolumeConfigMapProjection) => valueRender (volumeConfigMapProjectionEncode x)
+
+def volumeSecretProjectionEncode : VolumeSecretProjection -> Value := fun (x : VolumeSecretProjection) => jsonObject (jsonOptionalMember (ListVolumeKeyToPath) b"items" (listVolumeKeyToPathEncode) (volumeSecretProjectionItems x) (jsonOptionalMember (Bytes) b"name" (jsonEncodeBytes) (volumeSecretProjectionName x) (jsonObjectNil)))
+
+def volumeSecretProjectionDecode : Value -> Result VolumeSecretProjection := fun (j : Value) => resultBind (Option (ListVolumeKeyToPath)) VolumeSecretProjection (jsonOptionalField (ListVolumeKeyToPath) j b"items" (listVolumeKeyToPathDecode)) (fun (field0 : Option (ListVolumeKeyToPath)) => resultBind (Option (Bytes)) VolumeSecretProjection (jsonOptionalField (Bytes) j b"name" (jsonGetString)) (fun (field1 : Option (Bytes)) => ok VolumeSecretProjection (volumeSecretProjectionMake field0 field1)))
+
+def volumeSecretProjectionDecodeRender : Value -> Bytes := fun (j : Value) =>
+  case (volumeSecretProjectionDecode j) with | 0 (e : Error) => bytesAppend b"error: " (errorText e)
+  | 1 (x : VolumeSecretProjection) => valueRender (volumeSecretProjectionEncode x)
+
+def volumeVolumeProjectionEncode : VolumeVolumeProjection -> Value := fun (x : VolumeVolumeProjection) => jsonObject (jsonOptionalMember (VolumeConfigMapProjection) b"configMap" (volumeConfigMapProjectionEncode) (volumeVolumeProjectionConfigMap x) (jsonOptionalMember (VolumeSecretProjection) b"secret" (volumeSecretProjectionEncode) (volumeVolumeProjectionSecret x) (jsonObjectNil)))
+
+def volumeVolumeProjectionDecode : Value -> Result VolumeVolumeProjection := fun (j : Value) => resultBind (Option (VolumeConfigMapProjection)) VolumeVolumeProjection (jsonOptionalField (VolumeConfigMapProjection) j b"configMap" (volumeConfigMapProjectionDecode)) (fun (field0 : Option (VolumeConfigMapProjection)) => resultBind (Option (VolumeSecretProjection)) VolumeVolumeProjection (jsonOptionalField (VolumeSecretProjection) j b"secret" (volumeSecretProjectionDecode)) (fun (field1 : Option (VolumeSecretProjection)) => ok VolumeVolumeProjection (volumeVolumeProjectionMake field0 field1)))
+
+def volumeVolumeProjectionDecodeRender : Value -> Bytes := fun (j : Value) =>
+  case (volumeVolumeProjectionDecode j) with | 0 (e : Error) => bytesAppend b"error: " (errorText e)
+  | 1 (x : VolumeVolumeProjection) => valueRender (volumeVolumeProjectionEncode x)
+
+def rec listVolumeVolumeProjectionEncodeItems : ListVolumeVolumeProjection -> Values := fun (xs : ListVolumeVolumeProjection) =>
+  match xs as self in ListVolumeVolumeProjection return Values with
+  | listVolumeVolumeProjectionNil => jsonArrayNil
+  | listVolumeVolumeProjectionCons h t => jsonArrayCons (volumeVolumeProjectionEncode h) (listVolumeVolumeProjectionEncodeItems t)
+
+def listVolumeVolumeProjectionEncode : ListVolumeVolumeProjection -> Value := fun (xs : ListVolumeVolumeProjection) => jsonArray (listVolumeVolumeProjectionEncodeItems xs)
+
+def rec listVolumeVolumeProjectionDecodeItems : Values -> Result ListVolumeVolumeProjection := fun (xs : Values) =>
+  match xs as self in JsonTree sort return Result ListVolumeVolumeProjection with
+  | jsonNull => err ListVolumeVolumeProjection (decodeError b"list" b"expected a JSON array")
+  | jsonBool x => err ListVolumeVolumeProjection (decodeError b"list" b"expected a JSON array")
+  | jsonInt x => err ListVolumeVolumeProjection (decodeError b"list" b"expected a JSON array")
+  | jsonIntLiteral x => err ListVolumeVolumeProjection (decodeError b"list" b"expected a JSON array")
+  | jsonFloat x => err ListVolumeVolumeProjection (decodeError b"list" b"expected a JSON array")
+  | jsonString x => err ListVolumeVolumeProjection (decodeError b"list" b"expected a JSON array")
+  | jsonArray x => err ListVolumeVolumeProjection (decodeError b"list" b"expected a JSON array")
+  | jsonObject x => err ListVolumeVolumeProjection (decodeError b"list" b"expected a JSON array")
+  | jsonArrayNil => ok ListVolumeVolumeProjection listVolumeVolumeProjectionNil
+  | jsonArrayCons h t => resultBind (VolumeVolumeProjection) ListVolumeVolumeProjection (volumeVolumeProjectionDecode h) (fun (value : VolumeVolumeProjection) => resultMap ListVolumeVolumeProjection ListVolumeVolumeProjection (fun (tail : ListVolumeVolumeProjection) => listVolumeVolumeProjectionCons value tail) (listVolumeVolumeProjectionDecodeItems t))
+  | jsonObjectNil => err ListVolumeVolumeProjection (decodeError b"list" b"expected a JSON array")
+  | jsonObjectCons k v t => err ListVolumeVolumeProjection (decodeError b"list" b"expected a JSON array")
+
+def listVolumeVolumeProjectionDecode : Value -> Result ListVolumeVolumeProjection := fun (j : Value) => resultBind Values ListVolumeVolumeProjection (jsonGetArray j) listVolumeVolumeProjectionDecodeItems
+
+def listVolumeVolumeProjectionDecodeRender : Value -> Bytes := fun (j : Value) =>
+  case (listVolumeVolumeProjectionDecode j) with | 0 (e : Error) => bytesAppend b"error: " (errorText e)
+  | 1 (x : ListVolumeVolumeProjection) => valueRender (listVolumeVolumeProjectionEncode x)
+
+def volumeProjectedVolumeSourceEncode : VolumeProjectedVolumeSource -> Value := fun (x : VolumeProjectedVolumeSource) => jsonObject (jsonOptionalMember (ListVolumeVolumeProjection) b"sources" (listVolumeVolumeProjectionEncode) (volumeProjectedVolumeSourceSources x) (jsonObjectNil))
+
+def volumeProjectedVolumeSourceDecode : Value -> Result VolumeProjectedVolumeSource := fun (j : Value) => resultBind (Option (ListVolumeVolumeProjection)) VolumeProjectedVolumeSource (jsonOptionalField (ListVolumeVolumeProjection) j b"sources" (listVolumeVolumeProjectionDecode)) (fun (field0 : Option (ListVolumeVolumeProjection)) => ok VolumeProjectedVolumeSource (volumeProjectedVolumeSourceMake field0))
+
+def volumeProjectedVolumeSourceDecodeRender : Value -> Bytes := fun (j : Value) =>
+  case (volumeProjectedVolumeSourceDecode j) with | 0 (e : Error) => bytesAppend b"error: " (errorText e)
+  | 1 (x : VolumeProjectedVolumeSource) => valueRender (volumeProjectedVolumeSourceEncode x)
+
+def volumeSecretVolumeSourceEncode : VolumeSecretVolumeSource -> Value := fun (x : VolumeSecretVolumeSource) => jsonObject (jsonOptionalMember (Bytes) b"secretName" (jsonEncodeBytes) (volumeSecretVolumeSourceSecretName x) (jsonObjectNil))
+
+def volumeSecretVolumeSourceDecode : Value -> Result VolumeSecretVolumeSource := fun (j : Value) => resultBind (Option (Bytes)) VolumeSecretVolumeSource (jsonOptionalField (Bytes) j b"secretName" (jsonGetString)) (fun (field0 : Option (Bytes)) => ok VolumeSecretVolumeSource (volumeSecretVolumeSourceMake field0))
+
+def volumeSecretVolumeSourceDecodeRender : Value -> Bytes := fun (j : Value) =>
+  case (volumeSecretVolumeSourceDecode j) with | 0 (e : Error) => bytesAppend b"error: " (errorText e)
+  | 1 (x : VolumeSecretVolumeSource) => valueRender (volumeSecretVolumeSourceEncode x)
+
+def volumeDownwardApiVolumeFileEncode : VolumeDownwardApiVolumeFile -> Value := fun (x : VolumeDownwardApiVolumeFile) => jsonObject (jsonOptionalMember (ObjectFieldSelectorT) b"fieldRef" (objectFieldSelectorTEncode) (volumeDownwardApiVolumeFileFieldRef x) (jsonObjectCons b"path" (jsonEncodeBytes (volumeDownwardApiVolumeFilePath x)) (jsonObjectNil)))
+
+def volumeDownwardApiVolumeFileDecode : Value -> Result VolumeDownwardApiVolumeFile := fun (j : Value) => resultBind (Option (ObjectFieldSelectorT)) VolumeDownwardApiVolumeFile (jsonOptionalField (ObjectFieldSelectorT) j b"fieldRef" (objectFieldSelectorTDecode)) (fun (field0 : Option (ObjectFieldSelectorT)) => resultBind (Bytes) VolumeDownwardApiVolumeFile (jsonField (Bytes) j b"path" (jsonGetString)) (fun (field1 : Bytes) => ok VolumeDownwardApiVolumeFile (volumeDownwardApiVolumeFileMake field0 field1)))
+
+def volumeDownwardApiVolumeFileDecodeRender : Value -> Bytes := fun (j : Value) =>
+  case (volumeDownwardApiVolumeFileDecode j) with | 0 (e : Error) => bytesAppend b"error: " (errorText e)
+  | 1 (x : VolumeDownwardApiVolumeFile) => valueRender (volumeDownwardApiVolumeFileEncode x)
+
+def rec listVolumeDownwardApiVolumeFileEncodeItems : ListVolumeDownwardApiVolumeFile -> Values := fun (xs : ListVolumeDownwardApiVolumeFile) =>
+  match xs as self in ListVolumeDownwardApiVolumeFile return Values with
+  | listVolumeDownwardApiVolumeFileNil => jsonArrayNil
+  | listVolumeDownwardApiVolumeFileCons h t => jsonArrayCons (volumeDownwardApiVolumeFileEncode h) (listVolumeDownwardApiVolumeFileEncodeItems t)
+
+def listVolumeDownwardApiVolumeFileEncode : ListVolumeDownwardApiVolumeFile -> Value := fun (xs : ListVolumeDownwardApiVolumeFile) => jsonArray (listVolumeDownwardApiVolumeFileEncodeItems xs)
+
+def rec listVolumeDownwardApiVolumeFileDecodeItems : Values -> Result ListVolumeDownwardApiVolumeFile := fun (xs : Values) =>
+  match xs as self in JsonTree sort return Result ListVolumeDownwardApiVolumeFile with
+  | jsonNull => err ListVolumeDownwardApiVolumeFile (decodeError b"list" b"expected a JSON array")
+  | jsonBool x => err ListVolumeDownwardApiVolumeFile (decodeError b"list" b"expected a JSON array")
+  | jsonInt x => err ListVolumeDownwardApiVolumeFile (decodeError b"list" b"expected a JSON array")
+  | jsonIntLiteral x => err ListVolumeDownwardApiVolumeFile (decodeError b"list" b"expected a JSON array")
+  | jsonFloat x => err ListVolumeDownwardApiVolumeFile (decodeError b"list" b"expected a JSON array")
+  | jsonString x => err ListVolumeDownwardApiVolumeFile (decodeError b"list" b"expected a JSON array")
+  | jsonArray x => err ListVolumeDownwardApiVolumeFile (decodeError b"list" b"expected a JSON array")
+  | jsonObject x => err ListVolumeDownwardApiVolumeFile (decodeError b"list" b"expected a JSON array")
+  | jsonArrayNil => ok ListVolumeDownwardApiVolumeFile listVolumeDownwardApiVolumeFileNil
+  | jsonArrayCons h t => resultBind (VolumeDownwardApiVolumeFile) ListVolumeDownwardApiVolumeFile (volumeDownwardApiVolumeFileDecode h) (fun (value : VolumeDownwardApiVolumeFile) => resultMap ListVolumeDownwardApiVolumeFile ListVolumeDownwardApiVolumeFile (fun (tail : ListVolumeDownwardApiVolumeFile) => listVolumeDownwardApiVolumeFileCons value tail) (listVolumeDownwardApiVolumeFileDecodeItems t))
+  | jsonObjectNil => err ListVolumeDownwardApiVolumeFile (decodeError b"list" b"expected a JSON array")
+  | jsonObjectCons k v t => err ListVolumeDownwardApiVolumeFile (decodeError b"list" b"expected a JSON array")
+
+def listVolumeDownwardApiVolumeFileDecode : Value -> Result ListVolumeDownwardApiVolumeFile := fun (j : Value) => resultBind Values ListVolumeDownwardApiVolumeFile (jsonGetArray j) listVolumeDownwardApiVolumeFileDecodeItems
+
+def listVolumeDownwardApiVolumeFileDecodeRender : Value -> Bytes := fun (j : Value) =>
+  case (listVolumeDownwardApiVolumeFileDecode j) with | 0 (e : Error) => bytesAppend b"error: " (errorText e)
+  | 1 (x : ListVolumeDownwardApiVolumeFile) => valueRender (listVolumeDownwardApiVolumeFileEncode x)
+
+def volumeDownwardApiVolumeSourceEncode : VolumeDownwardApiVolumeSource -> Value := fun (x : VolumeDownwardApiVolumeSource) => jsonObject (jsonOptionalMember (ListVolumeDownwardApiVolumeFile) b"items" (listVolumeDownwardApiVolumeFileEncode) (volumeDownwardApiVolumeSourceItems x) (jsonObjectNil))
+
+def volumeDownwardApiVolumeSourceDecode : Value -> Result VolumeDownwardApiVolumeSource := fun (j : Value) => resultBind (Option (ListVolumeDownwardApiVolumeFile)) VolumeDownwardApiVolumeSource (jsonOptionalField (ListVolumeDownwardApiVolumeFile) j b"items" (listVolumeDownwardApiVolumeFileDecode)) (fun (field0 : Option (ListVolumeDownwardApiVolumeFile)) => ok VolumeDownwardApiVolumeSource (volumeDownwardApiVolumeSourceMake field0))
+
+def volumeDownwardApiVolumeSourceDecodeRender : Value -> Bytes := fun (j : Value) =>
+  case (volumeDownwardApiVolumeSourceDecode j) with | 0 (e : Error) => bytesAppend b"error: " (errorText e)
+  | 1 (x : VolumeDownwardApiVolumeSource) => valueRender (volumeDownwardApiVolumeSourceEncode x)
+
+def volumeEmptyDirVolumeSourceEncode : VolumeEmptyDirVolumeSource -> Value := fun (x : VolumeEmptyDirVolumeSource) => jsonObject (jsonOptionalMember (Bytes) b"medium" (jsonEncodeBytes) (volumeEmptyDirVolumeSourceMedium x) (jsonOptionalMember (Bytes) b"sizeLimit" (jsonEncodeBytes) (volumeEmptyDirVolumeSourceSizeLimit x) (jsonObjectNil)))
+
+def volumeEmptyDirVolumeSourceDecode : Value -> Result VolumeEmptyDirVolumeSource := fun (j : Value) => resultBind (Option (Bytes)) VolumeEmptyDirVolumeSource (jsonOptionalField (Bytes) j b"medium" (jsonGetString)) (fun (field0 : Option (Bytes)) => resultBind (Option (Bytes)) VolumeEmptyDirVolumeSource (jsonOptionalField (Bytes) j b"sizeLimit" (jsonGetString)) (fun (field1 : Option (Bytes)) => ok VolumeEmptyDirVolumeSource (volumeEmptyDirVolumeSourceMake field0 field1)))
+
+def volumeEmptyDirVolumeSourceDecodeRender : Value -> Bytes := fun (j : Value) =>
+  case (volumeEmptyDirVolumeSourceDecode j) with | 0 (e : Error) => bytesAppend b"error: " (errorText e)
+  | 1 (x : VolumeEmptyDirVolumeSource) => valueRender (volumeEmptyDirVolumeSourceEncode x)
+
+def volumePersistentVolumeClaimVolumeSourceEncode : VolumePersistentVolumeClaimVolumeSource -> Value := fun (x : VolumePersistentVolumeClaimVolumeSource) => jsonObject (jsonObjectCons b"claimName" (jsonEncodeBytes (volumePersistentVolumeClaimVolumeSourceClaimName x)) (jsonOptionalMember (Bool) b"readOnly" (jsonEncodeBool) (volumePersistentVolumeClaimVolumeSourceReadOnly x) (jsonObjectNil)))
+
+def volumePersistentVolumeClaimVolumeSourceDecode : Value -> Result VolumePersistentVolumeClaimVolumeSource := fun (j : Value) => resultBind (Bytes) VolumePersistentVolumeClaimVolumeSource (jsonField (Bytes) j b"claimName" (jsonGetString)) (fun (field0 : Bytes) => resultBind (Option (Bool)) VolumePersistentVolumeClaimVolumeSource (jsonOptionalField (Bool) j b"readOnly" (jsonGetBool)) (fun (field1 : Option (Bool)) => ok VolumePersistentVolumeClaimVolumeSource (volumePersistentVolumeClaimVolumeSourceMake field0 field1)))
+
+def volumePersistentVolumeClaimVolumeSourceDecodeRender : Value -> Bytes := fun (j : Value) =>
+  case (volumePersistentVolumeClaimVolumeSourceDecode j) with | 0 (e : Error) => bytesAppend b"error: " (errorText e)
+  | 1 (x : VolumePersistentVolumeClaimVolumeSource) => valueRender (volumePersistentVolumeClaimVolumeSourceEncode x)
+
+def volumeTEncode : VolumeT -> Value := fun (x : VolumeT) => jsonObject (jsonOptionalMember (VolumeHostPathVolumeSource) b"hostPath" (volumeHostPathVolumeSourceEncode) (volumeTHostPath x) (jsonOptionalMember (VolumeConfigMapVolumeSource) b"configMap" (volumeConfigMapVolumeSourceEncode) (volumeTConfigMap x) (jsonObjectCons b"name" (jsonEncodeBytes (volumeTName x)) (jsonOptionalMember (VolumeProjectedVolumeSource) b"projected" (volumeProjectedVolumeSourceEncode) (volumeTProjected x) (jsonOptionalMember (VolumeSecretVolumeSource) b"secret" (volumeSecretVolumeSourceEncode) (volumeTSecret x) (jsonOptionalMember (VolumeDownwardApiVolumeSource) b"downwardAPI" (volumeDownwardApiVolumeSourceEncode) (volumeTDownwardApi x) (jsonOptionalMember (VolumeEmptyDirVolumeSource) b"emptyDir" (volumeEmptyDirVolumeSourceEncode) (volumeTEmptyDir x) (jsonOptionalMember (VolumePersistentVolumeClaimVolumeSource) b"persistentVolumeClaim" (volumePersistentVolumeClaimVolumeSourceEncode) (volumeTPersistentVolumeClaim x) (jsonObjectNil)))))))))
+
+def volumeTDecode : Value -> Result VolumeT := fun (j : Value) => resultBind (Option (VolumeHostPathVolumeSource)) VolumeT (jsonOptionalField (VolumeHostPathVolumeSource) j b"hostPath" (volumeHostPathVolumeSourceDecode)) (fun (field0 : Option (VolumeHostPathVolumeSource)) => resultBind (Option (VolumeConfigMapVolumeSource)) VolumeT (jsonOptionalField (VolumeConfigMapVolumeSource) j b"configMap" (volumeConfigMapVolumeSourceDecode)) (fun (field1 : Option (VolumeConfigMapVolumeSource)) => resultBind (Bytes) VolumeT (jsonField (Bytes) j b"name" (jsonGetString)) (fun (field2 : Bytes) => resultBind (Option (VolumeProjectedVolumeSource)) VolumeT (jsonOptionalField (VolumeProjectedVolumeSource) j b"projected" (volumeProjectedVolumeSourceDecode)) (fun (field3 : Option (VolumeProjectedVolumeSource)) => resultBind (Option (VolumeSecretVolumeSource)) VolumeT (jsonOptionalField (VolumeSecretVolumeSource) j b"secret" (volumeSecretVolumeSourceDecode)) (fun (field4 : Option (VolumeSecretVolumeSource)) => resultBind (Option (VolumeDownwardApiVolumeSource)) VolumeT (jsonOptionalField (VolumeDownwardApiVolumeSource) j b"downwardAPI" (volumeDownwardApiVolumeSourceDecode)) (fun (field5 : Option (VolumeDownwardApiVolumeSource)) => resultBind (Option (VolumeEmptyDirVolumeSource)) VolumeT (jsonOptionalField (VolumeEmptyDirVolumeSource) j b"emptyDir" (volumeEmptyDirVolumeSourceDecode)) (fun (field6 : Option (VolumeEmptyDirVolumeSource)) => resultBind (Option (VolumePersistentVolumeClaimVolumeSource)) VolumeT (jsonOptionalField (VolumePersistentVolumeClaimVolumeSource) j b"persistentVolumeClaim" (volumePersistentVolumeClaimVolumeSourceDecode)) (fun (field7 : Option (VolumePersistentVolumeClaimVolumeSource)) => ok VolumeT (volumeTMake field0 field1 field2 field3 field4 field5 field6 field7)))))))))
+
+def volumeTDecodeRender : Value -> Bytes := fun (j : Value) =>
+  case (volumeTDecode j) with | 0 (e : Error) => bytesAppend b"error: " (errorText e)
+  | 1 (x : VolumeT) => valueRender (volumeTEncode x)
+
+def affinityTEncode : AffinityT -> Value := fun (x : AffinityT) => jsonEncodeGhost x
+
+def affinityTDecode : Value -> Result AffinityT := fun (j : Value) =>
+  case (jsonGetObject j) with | 1 (m : Members) => ok AffinityT ghost
+  | 0 (e : Error) => err AffinityT (decodeError b"Affinity" b"expected an object")
+
+def affinityTDecodeRender : Value -> Bytes := fun (j : Value) =>
+  case (affinityTDecode j) with | 0 (e : Error) => bytesAppend b"error: " (errorText e)
+  | 1 (x : AffinityT) => valueRender (affinityTEncode x)
+
+def rec listContainerTEncodeItems : ListContainerT -> Values := fun (xs : ListContainerT) =>
+  match xs as self in ListContainerT return Values with
+  | listContainerTNil => jsonArrayNil
+  | listContainerTCons h t => jsonArrayCons (containerTEncode h) (listContainerTEncodeItems t)
+
+def listContainerTEncode : ListContainerT -> Value := fun (xs : ListContainerT) => jsonArray (listContainerTEncodeItems xs)
+
+def rec listContainerTDecodeItems : Values -> Result ListContainerT := fun (xs : Values) =>
+  match xs as self in JsonTree sort return Result ListContainerT with
+  | jsonNull => err ListContainerT (decodeError b"list" b"expected a JSON array")
+  | jsonBool x => err ListContainerT (decodeError b"list" b"expected a JSON array")
+  | jsonInt x => err ListContainerT (decodeError b"list" b"expected a JSON array")
+  | jsonIntLiteral x => err ListContainerT (decodeError b"list" b"expected a JSON array")
+  | jsonFloat x => err ListContainerT (decodeError b"list" b"expected a JSON array")
+  | jsonString x => err ListContainerT (decodeError b"list" b"expected a JSON array")
+  | jsonArray x => err ListContainerT (decodeError b"list" b"expected a JSON array")
+  | jsonObject x => err ListContainerT (decodeError b"list" b"expected a JSON array")
+  | jsonArrayNil => ok ListContainerT listContainerTNil
+  | jsonArrayCons h t => resultBind (ContainerT) ListContainerT (containerTDecode h) (fun (value : ContainerT) => resultMap ListContainerT ListContainerT (fun (tail : ListContainerT) => listContainerTCons value tail) (listContainerTDecodeItems t))
+  | jsonObjectNil => err ListContainerT (decodeError b"list" b"expected a JSON array")
+  | jsonObjectCons k v t => err ListContainerT (decodeError b"list" b"expected a JSON array")
+
+def listContainerTDecode : Value -> Result ListContainerT := fun (j : Value) => resultBind Values ListContainerT (jsonGetArray j) listContainerTDecodeItems
+
+def listContainerTDecodeRender : Value -> Bytes := fun (j : Value) =>
+  case (listContainerTDecode j) with | 0 (e : Error) => bytesAppend b"error: " (errorText e)
+  | 1 (x : ListContainerT) => valueRender (listContainerTEncode x)
+
+def rec listVolumeTEncodeItems : ListVolumeT -> Values := fun (xs : ListVolumeT) =>
+  match xs as self in ListVolumeT return Values with
+  | listVolumeTNil => jsonArrayNil
+  | listVolumeTCons h t => jsonArrayCons (volumeTEncode h) (listVolumeTEncodeItems t)
+
+def listVolumeTEncode : ListVolumeT -> Value := fun (xs : ListVolumeT) => jsonArray (listVolumeTEncodeItems xs)
+
+def rec listVolumeTDecodeItems : Values -> Result ListVolumeT := fun (xs : Values) =>
+  match xs as self in JsonTree sort return Result ListVolumeT with
+  | jsonNull => err ListVolumeT (decodeError b"list" b"expected a JSON array")
+  | jsonBool x => err ListVolumeT (decodeError b"list" b"expected a JSON array")
+  | jsonInt x => err ListVolumeT (decodeError b"list" b"expected a JSON array")
+  | jsonIntLiteral x => err ListVolumeT (decodeError b"list" b"expected a JSON array")
+  | jsonFloat x => err ListVolumeT (decodeError b"list" b"expected a JSON array")
+  | jsonString x => err ListVolumeT (decodeError b"list" b"expected a JSON array")
+  | jsonArray x => err ListVolumeT (decodeError b"list" b"expected a JSON array")
+  | jsonObject x => err ListVolumeT (decodeError b"list" b"expected a JSON array")
+  | jsonArrayNil => ok ListVolumeT listVolumeTNil
+  | jsonArrayCons h t => resultBind (VolumeT) ListVolumeT (volumeTDecode h) (fun (value : VolumeT) => resultMap ListVolumeT ListVolumeT (fun (tail : ListVolumeT) => listVolumeTCons value tail) (listVolumeTDecodeItems t))
+  | jsonObjectNil => err ListVolumeT (decodeError b"list" b"expected a JSON array")
+  | jsonObjectCons k v t => err ListVolumeT (decodeError b"list" b"expected a JSON array")
+
+def listVolumeTDecode : Value -> Result ListVolumeT := fun (j : Value) => resultBind Values ListVolumeT (jsonGetArray j) listVolumeTDecodeItems
+
+def listVolumeTDecodeRender : Value -> Bytes := fun (j : Value) =>
+  case (listVolumeTDecode j) with | 0 (e : Error) => bytesAppend b"error: " (errorText e)
+  | 1 (x : ListVolumeT) => valueRender (listVolumeTEncode x)
+
+def tolerationTEncode : TolerationT -> Value := fun (x : TolerationT) => jsonEncodeGhost x
+
+def tolerationTDecode : Value -> Result TolerationT := fun (j : Value) =>
+  case (jsonGetObject j) with | 1 (m : Members) => ok TolerationT ghost
+  | 0 (e : Error) => err TolerationT (decodeError b"Toleration" b"expected an object")
+
+def tolerationTDecodeRender : Value -> Bytes := fun (j : Value) =>
+  case (tolerationTDecode j) with | 0 (e : Error) => bytesAppend b"error: " (errorText e)
+  | 1 (x : TolerationT) => valueRender (tolerationTEncode x)
+
+def rec listTolerationTEncodeItems : ListTolerationT -> Values := fun (xs : ListTolerationT) =>
+  match xs as self in ListTolerationT return Values with
+  | listTolerationTNil => jsonArrayNil
+  | listTolerationTCons h t => jsonArrayCons (tolerationTEncode h) (listTolerationTEncodeItems t)
+
+def listTolerationTEncode : ListTolerationT -> Value := fun (xs : ListTolerationT) => jsonArray (listTolerationTEncodeItems xs)
+
+def rec listTolerationTDecodeItems : Values -> Result ListTolerationT := fun (xs : Values) =>
+  match xs as self in JsonTree sort return Result ListTolerationT with
+  | jsonNull => err ListTolerationT (decodeError b"list" b"expected a JSON array")
+  | jsonBool x => err ListTolerationT (decodeError b"list" b"expected a JSON array")
+  | jsonInt x => err ListTolerationT (decodeError b"list" b"expected a JSON array")
+  | jsonIntLiteral x => err ListTolerationT (decodeError b"list" b"expected a JSON array")
+  | jsonFloat x => err ListTolerationT (decodeError b"list" b"expected a JSON array")
+  | jsonString x => err ListTolerationT (decodeError b"list" b"expected a JSON array")
+  | jsonArray x => err ListTolerationT (decodeError b"list" b"expected a JSON array")
+  | jsonObject x => err ListTolerationT (decodeError b"list" b"expected a JSON array")
+  | jsonArrayNil => ok ListTolerationT listTolerationTNil
+  | jsonArrayCons h t => resultBind (TolerationT) ListTolerationT (tolerationTDecode h) (fun (value : TolerationT) => resultMap ListTolerationT ListTolerationT (fun (tail : ListTolerationT) => listTolerationTCons value tail) (listTolerationTDecodeItems t))
+  | jsonObjectNil => err ListTolerationT (decodeError b"list" b"expected a JSON array")
+  | jsonObjectCons k v t => err ListTolerationT (decodeError b"list" b"expected a JSON array")
+
+def listTolerationTDecode : Value -> Result ListTolerationT := fun (j : Value) => resultBind Values ListTolerationT (jsonGetArray j) listTolerationTDecodeItems
+
+def listTolerationTDecodeRender : Value -> Bytes := fun (j : Value) =>
+  case (listTolerationTDecode j) with | 0 (e : Error) => bytesAppend b"error: " (errorText e)
+  | 1 (x : ListTolerationT) => valueRender (listTolerationTEncode x)
+
+def podSecurityContextTEncode : PodSecurityContextT -> Value := fun (x : PodSecurityContextT) => jsonEncodeGhost x
+
+def podSecurityContextTDecode : Value -> Result PodSecurityContextT := fun (j : Value) =>
+  case (jsonGetObject j) with | 1 (m : Members) => ok PodSecurityContextT ghost
+  | 0 (e : Error) => err PodSecurityContextT (decodeError b"PodSecurityContext" b"expected an object")
+
+def podSecurityContextTDecodeRender : Value -> Bytes := fun (j : Value) =>
+  case (podSecurityContextTDecode j) with | 0 (e : Error) => bytesAppend b"error: " (errorText e)
+  | 1 (x : PodSecurityContextT) => valueRender (podSecurityContextTEncode x)
+
+def localObjectReferenceTEncode : LocalObjectReferenceT -> Value := fun (x : LocalObjectReferenceT) => jsonEncodeGhost x
+
+def localObjectReferenceTDecode : Value -> Result LocalObjectReferenceT := fun (j : Value) =>
+  case (jsonGetObject j) with | 1 (m : Members) => ok LocalObjectReferenceT ghost
+  | 0 (e : Error) => err LocalObjectReferenceT (decodeError b"LocalObjectReference" b"expected an object")
+
+def localObjectReferenceTDecodeRender : Value -> Bytes := fun (j : Value) =>
+  case (localObjectReferenceTDecode j) with | 0 (e : Error) => bytesAppend b"error: " (errorText e)
+  | 1 (x : LocalObjectReferenceT) => valueRender (localObjectReferenceTEncode x)
+
+def rec listLocalObjectReferenceTEncodeItems : ListLocalObjectReferenceT -> Values := fun (xs : ListLocalObjectReferenceT) =>
+  match xs as self in ListLocalObjectReferenceT return Values with
+  | listLocalObjectReferenceTNil => jsonArrayNil
+  | listLocalObjectReferenceTCons h t => jsonArrayCons (localObjectReferenceTEncode h) (listLocalObjectReferenceTEncodeItems t)
+
+def listLocalObjectReferenceTEncode : ListLocalObjectReferenceT -> Value := fun (xs : ListLocalObjectReferenceT) => jsonArray (listLocalObjectReferenceTEncodeItems xs)
+
+def rec listLocalObjectReferenceTDecodeItems : Values -> Result ListLocalObjectReferenceT := fun (xs : Values) =>
+  match xs as self in JsonTree sort return Result ListLocalObjectReferenceT with
+  | jsonNull => err ListLocalObjectReferenceT (decodeError b"list" b"expected a JSON array")
+  | jsonBool x => err ListLocalObjectReferenceT (decodeError b"list" b"expected a JSON array")
+  | jsonInt x => err ListLocalObjectReferenceT (decodeError b"list" b"expected a JSON array")
+  | jsonIntLiteral x => err ListLocalObjectReferenceT (decodeError b"list" b"expected a JSON array")
+  | jsonFloat x => err ListLocalObjectReferenceT (decodeError b"list" b"expected a JSON array")
+  | jsonString x => err ListLocalObjectReferenceT (decodeError b"list" b"expected a JSON array")
+  | jsonArray x => err ListLocalObjectReferenceT (decodeError b"list" b"expected a JSON array")
+  | jsonObject x => err ListLocalObjectReferenceT (decodeError b"list" b"expected a JSON array")
+  | jsonArrayNil => ok ListLocalObjectReferenceT listLocalObjectReferenceTNil
+  | jsonArrayCons h t => resultBind (LocalObjectReferenceT) ListLocalObjectReferenceT (localObjectReferenceTDecode h) (fun (value : LocalObjectReferenceT) => resultMap ListLocalObjectReferenceT ListLocalObjectReferenceT (fun (tail : ListLocalObjectReferenceT) => listLocalObjectReferenceTCons value tail) (listLocalObjectReferenceTDecodeItems t))
+  | jsonObjectNil => err ListLocalObjectReferenceT (decodeError b"list" b"expected a JSON array")
+  | jsonObjectCons k v t => err ListLocalObjectReferenceT (decodeError b"list" b"expected a JSON array")
+
+def listLocalObjectReferenceTDecode : Value -> Result ListLocalObjectReferenceT := fun (j : Value) => resultBind Values ListLocalObjectReferenceT (jsonGetArray j) listLocalObjectReferenceTDecodeItems
+
+def listLocalObjectReferenceTDecodeRender : Value -> Bytes := fun (j : Value) =>
+  case (listLocalObjectReferenceTDecode j) with | 0 (e : Error) => bytesAppend b"error: " (errorText e)
+  | 1 (x : ListLocalObjectReferenceT) => valueRender (listLocalObjectReferenceTEncode x)
+
+def podSpecTEncode : PodSpecT -> Value := fun (x : PodSpecT) => jsonObject (jsonOptionalMember (AffinityT) b"affinity" (affinityTEncode) (podSpecTAffinity x) (jsonObjectCons b"containers" (listContainerTEncode (podSpecTContainers x)) (jsonOptionalMember (ListVolumeT) b"volumes" (listVolumeTEncode) (podSpecTVolumes x) (jsonOptionalMember (ListContainerT) b"initContainers" (listContainerTEncode) (podSpecTInitContainers x) (jsonOptionalMember (Bytes) b"serviceAccountName" (jsonEncodeBytes) (podSpecTServiceAccountName x) (jsonOptionalMember (ListTolerationT) b"tolerations" (listTolerationTEncode) (podSpecTTolerations x) (jsonOptionalMember (StringMap) b"nodeSelector" (jsonEncodeMap) (podSpecTNodeSelector x) (jsonOptionalMember (Bytes) b"runtimeClassName" (jsonEncodeBytes) (podSpecTRuntimeClassName x) (jsonOptionalMember (Bytes) b"dnsPolicy" (jsonEncodeBytes) (podSpecTDnsPolicy x) (jsonOptionalMember (Bytes) b"priorityClassName" (jsonEncodeBytes) (podSpecTPriorityClassName x) (jsonOptionalMember (Bytes) b"schedulerName" (jsonEncodeBytes) (podSpecTSchedulerName x) (jsonOptionalMember (PodSecurityContextT) b"securityContext" (podSecurityContextTEncode) (podSpecTSecurityContext x) (jsonOptionalMember (Bool) b"hostNetwork" (jsonEncodeBool) (podSpecTHostNetwork x) (jsonOptionalMember (Int) b"terminationGracePeriodSeconds" (jsonEncodeInt) (podSpecTTerminationGracePeriodSeconds x) (jsonOptionalMember (ListLocalObjectReferenceT) b"imagePullSecrets" (listLocalObjectReferenceTEncode) (podSpecTImagePullSecrets x) (jsonOptionalMember (Bytes) b"hostname" (jsonEncodeBytes) (podSpecTHostname x) (jsonOptionalMember (Bytes) b"subdomain" (jsonEncodeBytes) (podSpecTSubdomain x) (jsonObjectNil))))))))))))))))))
+
+def podSpecTDecode : Value -> Result PodSpecT := fun (j : Value) => resultBind (Option (AffinityT)) PodSpecT (jsonOptionalField (AffinityT) j b"affinity" (affinityTDecode)) (fun (field0 : Option (AffinityT)) => resultBind (ListContainerT) PodSpecT (resultMap (Option ListContainerT) ListContainerT (fun (o : Option ListContainerT) => optionFold ListContainerT ListContainerT listContainerTNil (fun (x : ListContainerT) => x) o) (jsonOptionalField ListContainerT j b"containers" (listContainerTDecode))) (fun (field1 : ListContainerT) => resultBind (Option (ListVolumeT)) PodSpecT (jsonOptionalField (ListVolumeT) j b"volumes" (listVolumeTDecode)) (fun (field2 : Option (ListVolumeT)) => resultBind (Option (ListContainerT)) PodSpecT (jsonOptionalField (ListContainerT) j b"initContainers" (listContainerTDecode)) (fun (field3 : Option (ListContainerT)) => resultBind (Option (Bytes)) PodSpecT (jsonOptionalField (Bytes) j b"serviceAccountName" (jsonGetString)) (fun (field4 : Option (Bytes)) => resultBind (Option (ListTolerationT)) PodSpecT (jsonOptionalField (ListTolerationT) j b"tolerations" (listTolerationTDecode)) (fun (field5 : Option (ListTolerationT)) => resultBind (Option (StringMap)) PodSpecT (jsonOptionalField (StringMap) j b"nodeSelector" (jsonDecodeMap)) (fun (field6 : Option (StringMap)) => resultBind (Option (Bytes)) PodSpecT (jsonOptionalField (Bytes) j b"runtimeClassName" (jsonGetString)) (fun (field7 : Option (Bytes)) => resultBind (Option (Bytes)) PodSpecT (jsonOptionalField (Bytes) j b"dnsPolicy" (jsonGetString)) (fun (field8 : Option (Bytes)) => resultBind (Option (Bytes)) PodSpecT (jsonOptionalField (Bytes) j b"priorityClassName" (jsonGetString)) (fun (field9 : Option (Bytes)) => resultBind (Option (Bytes)) PodSpecT (jsonOptionalField (Bytes) j b"schedulerName" (jsonGetString)) (fun (field10 : Option (Bytes)) => resultBind (Option (PodSecurityContextT)) PodSpecT (jsonOptionalField (PodSecurityContextT) j b"securityContext" (podSecurityContextTDecode)) (fun (field11 : Option (PodSecurityContextT)) => resultBind (Option (Bool)) PodSpecT (jsonOptionalField (Bool) j b"hostNetwork" (jsonGetBool)) (fun (field12 : Option (Bool)) => resultBind (Option (Int)) PodSpecT (jsonOptionalField (Int) j b"terminationGracePeriodSeconds" (jsonGetInt)) (fun (field13 : Option (Int)) => resultBind (Option (ListLocalObjectReferenceT)) PodSpecT (jsonOptionalField (ListLocalObjectReferenceT) j b"imagePullSecrets" (listLocalObjectReferenceTDecode)) (fun (field14 : Option (ListLocalObjectReferenceT)) => resultBind (Option (Bytes)) PodSpecT (jsonOptionalField (Bytes) j b"hostname" (jsonGetString)) (fun (field15 : Option (Bytes)) => resultBind (Option (Bytes)) PodSpecT (jsonOptionalField (Bytes) j b"subdomain" (jsonGetString)) (fun (field16 : Option (Bytes)) => ok PodSpecT (podSpecTMake field0 field1 field2 field3 field4 field5 field6 field7 field8 field9 field10 field11 field12 field13 field14 field15 field16))))))))))))))))))
+
+def podSpecTDecodeRender : Value -> Bytes := fun (j : Value) =>
+  case (podSpecTDecode j) with | 0 (e : Error) => bytesAppend b"error: " (errorText e)
+  | 1 (x : PodSpecT) => valueRender (podSpecTEncode x)
+
+def podTemplateSpecTEncode : PodTemplateSpecT -> Value := fun (x : PodTemplateSpecT) => jsonObject (jsonOptionalMember (ObjectMetaT) b"metadata" (objectMetaTEncode) (podTemplateSpecTMetadata x) (jsonOptionalMember (PodSpecT) b"spec" (podSpecTEncode) (podTemplateSpecTSpec x) (jsonObjectNil)))
+
+def podTemplateSpecTDecode : Value -> Result PodTemplateSpecT := fun (j : Value) => resultBind (Option (ObjectMetaT)) PodTemplateSpecT (jsonOptionalField (ObjectMetaT) j b"metadata" (objectMetaTDecode)) (fun (field0 : Option (ObjectMetaT)) => resultBind (Option (PodSpecT)) PodTemplateSpecT (jsonOptionalField (PodSpecT) j b"spec" (podSpecTDecode)) (fun (field1 : Option (PodSpecT)) => ok PodTemplateSpecT (podTemplateSpecTMake field0 field1)))
+
+def podTemplateSpecTDecodeRender : Value -> Bytes := fun (j : Value) =>
+  case (podTemplateSpecTDecode j) with | 0 (e : Error) => bytesAppend b"error: " (errorText e)
+  | 1 (x : PodTemplateSpecT) => valueRender (podTemplateSpecTEncode x)
+
+def statefulSetOrdinalsEncode : StatefulSetOrdinals -> Value := fun (x : StatefulSetOrdinals) => jsonObject (jsonOptionalMember (Int) b"start" (jsonEncodeInt) (statefulSetOrdinalsStart x) (jsonObjectNil))
+
+def statefulSetOrdinalsDecode : Value -> Result StatefulSetOrdinals := fun (j : Value) => resultBind (Option (Int)) StatefulSetOrdinals (jsonOptionalField (Int) j b"start" (jsonGetInt)) (fun (field0 : Option (Int)) => ok StatefulSetOrdinals (statefulSetOrdinalsMake field0))
+
+def statefulSetOrdinalsDecodeRender : Value -> Bytes := fun (j : Value) =>
+  case (statefulSetOrdinalsDecode j) with | 0 (e : Error) => bytesAppend b"error: " (errorText e)
+  | 1 (x : StatefulSetOrdinals) => valueRender (statefulSetOrdinalsEncode x)
+
+def statefulSetRollingUpdateEncode : StatefulSetRollingUpdate -> Value := fun (x : StatefulSetRollingUpdate) => jsonObject (jsonOptionalMember (Int) b"partition" (jsonEncodeInt) (statefulSetRollingUpdatePartition x) (jsonOptionalMember (Int) b"maxUnavailable" (jsonEncodeInt) (statefulSetRollingUpdateMaxUnavailable x) (jsonObjectNil)))
+
+def statefulSetRollingUpdateDecode : Value -> Result StatefulSetRollingUpdate := fun (j : Value) => resultBind (Option (Int)) StatefulSetRollingUpdate (jsonOptionalField (Int) j b"partition" (jsonGetInt)) (fun (field0 : Option (Int)) => resultBind (Option (Int)) StatefulSetRollingUpdate (jsonOptionalField (Int) j b"maxUnavailable" (jsonGetInt)) (fun (field1 : Option (Int)) => ok StatefulSetRollingUpdate (statefulSetRollingUpdateMake field0 field1)))
+
+def statefulSetRollingUpdateDecodeRender : Value -> Bytes := fun (j : Value) =>
+  case (statefulSetRollingUpdateDecode j) with | 0 (e : Error) => bytesAppend b"error: " (errorText e)
+  | 1 (x : StatefulSetRollingUpdate) => valueRender (statefulSetRollingUpdateEncode x)
+
+def statefulSetUpdateStrategyEncode : StatefulSetUpdateStrategy -> Value := fun (x : StatefulSetUpdateStrategy) => jsonObject (jsonOptionalMember (Bytes) b"type" (jsonEncodeBytes) (statefulSetUpdateStrategyType x) (jsonOptionalMember (StatefulSetRollingUpdate) b"rollingUpdate" (statefulSetRollingUpdateEncode) (statefulSetUpdateStrategyRollingUpdate x) (jsonObjectNil)))
+
+def statefulSetUpdateStrategyDecode : Value -> Result StatefulSetUpdateStrategy := fun (j : Value) => resultBind (Option (Bytes)) StatefulSetUpdateStrategy (jsonOptionalField (Bytes) j b"type" (jsonGetString)) (fun (field0 : Option (Bytes)) => resultBind (Option (StatefulSetRollingUpdate)) StatefulSetUpdateStrategy (jsonOptionalField (StatefulSetRollingUpdate) j b"rollingUpdate" (statefulSetRollingUpdateDecode)) (fun (field1 : Option (StatefulSetRollingUpdate)) => ok StatefulSetUpdateStrategy (statefulSetUpdateStrategyMake field0 field1)))
+
+def statefulSetUpdateStrategyDecodeRender : Value -> Bytes := fun (j : Value) =>
+  case (statefulSetUpdateStrategyDecode j) with | 0 (e : Error) => bytesAppend b"error: " (errorText e)
+  | 1 (x : StatefulSetUpdateStrategy) => valueRender (statefulSetUpdateStrategyEncode x)
+
+def statefulSetRetentionPolicyEncode : StatefulSetRetentionPolicy -> Value := fun (x : StatefulSetRetentionPolicy) => jsonObject (jsonOptionalMember (Bytes) b"whenDeleted" (jsonEncodeBytes) (statefulSetRetentionPolicyWhenDeleted x) (jsonOptionalMember (Bytes) b"whenScaled" (jsonEncodeBytes) (statefulSetRetentionPolicyWhenScaled x) (jsonObjectNil)))
+
+def statefulSetRetentionPolicyDecode : Value -> Result StatefulSetRetentionPolicy := fun (j : Value) => resultBind (Option (Bytes)) StatefulSetRetentionPolicy (jsonOptionalField (Bytes) j b"whenDeleted" (jsonGetString)) (fun (field0 : Option (Bytes)) => resultBind (Option (Bytes)) StatefulSetRetentionPolicy (jsonOptionalField (Bytes) j b"whenScaled" (jsonGetString)) (fun (field1 : Option (Bytes)) => ok StatefulSetRetentionPolicy (statefulSetRetentionPolicyMake field0 field1)))
+
+def statefulSetRetentionPolicyDecodeRender : Value -> Bytes := fun (j : Value) =>
+  case (statefulSetRetentionPolicyDecode j) with | 0 (e : Error) => bytesAppend b"error: " (errorText e)
+  | 1 (x : StatefulSetRetentionPolicy) => valueRender (statefulSetRetentionPolicyEncode x)
+
+def rec listPersistentVolumeClaimTEncodeItems : ListPersistentVolumeClaimT -> Values := fun (xs : ListPersistentVolumeClaimT) =>
+  match xs as self in ListPersistentVolumeClaimT return Values with
+  | listPersistentVolumeClaimTNil => jsonArrayNil
+  | listPersistentVolumeClaimTCons h t => jsonArrayCons (persistentVolumeClaimTEncode h) (listPersistentVolumeClaimTEncodeItems t)
+
+def listPersistentVolumeClaimTEncode : ListPersistentVolumeClaimT -> Value := fun (xs : ListPersistentVolumeClaimT) => jsonArray (listPersistentVolumeClaimTEncodeItems xs)
+
+def rec listPersistentVolumeClaimTDecodeItems : Values -> Result ListPersistentVolumeClaimT := fun (xs : Values) =>
+  match xs as self in JsonTree sort return Result ListPersistentVolumeClaimT with
+  | jsonNull => err ListPersistentVolumeClaimT (decodeError b"list" b"expected a JSON array")
+  | jsonBool x => err ListPersistentVolumeClaimT (decodeError b"list" b"expected a JSON array")
+  | jsonInt x => err ListPersistentVolumeClaimT (decodeError b"list" b"expected a JSON array")
+  | jsonIntLiteral x => err ListPersistentVolumeClaimT (decodeError b"list" b"expected a JSON array")
+  | jsonFloat x => err ListPersistentVolumeClaimT (decodeError b"list" b"expected a JSON array")
+  | jsonString x => err ListPersistentVolumeClaimT (decodeError b"list" b"expected a JSON array")
+  | jsonArray x => err ListPersistentVolumeClaimT (decodeError b"list" b"expected a JSON array")
+  | jsonObject x => err ListPersistentVolumeClaimT (decodeError b"list" b"expected a JSON array")
+  | jsonArrayNil => ok ListPersistentVolumeClaimT listPersistentVolumeClaimTNil
+  | jsonArrayCons h t => resultBind (PersistentVolumeClaimT) ListPersistentVolumeClaimT (persistentVolumeClaimTDecode h) (fun (value : PersistentVolumeClaimT) => resultMap ListPersistentVolumeClaimT ListPersistentVolumeClaimT (fun (tail : ListPersistentVolumeClaimT) => listPersistentVolumeClaimTCons value tail) (listPersistentVolumeClaimTDecodeItems t))
+  | jsonObjectNil => err ListPersistentVolumeClaimT (decodeError b"list" b"expected a JSON array")
+  | jsonObjectCons k v t => err ListPersistentVolumeClaimT (decodeError b"list" b"expected a JSON array")
+
+def listPersistentVolumeClaimTDecode : Value -> Result ListPersistentVolumeClaimT := fun (j : Value) => resultBind Values ListPersistentVolumeClaimT (jsonGetArray j) listPersistentVolumeClaimTDecodeItems
+
+def listPersistentVolumeClaimTDecodeRender : Value -> Bytes := fun (j : Value) =>
+  case (listPersistentVolumeClaimTDecode j) with | 0 (e : Error) => bytesAppend b"error: " (errorText e)
+  | 1 (x : ListPersistentVolumeClaimT) => valueRender (listPersistentVolumeClaimTEncode x)
+
+def statefulSetSsSpecEncode : StatefulSetSsSpec -> Value := fun (x : StatefulSetSsSpec) => jsonObject (jsonOptionalMember (Int) b"minReadySeconds" (jsonEncodeInt) (statefulSetSsSpecMinReadySeconds x) (jsonOptionalMember (StatefulSetOrdinals) b"ordinals" (statefulSetOrdinalsEncode) (statefulSetSsSpecOrdinals x) (jsonOptionalMember (StatefulSetRetentionPolicy) b"persistentVolumeClaimRetentionPolicy" (statefulSetRetentionPolicyEncode) (statefulSetSsSpecPersistentVolumeClaimRetentionPolicy x) (jsonOptionalMember (Bytes) b"podManagementPolicy" (jsonEncodeBytes) (statefulSetSsSpecPodManagementPolicy x) (jsonOptionalMember (Int) b"replicas" (jsonEncodeInt) (statefulSetSsSpecReplicas x) (jsonOptionalMember (Int) b"revisionHistoryLimit" (jsonEncodeInt) (statefulSetSsSpecRevisionHistoryLimit x) (jsonObjectCons b"selector" (labelSelectorTEncode (statefulSetSsSpecSelector x)) (jsonObjectCons b"serviceName" (jsonEncodeBytes (statefulSetSsSpecServiceName x)) (jsonObjectCons b"template" (podTemplateSpecTEncode (statefulSetSsSpecTemplate x)) (jsonOptionalMember (StatefulSetUpdateStrategy) b"updateStrategy" (statefulSetUpdateStrategyEncode) (statefulSetSsSpecUpdateStrategy x) (jsonOptionalMember (ListPersistentVolumeClaimT) b"volumeClaimTemplates" (listPersistentVolumeClaimTEncode) (statefulSetSsSpecVolumeClaimTemplates x) (jsonObjectNil))))))))))))
+
+def statefulSetSsSpecDecode : Value -> Result StatefulSetSsSpec := fun (j : Value) => resultBind (Option (Int)) StatefulSetSsSpec (jsonOptionalField (Int) j b"minReadySeconds" (jsonGetInt)) (fun (field0 : Option (Int)) => resultBind (Option (StatefulSetOrdinals)) StatefulSetSsSpec (jsonOptionalField (StatefulSetOrdinals) j b"ordinals" (statefulSetOrdinalsDecode)) (fun (field1 : Option (StatefulSetOrdinals)) => resultBind (Option (StatefulSetRetentionPolicy)) StatefulSetSsSpec (jsonOptionalField (StatefulSetRetentionPolicy) j b"persistentVolumeClaimRetentionPolicy" (statefulSetRetentionPolicyDecode)) (fun (field2 : Option (StatefulSetRetentionPolicy)) => resultBind (Option (Bytes)) StatefulSetSsSpec (jsonOptionalField (Bytes) j b"podManagementPolicy" (jsonGetString)) (fun (field3 : Option (Bytes)) => resultBind (Option (Int)) StatefulSetSsSpec (jsonOptionalField (Int) j b"replicas" (jsonGetInt)) (fun (field4 : Option (Int)) => resultBind (Option (Int)) StatefulSetSsSpec (jsonOptionalField (Int) j b"revisionHistoryLimit" (jsonGetInt)) (fun (field5 : Option (Int)) => resultBind (LabelSelectorT) StatefulSetSsSpec (jsonField (LabelSelectorT) j b"selector" (labelSelectorTDecode)) (fun (field6 : LabelSelectorT) => resultBind (Bytes) StatefulSetSsSpec (jsonField (Bytes) j b"serviceName" (jsonGetString)) (fun (field7 : Bytes) => resultBind (PodTemplateSpecT) StatefulSetSsSpec (jsonField (PodTemplateSpecT) j b"template" (podTemplateSpecTDecode)) (fun (field8 : PodTemplateSpecT) => resultBind (Option (StatefulSetUpdateStrategy)) StatefulSetSsSpec (jsonOptionalField (StatefulSetUpdateStrategy) j b"updateStrategy" (statefulSetUpdateStrategyDecode)) (fun (field9 : Option (StatefulSetUpdateStrategy)) => resultBind (Option (ListPersistentVolumeClaimT)) StatefulSetSsSpec (jsonOptionalField (ListPersistentVolumeClaimT) j b"volumeClaimTemplates" (listPersistentVolumeClaimTDecode)) (fun (field10 : Option (ListPersistentVolumeClaimT)) => ok StatefulSetSsSpec (statefulSetSsSpecMake field0 field1 field2 field3 field4 field5 field6 field7 field8 field9 field10))))))))))))
+
+def statefulSetSsSpecDecodeRender : Value -> Bytes := fun (j : Value) =>
+  case (statefulSetSsSpecDecode j) with | 0 (e : Error) => bytesAppend b"error: " (errorText e)
+  | 1 (x : StatefulSetSsSpec) => valueRender (statefulSetSsSpecEncode x)
+
+def statefulSetSsStatusEncode : StatefulSetSsStatus -> Value := fun (x : StatefulSetSsStatus) => jsonObject (jsonOptionalMember (Int) b"readyReplicas" (jsonEncodeInt) (statefulSetSsStatusReadyReplicas x) (jsonObjectNil))
+
+def statefulSetSsStatusDecode : Value -> Result StatefulSetSsStatus := fun (j : Value) => resultBind (Option (Int)) StatefulSetSsStatus (jsonOptionalField (Int) j b"readyReplicas" (jsonGetInt)) (fun (field0 : Option (Int)) => ok StatefulSetSsStatus (statefulSetSsStatusMake field0))
+
+def statefulSetSsStatusDecodeRender : Value -> Bytes := fun (j : Value) =>
+  case (statefulSetSsStatusDecode j) with | 0 (e : Error) => bytesAppend b"error: " (errorText e)
+  | 1 (x : StatefulSetSsStatus) => valueRender (statefulSetSsStatusEncode x)
+
+def vDeploymentVdSpecEncode : VDeploymentVdSpec -> Value := fun (x : VDeploymentVdSpec) => jsonObject (jsonOptionalMember (Int) b"replicas" (jsonEncodeInt) (vDeploymentVdSpecReplicas x) (jsonObjectCons b"selector" (labelSelectorTEncode (vDeploymentVdSpecSelector x)) (jsonObjectCons b"template" (podTemplateSpecTEncode (vDeploymentVdSpecTemplate x)) (jsonOptionalMember (Int) b"minReadySeconds" (jsonEncodeInt) (vDeploymentVdSpecMinReadySeconds x) (jsonOptionalMember (Int) b"progressDeadlineSeconds" (jsonEncodeInt) (vDeploymentVdSpecProgressDeadlineSeconds x) (jsonOptionalMember (DeploymentStrategyT) b"strategy" (deploymentStrategyTEncode) (vDeploymentVdSpecStrategy x) (jsonOptionalMember (Int) b"revisionHistoryLimit" (jsonEncodeInt) (vDeploymentVdSpecRevisionHistoryLimit x) (jsonOptionalMember (Bool) b"paused" (jsonEncodeBool) (vDeploymentVdSpecPaused x) (jsonObjectNil)))))))))
+
+def vDeploymentVdSpecDecode : Value -> Result VDeploymentVdSpec := fun (j : Value) => resultBind (Option (Int)) VDeploymentVdSpec (jsonOptionalField (Int) j b"replicas" (jsonGetInt)) (fun (field0 : Option (Int)) => resultBind (LabelSelectorT) VDeploymentVdSpec (jsonField (LabelSelectorT) j b"selector" (labelSelectorTDecode)) (fun (field1 : LabelSelectorT) => resultBind (PodTemplateSpecT) VDeploymentVdSpec (jsonField (PodTemplateSpecT) j b"template" (podTemplateSpecTDecode)) (fun (field2 : PodTemplateSpecT) => resultBind (Option (Int)) VDeploymentVdSpec (jsonOptionalField (Int) j b"minReadySeconds" (jsonGetInt)) (fun (field3 : Option (Int)) => resultBind (Option (Int)) VDeploymentVdSpec (jsonOptionalField (Int) j b"progressDeadlineSeconds" (jsonGetInt)) (fun (field4 : Option (Int)) => resultBind (Option (DeploymentStrategyT)) VDeploymentVdSpec (jsonOptionalField (DeploymentStrategyT) j b"strategy" (deploymentStrategyTDecode)) (fun (field5 : Option (DeploymentStrategyT)) => resultBind (Option (Int)) VDeploymentVdSpec (jsonOptionalField (Int) j b"revisionHistoryLimit" (jsonGetInt)) (fun (field6 : Option (Int)) => resultBind (Option (Bool)) VDeploymentVdSpec (jsonOptionalField (Bool) j b"paused" (jsonGetBool)) (fun (field7 : Option (Bool)) => ok VDeploymentVdSpec (vDeploymentVdSpecMake field0 field1 field2 field3 field4 field5 field6 field7)))))))))
+
+def vDeploymentVdSpecDecodeRender : Value -> Bytes := fun (j : Value) =>
+  case (vDeploymentVdSpecDecode j) with | 0 (e : Error) => bytesAppend b"error: " (errorText e)
+  | 1 (x : VDeploymentVdSpec) => valueRender (vDeploymentVdSpecEncode x)
+
+def vreplicaSetVrsSpecEncode : VreplicaSetVrsSpec -> Value := fun (x : VreplicaSetVrsSpec) => jsonObject (jsonOptionalMember (Int) b"replicas" (jsonEncodeInt) (vreplicaSetVrsSpecReplicas x) (jsonObjectCons b"selector" (labelSelectorTEncode (vreplicaSetVrsSpecSelector x)) (jsonOptionalMember (PodTemplateSpecT) b"template" (podTemplateSpecTEncode) (vreplicaSetVrsSpecTemplate x) (jsonObjectNil))))
+
+def vreplicaSetVrsSpecDecode : Value -> Result VreplicaSetVrsSpec := fun (j : Value) => resultBind (Option (Int)) VreplicaSetVrsSpec (jsonOptionalField (Int) j b"replicas" (jsonGetInt)) (fun (field0 : Option (Int)) => resultBind (LabelSelectorT) VreplicaSetVrsSpec (jsonField (LabelSelectorT) j b"selector" (labelSelectorTDecode)) (fun (field1 : LabelSelectorT) => resultBind (Option (PodTemplateSpecT)) VreplicaSetVrsSpec (jsonOptionalField (PodTemplateSpecT) j b"template" (podTemplateSpecTDecode)) (fun (field2 : Option (PodTemplateSpecT)) => ok VreplicaSetVrsSpec (vreplicaSetVrsSpecMake field0 field1 field2))))
+
+def vreplicaSetVrsSpecDecodeRender : Value -> Bytes := fun (j : Value) =>
+  case (vreplicaSetVrsSpecDecode j) with | 0 (e : Error) => bytesAppend b"error: " (errorText e)
+  | 1 (x : VreplicaSetVrsSpec) => valueRender (vreplicaSetVrsSpecEncode x)
+
+def vreplicaSetVrsStatusEncode : VreplicaSetVrsStatus -> Value := fun (x : VreplicaSetVrsStatus) => jsonObject (jsonObjectCons b"replicas" (jsonEncodeInt (vreplicaSetVrsStatusReplicas x)) (jsonObjectNil))
+
+def vreplicaSetVrsStatusDecode : Value -> Result VreplicaSetVrsStatus := fun (j : Value) => resultBind (Int) VreplicaSetVrsStatus (jsonField (Int) j b"replicas" (jsonGetInt)) (fun (field0 : Int) => ok VreplicaSetVrsStatus (vreplicaSetVrsStatusMake field0))
+
+def vreplicaSetVrsStatusDecodeRender : Value -> Bytes := fun (j : Value) =>
+  case (vreplicaSetVrsStatusDecode j) with | 0 (e : Error) => bytesAppend b"error: " (errorText e)
+  | 1 (x : VreplicaSetVrsStatus) => valueRender (vreplicaSetVrsStatusEncode x)
+
+def apiMethodGetThenUpdateStatusRequestEncode : ApiMethodGetThenUpdateStatusRequest -> Value := fun (x : ApiMethodGetThenUpdateStatusRequest) => jsonObject (jsonObjectCons b"namespace" (jsonEncodeBytes (apiMethodGetThenUpdateStatusRequestNamespace x)) (jsonObjectCons b"name" (jsonEncodeBytes (apiMethodGetThenUpdateStatusRequestName x)) (jsonObjectCons b"ownerRef" (ownerReferenceTEncode (apiMethodGetThenUpdateStatusRequestOwnerRef x)) (jsonObjectCons b"obj" (dynamicObjectTEncode (apiMethodGetThenUpdateStatusRequestObj x)) (jsonObjectNil)))))
+
+def apiMethodGetThenUpdateStatusRequestDecode : Value -> Result ApiMethodGetThenUpdateStatusRequest := fun (j : Value) => resultBind (Bytes) ApiMethodGetThenUpdateStatusRequest (jsonField (Bytes) j b"namespace" (jsonGetString)) (fun (field0 : Bytes) => resultBind (Bytes) ApiMethodGetThenUpdateStatusRequest (jsonField (Bytes) j b"name" (jsonGetString)) (fun (field1 : Bytes) => resultBind (OwnerReferenceT) ApiMethodGetThenUpdateStatusRequest (jsonField (OwnerReferenceT) j b"ownerRef" (ownerReferenceTDecode)) (fun (field2 : OwnerReferenceT) => resultBind (DynamicObjectT) ApiMethodGetThenUpdateStatusRequest (jsonField (DynamicObjectT) j b"obj" (dynamicObjectTDecode)) (fun (field3 : DynamicObjectT) => ok ApiMethodGetThenUpdateStatusRequest (apiMethodGetThenUpdateStatusRequestMake field0 field1 field2 field3)))))
+
+def apiMethodGetThenUpdateStatusRequestDecodeRender : Value -> Bytes := fun (j : Value) =>
+  case (apiMethodGetThenUpdateStatusRequestDecode j) with | 0 (e : Error) => bytesAppend b"error: " (errorText e)
+  | 1 (x : ApiMethodGetThenUpdateStatusRequest) => valueRender (apiMethodGetThenUpdateStatusRequestEncode x)
+
+def apiMethodGetThenUpdateRequestEncode : ApiMethodGetThenUpdateRequest -> Value := fun (x : ApiMethodGetThenUpdateRequest) => jsonObject (jsonObjectCons b"namespace" (jsonEncodeBytes (apiMethodGetThenUpdateRequestNamespace x)) (jsonObjectCons b"name" (jsonEncodeBytes (apiMethodGetThenUpdateRequestName x)) (jsonObjectCons b"ownerRef" (ownerReferenceTEncode (apiMethodGetThenUpdateRequestOwnerRef x)) (jsonObjectCons b"obj" (dynamicObjectTEncode (apiMethodGetThenUpdateRequestObj x)) (jsonObjectNil)))))
+
+def apiMethodGetThenUpdateRequestDecode : Value -> Result ApiMethodGetThenUpdateRequest := fun (j : Value) => resultBind (Bytes) ApiMethodGetThenUpdateRequest (jsonField (Bytes) j b"namespace" (jsonGetString)) (fun (field0 : Bytes) => resultBind (Bytes) ApiMethodGetThenUpdateRequest (jsonField (Bytes) j b"name" (jsonGetString)) (fun (field1 : Bytes) => resultBind (OwnerReferenceT) ApiMethodGetThenUpdateRequest (jsonField (OwnerReferenceT) j b"ownerRef" (ownerReferenceTDecode)) (fun (field2 : OwnerReferenceT) => resultBind (DynamicObjectT) ApiMethodGetThenUpdateRequest (jsonField (DynamicObjectT) j b"obj" (dynamicObjectTDecode)) (fun (field3 : DynamicObjectT) => ok ApiMethodGetThenUpdateRequest (apiMethodGetThenUpdateRequestMake field0 field1 field2 field3)))))
+
+def apiMethodGetThenUpdateRequestDecodeRender : Value -> Bytes := fun (j : Value) =>
+  case (apiMethodGetThenUpdateRequestDecode j) with | 0 (e : Error) => bytesAppend b"error: " (errorText e)
+  | 1 (x : ApiMethodGetThenUpdateRequest) => valueRender (apiMethodGetThenUpdateRequestEncode x)
+
+def apiMethodGetThenDeleteRequestEncode : ApiMethodGetThenDeleteRequest -> Value := fun (x : ApiMethodGetThenDeleteRequest) => jsonObject (jsonObjectCons b"key" (commonObjectRefEncode (apiMethodGetThenDeleteRequestKey x)) (jsonObjectCons b"ownerRef" (ownerReferenceTEncode (apiMethodGetThenDeleteRequestOwnerRef x)) (jsonObjectNil)))
+
+def apiMethodGetThenDeleteRequestDecode : Value -> Result ApiMethodGetThenDeleteRequest := fun (j : Value) => resultBind (CommonObjectRef) ApiMethodGetThenDeleteRequest (jsonField (CommonObjectRef) j b"key" (commonObjectRefDecode)) (fun (field0 : CommonObjectRef) => resultBind (OwnerReferenceT) ApiMethodGetThenDeleteRequest (jsonField (OwnerReferenceT) j b"ownerRef" (ownerReferenceTDecode)) (fun (field1 : OwnerReferenceT) => ok ApiMethodGetThenDeleteRequest (apiMethodGetThenDeleteRequestMake field0 field1)))
+
+def apiMethodGetThenDeleteRequestDecodeRender : Value -> Bytes := fun (j : Value) =>
+  case (apiMethodGetThenDeleteRequestDecode j) with | 0 (e : Error) => bytesAppend b"error: " (errorText e)
+  | 1 (x : ApiMethodGetThenDeleteRequest) => valueRender (apiMethodGetThenDeleteRequestEncode x)
+
+def apiMethodUpdateStatusRequestEncode : ApiMethodUpdateStatusRequest -> Value := fun (x : ApiMethodUpdateStatusRequest) => jsonObject (jsonObjectCons b"namespace" (jsonEncodeBytes (apiMethodUpdateStatusRequestNamespace x)) (jsonObjectCons b"name" (jsonEncodeBytes (apiMethodUpdateStatusRequestName x)) (jsonObjectCons b"obj" (dynamicObjectTEncode (apiMethodUpdateStatusRequestObj x)) (jsonObjectNil))))
+
+def apiMethodUpdateStatusRequestDecode : Value -> Result ApiMethodUpdateStatusRequest := fun (j : Value) => resultBind (Bytes) ApiMethodUpdateStatusRequest (jsonField (Bytes) j b"namespace" (jsonGetString)) (fun (field0 : Bytes) => resultBind (Bytes) ApiMethodUpdateStatusRequest (jsonField (Bytes) j b"name" (jsonGetString)) (fun (field1 : Bytes) => resultBind (DynamicObjectT) ApiMethodUpdateStatusRequest (jsonField (DynamicObjectT) j b"obj" (dynamicObjectTDecode)) (fun (field2 : DynamicObjectT) => ok ApiMethodUpdateStatusRequest (apiMethodUpdateStatusRequestMake field0 field1 field2))))
+
+def apiMethodUpdateStatusRequestDecodeRender : Value -> Bytes := fun (j : Value) =>
+  case (apiMethodUpdateStatusRequestDecode j) with | 0 (e : Error) => bytesAppend b"error: " (errorText e)
+  | 1 (x : ApiMethodUpdateStatusRequest) => valueRender (apiMethodUpdateStatusRequestEncode x)
+
+def apiMethodUpdateRequestEncode : ApiMethodUpdateRequest -> Value := fun (x : ApiMethodUpdateRequest) => jsonObject (jsonObjectCons b"namespace" (jsonEncodeBytes (apiMethodUpdateRequestNamespace x)) (jsonObjectCons b"name" (jsonEncodeBytes (apiMethodUpdateRequestName x)) (jsonObjectCons b"obj" (dynamicObjectTEncode (apiMethodUpdateRequestObj x)) (jsonObjectNil))))
+
+def apiMethodUpdateRequestDecode : Value -> Result ApiMethodUpdateRequest := fun (j : Value) => resultBind (Bytes) ApiMethodUpdateRequest (jsonField (Bytes) j b"namespace" (jsonGetString)) (fun (field0 : Bytes) => resultBind (Bytes) ApiMethodUpdateRequest (jsonField (Bytes) j b"name" (jsonGetString)) (fun (field1 : Bytes) => resultBind (DynamicObjectT) ApiMethodUpdateRequest (jsonField (DynamicObjectT) j b"obj" (dynamicObjectTDecode)) (fun (field2 : DynamicObjectT) => ok ApiMethodUpdateRequest (apiMethodUpdateRequestMake field0 field1 field2))))
+
+def apiMethodUpdateRequestDecodeRender : Value -> Bytes := fun (j : Value) =>
+  case (apiMethodUpdateRequestDecode j) with | 0 (e : Error) => bytesAppend b"error: " (errorText e)
+  | 1 (x : ApiMethodUpdateRequest) => valueRender (apiMethodUpdateRequestEncode x)
+
+def apiMethodPreconditionsEncode : ApiMethodPreconditions -> Value := fun (x : ApiMethodPreconditions) => jsonObject (jsonOptionalMember (Int) b"uid" (jsonEncodeInt) (apiMethodPreconditionsUid x) (jsonOptionalMember (Int) b"resourceVersion" (jsonEncodeInt) (apiMethodPreconditionsResourceVersion x) (jsonObjectNil)))
+
+def apiMethodPreconditionsDecode : Value -> Result ApiMethodPreconditions := fun (j : Value) => resultBind (Option (Int)) ApiMethodPreconditions (jsonOptionalField (Int) j b"uid" (jsonGetInt)) (fun (field0 : Option (Int)) => resultBind (Option (Int)) ApiMethodPreconditions (jsonOptionalField (Int) j b"resourceVersion" (jsonGetInt)) (fun (field1 : Option (Int)) => ok ApiMethodPreconditions (apiMethodPreconditionsMake field0 field1)))
+
+def apiMethodPreconditionsDecodeRender : Value -> Bytes := fun (j : Value) =>
+  case (apiMethodPreconditionsDecode j) with | 0 (e : Error) => bytesAppend b"error: " (errorText e)
+  | 1 (x : ApiMethodPreconditions) => valueRender (apiMethodPreconditionsEncode x)
+
+def apiMethodDeleteRequestEncode : ApiMethodDeleteRequest -> Value := fun (x : ApiMethodDeleteRequest) => jsonObject (jsonObjectCons b"key" (commonObjectRefEncode (apiMethodDeleteRequestKey x)) (jsonOptionalMember (ApiMethodPreconditions) b"preconditions" (apiMethodPreconditionsEncode) (apiMethodDeleteRequestPreconditions x) (jsonObjectNil)))
+
+def apiMethodDeleteRequestDecode : Value -> Result ApiMethodDeleteRequest := fun (j : Value) => resultBind (CommonObjectRef) ApiMethodDeleteRequest (jsonField (CommonObjectRef) j b"key" (commonObjectRefDecode)) (fun (field0 : CommonObjectRef) => resultBind (Option (ApiMethodPreconditions)) ApiMethodDeleteRequest (jsonOptionalField (ApiMethodPreconditions) j b"preconditions" (apiMethodPreconditionsDecode)) (fun (field1 : Option (ApiMethodPreconditions)) => ok ApiMethodDeleteRequest (apiMethodDeleteRequestMake field0 field1)))
+
+def apiMethodDeleteRequestDecodeRender : Value -> Bytes := fun (j : Value) =>
+  case (apiMethodDeleteRequestDecode j) with | 0 (e : Error) => bytesAppend b"error: " (errorText e)
+  | 1 (x : ApiMethodDeleteRequest) => valueRender (apiMethodDeleteRequestEncode x)
+
+def apiMethodCreateRequestEncode : ApiMethodCreateRequest -> Value := fun (x : ApiMethodCreateRequest) => jsonObject (jsonObjectCons b"namespace" (jsonEncodeBytes (apiMethodCreateRequestNamespace x)) (jsonObjectCons b"obj" (dynamicObjectTEncode (apiMethodCreateRequestObj x)) (jsonObjectNil)))
+
+def apiMethodCreateRequestDecode : Value -> Result ApiMethodCreateRequest := fun (j : Value) => resultBind (Bytes) ApiMethodCreateRequest (jsonField (Bytes) j b"namespace" (jsonGetString)) (fun (field0 : Bytes) => resultBind (DynamicObjectT) ApiMethodCreateRequest (jsonField (DynamicObjectT) j b"obj" (dynamicObjectTDecode)) (fun (field1 : DynamicObjectT) => ok ApiMethodCreateRequest (apiMethodCreateRequestMake field0 field1)))
+
+def apiMethodCreateRequestDecodeRender : Value -> Bytes := fun (j : Value) =>
+  case (apiMethodCreateRequestDecode j) with | 0 (e : Error) => bytesAppend b"error: " (errorText e)
+  | 1 (x : ApiMethodCreateRequest) => valueRender (apiMethodCreateRequestEncode x)
+
+def apiMethodListRequestEncode : ApiMethodListRequest -> Value := fun (x : ApiMethodListRequest) => jsonObject (jsonObjectCons b"kind" (commonKindEncode (apiMethodListRequestKind x)) (jsonObjectCons b"namespace" (jsonEncodeBytes (apiMethodListRequestNamespace x)) (jsonObjectNil)))
+
+def apiMethodListRequestDecode : Value -> Result ApiMethodListRequest := fun (j : Value) => resultBind (CommonKind) ApiMethodListRequest (jsonField (CommonKind) j b"kind" (commonKindDecode)) (fun (field0 : CommonKind) => resultBind (Bytes) ApiMethodListRequest (jsonField (Bytes) j b"namespace" (jsonGetString)) (fun (field1 : Bytes) => ok ApiMethodListRequest (apiMethodListRequestMake field0 field1)))
+
+def apiMethodListRequestDecodeRender : Value -> Bytes := fun (j : Value) =>
+  case (apiMethodListRequestDecode j) with | 0 (e : Error) => bytesAppend b"error: " (errorText e)
+  | 1 (x : ApiMethodListRequest) => valueRender (apiMethodListRequestEncode x)
+
+def apiMethodGetRequestEncode : ApiMethodGetRequest -> Value := fun (x : ApiMethodGetRequest) => jsonObject (jsonObjectCons b"key" (commonObjectRefEncode (apiMethodGetRequestKey x)) (jsonObjectNil))
+
+def apiMethodGetRequestDecode : Value -> Result ApiMethodGetRequest := fun (j : Value) => resultBind (CommonObjectRef) ApiMethodGetRequest (jsonField (CommonObjectRef) j b"key" (commonObjectRefDecode)) (fun (field0 : CommonObjectRef) => ok ApiMethodGetRequest (apiMethodGetRequestMake field0))
+
+def apiMethodGetRequestDecodeRender : Value -> Bytes := fun (j : Value) =>
+  case (apiMethodGetRequestDecode j) with | 0 (e : Error) => bytesAppend b"error: " (errorText e)
+  | 1 (x : ApiMethodGetRequest) => valueRender (apiMethodGetRequestEncode x)
+
+def apiMethodApiRequestEncode : ApiMethodApiRequest -> Value := fun (x : ApiMethodApiRequest) =>
+  match x as self in ApiMethodApiRequest return Value with
+  | apiMethodApiRequestGetRequest x => jsonObject (jsonObjectCons b"tag" (jsonString b"getRequest") (jsonObjectCons b"value" (apiMethodGetRequestEncode x) jsonObjectNil))
+  | apiMethodApiRequestListRequest x => jsonObject (jsonObjectCons b"tag" (jsonString b"listRequest") (jsonObjectCons b"value" (apiMethodListRequestEncode x) jsonObjectNil))
+  | apiMethodApiRequestCreateRequest x => jsonObject (jsonObjectCons b"tag" (jsonString b"createRequest") (jsonObjectCons b"value" (apiMethodCreateRequestEncode x) jsonObjectNil))
+  | apiMethodApiRequestDeleteRequest x => jsonObject (jsonObjectCons b"tag" (jsonString b"deleteRequest") (jsonObjectCons b"value" (apiMethodDeleteRequestEncode x) jsonObjectNil))
+  | apiMethodApiRequestUpdateRequest x => jsonObject (jsonObjectCons b"tag" (jsonString b"updateRequest") (jsonObjectCons b"value" (apiMethodUpdateRequestEncode x) jsonObjectNil))
+  | apiMethodApiRequestUpdateStatusRequest x => jsonObject (jsonObjectCons b"tag" (jsonString b"updateStatusRequest") (jsonObjectCons b"value" (apiMethodUpdateStatusRequestEncode x) jsonObjectNil))
+  | apiMethodApiRequestGetThenDeleteRequest x => jsonObject (jsonObjectCons b"tag" (jsonString b"getThenDeleteRequest") (jsonObjectCons b"value" (apiMethodGetThenDeleteRequestEncode x) jsonObjectNil))
+  | apiMethodApiRequestGetThenUpdateRequest x => jsonObject (jsonObjectCons b"tag" (jsonString b"getThenUpdateRequest") (jsonObjectCons b"value" (apiMethodGetThenUpdateRequestEncode x) jsonObjectNil))
+  | apiMethodApiRequestGetThenUpdateStatusRequest x => jsonObject (jsonObjectCons b"tag" (jsonString b"getThenUpdateStatusRequest") (jsonObjectCons b"value" (apiMethodGetThenUpdateStatusRequestEncode x) jsonObjectNil))
+
+def apiMethodApiRequestDecode : Value -> Result ApiMethodApiRequest := fun (j : Value) => resultBind Bytes ApiMethodApiRequest (jsonField Bytes j b"tag" jsonGetString) (fun (tag : Bytes) => (case (bytesEqual tag b"getRequest") with | 1 (u : Unit) => resultMap ApiMethodGetRequest ApiMethodApiRequest (fun (x : ApiMethodGetRequest) => apiMethodApiRequestGetRequest x) (jsonField ApiMethodGetRequest j b"value" (apiMethodGetRequestDecode)) | 0 (u : Unit) => (case (bytesEqual tag b"listRequest") with | 1 (u : Unit) => resultMap ApiMethodListRequest ApiMethodApiRequest (fun (x : ApiMethodListRequest) => apiMethodApiRequestListRequest x) (jsonField ApiMethodListRequest j b"value" (apiMethodListRequestDecode)) | 0 (u : Unit) => (case (bytesEqual tag b"createRequest") with | 1 (u : Unit) => resultMap ApiMethodCreateRequest ApiMethodApiRequest (fun (x : ApiMethodCreateRequest) => apiMethodApiRequestCreateRequest x) (jsonField ApiMethodCreateRequest j b"value" (apiMethodCreateRequestDecode)) | 0 (u : Unit) => (case (bytesEqual tag b"deleteRequest") with | 1 (u : Unit) => resultMap ApiMethodDeleteRequest ApiMethodApiRequest (fun (x : ApiMethodDeleteRequest) => apiMethodApiRequestDeleteRequest x) (jsonField ApiMethodDeleteRequest j b"value" (apiMethodDeleteRequestDecode)) | 0 (u : Unit) => (case (bytesEqual tag b"updateRequest") with | 1 (u : Unit) => resultMap ApiMethodUpdateRequest ApiMethodApiRequest (fun (x : ApiMethodUpdateRequest) => apiMethodApiRequestUpdateRequest x) (jsonField ApiMethodUpdateRequest j b"value" (apiMethodUpdateRequestDecode)) | 0 (u : Unit) => (case (bytesEqual tag b"updateStatusRequest") with | 1 (u : Unit) => resultMap ApiMethodUpdateStatusRequest ApiMethodApiRequest (fun (x : ApiMethodUpdateStatusRequest) => apiMethodApiRequestUpdateStatusRequest x) (jsonField ApiMethodUpdateStatusRequest j b"value" (apiMethodUpdateStatusRequestDecode)) | 0 (u : Unit) => (case (bytesEqual tag b"getThenDeleteRequest") with | 1 (u : Unit) => resultMap ApiMethodGetThenDeleteRequest ApiMethodApiRequest (fun (x : ApiMethodGetThenDeleteRequest) => apiMethodApiRequestGetThenDeleteRequest x) (jsonField ApiMethodGetThenDeleteRequest j b"value" (apiMethodGetThenDeleteRequestDecode)) | 0 (u : Unit) => (case (bytesEqual tag b"getThenUpdateRequest") with | 1 (u : Unit) => resultMap ApiMethodGetThenUpdateRequest ApiMethodApiRequest (fun (x : ApiMethodGetThenUpdateRequest) => apiMethodApiRequestGetThenUpdateRequest x) (jsonField ApiMethodGetThenUpdateRequest j b"value" (apiMethodGetThenUpdateRequestDecode)) | 0 (u : Unit) => (case (bytesEqual tag b"getThenUpdateStatusRequest") with | 1 (u : Unit) => resultMap ApiMethodGetThenUpdateStatusRequest ApiMethodApiRequest (fun (x : ApiMethodGetThenUpdateStatusRequest) => apiMethodApiRequestGetThenUpdateStatusRequest x) (jsonField ApiMethodGetThenUpdateStatusRequest j b"value" (apiMethodGetThenUpdateStatusRequestDecode)) | 0 (u : Unit) => err ApiMethodApiRequest (decodeError b"ApiMethodApiRequest" tag)))))))))))
+
+def apiMethodApiRequestDecodeRender : Value -> Bytes := fun (j : Value) =>
+  case (apiMethodApiRequestDecode j) with | 0 (e : Error) => bytesAppend b"error: " (errorText e)
+  | 1 (x : ApiMethodApiRequest) => valueRender (apiMethodApiRequestEncode x)
+
+def apiMethodApiErrorEncode : ApiMethodApiError -> Value := fun (x : ApiMethodApiError) =>
+  match x as self in ApiMethodApiError return Value with
+  | apiMethodApiErrorBadRequest => jsonString b"badRequest"
+  | apiMethodApiErrorConflict => jsonString b"conflict"
+  | apiMethodApiErrorForbidden => jsonString b"forbidden"
+  | apiMethodApiErrorInvalid => jsonString b"invalid"
+  | apiMethodApiErrorObjectNotFound => jsonString b"objectNotFound"
+  | apiMethodApiErrorObjectAlreadyExists => jsonString b"objectAlreadyExists"
+  | apiMethodApiErrorNotSupported => jsonString b"notSupported"
+  | apiMethodApiErrorInternalError => jsonString b"internalError"
+  | apiMethodApiErrorTimeout => jsonString b"timeout"
+  | apiMethodApiErrorServerTimeout => jsonString b"serverTimeout"
+  | apiMethodApiErrorTransactionAbort => jsonString b"transactionAbort"
+  | apiMethodApiErrorOther => jsonString b"other"
+
+def apiMethodApiErrorDecode : Value -> Result ApiMethodApiError := fun (j : Value) => resultBind Bytes ApiMethodApiError (jsonGetString j) (fun (tag : Bytes) => (case (bytesEqual tag b"badRequest") with | 1 (u : Unit) => ok ApiMethodApiError apiMethodApiErrorBadRequest | 0 (u : Unit) => (case (bytesEqual tag b"conflict") with | 1 (u : Unit) => ok ApiMethodApiError apiMethodApiErrorConflict | 0 (u : Unit) => (case (bytesEqual tag b"forbidden") with | 1 (u : Unit) => ok ApiMethodApiError apiMethodApiErrorForbidden | 0 (u : Unit) => (case (bytesEqual tag b"invalid") with | 1 (u : Unit) => ok ApiMethodApiError apiMethodApiErrorInvalid | 0 (u : Unit) => (case (bytesEqual tag b"objectNotFound") with | 1 (u : Unit) => ok ApiMethodApiError apiMethodApiErrorObjectNotFound | 0 (u : Unit) => (case (bytesEqual tag b"objectAlreadyExists") with | 1 (u : Unit) => ok ApiMethodApiError apiMethodApiErrorObjectAlreadyExists | 0 (u : Unit) => (case (bytesEqual tag b"notSupported") with | 1 (u : Unit) => ok ApiMethodApiError apiMethodApiErrorNotSupported | 0 (u : Unit) => (case (bytesEqual tag b"internalError") with | 1 (u : Unit) => ok ApiMethodApiError apiMethodApiErrorInternalError | 0 (u : Unit) => (case (bytesEqual tag b"timeout") with | 1 (u : Unit) => ok ApiMethodApiError apiMethodApiErrorTimeout | 0 (u : Unit) => (case (bytesEqual tag b"serverTimeout") with | 1 (u : Unit) => ok ApiMethodApiError apiMethodApiErrorServerTimeout | 0 (u : Unit) => (case (bytesEqual tag b"transactionAbort") with | 1 (u : Unit) => ok ApiMethodApiError apiMethodApiErrorTransactionAbort | 0 (u : Unit) => (case (bytesEqual tag b"other") with | 1 (u : Unit) => ok ApiMethodApiError apiMethodApiErrorOther | 0 (u : Unit) => err ApiMethodApiError (decodeError b"ApiMethodApiError" tag))))))))))))))
+
+def apiMethodApiErrorDecodeRender : Value -> Bytes := fun (j : Value) =>
+  case (apiMethodApiErrorDecode j) with | 0 (e : Error) => bytesAppend b"error: " (errorText e)
+  | 1 (x : ApiMethodApiError) => valueRender (apiMethodApiErrorEncode x)
+
+def apiMethodGetThenUpdateStatusResponseEncode : ApiMethodGetThenUpdateStatusResponse -> Value := fun (x : ApiMethodGetThenUpdateStatusResponse) => jsonObject (jsonObjectCons b"res" (jsonEncodeEither ApiMethodApiError DynamicObjectT (apiMethodApiErrorEncode) (dynamicObjectTEncode) (apiMethodGetThenUpdateStatusResponseRes x)) (jsonObjectNil))
+
+def apiMethodGetThenUpdateStatusResponseDecode : Value -> Result ApiMethodGetThenUpdateStatusResponse := fun (j : Value) => resultBind (Either (ApiMethodApiError) (DynamicObjectT)) ApiMethodGetThenUpdateStatusResponse (jsonField (Either (ApiMethodApiError) (DynamicObjectT)) j b"res" (jsonDecodeEither ApiMethodApiError DynamicObjectT (apiMethodApiErrorDecode) (dynamicObjectTDecode))) (fun (field0 : Either (ApiMethodApiError) (DynamicObjectT)) => ok ApiMethodGetThenUpdateStatusResponse (apiMethodGetThenUpdateStatusResponseMake field0))
+
+def apiMethodGetThenUpdateStatusResponseDecodeRender : Value -> Bytes := fun (j : Value) =>
+  case (apiMethodGetThenUpdateStatusResponseDecode j) with | 0 (e : Error) => bytesAppend b"error: " (errorText e)
+  | 1 (x : ApiMethodGetThenUpdateStatusResponse) => valueRender (apiMethodGetThenUpdateStatusResponseEncode x)
+
+def apiMethodGetThenUpdateResponseEncode : ApiMethodGetThenUpdateResponse -> Value := fun (x : ApiMethodGetThenUpdateResponse) => jsonObject (jsonObjectCons b"res" (jsonEncodeEither ApiMethodApiError DynamicObjectT (apiMethodApiErrorEncode) (dynamicObjectTEncode) (apiMethodGetThenUpdateResponseRes x)) (jsonObjectNil))
+
+def apiMethodGetThenUpdateResponseDecode : Value -> Result ApiMethodGetThenUpdateResponse := fun (j : Value) => resultBind (Either (ApiMethodApiError) (DynamicObjectT)) ApiMethodGetThenUpdateResponse (jsonField (Either (ApiMethodApiError) (DynamicObjectT)) j b"res" (jsonDecodeEither ApiMethodApiError DynamicObjectT (apiMethodApiErrorDecode) (dynamicObjectTDecode))) (fun (field0 : Either (ApiMethodApiError) (DynamicObjectT)) => ok ApiMethodGetThenUpdateResponse (apiMethodGetThenUpdateResponseMake field0))
+
+def apiMethodGetThenUpdateResponseDecodeRender : Value -> Bytes := fun (j : Value) =>
+  case (apiMethodGetThenUpdateResponseDecode j) with | 0 (e : Error) => bytesAppend b"error: " (errorText e)
+  | 1 (x : ApiMethodGetThenUpdateResponse) => valueRender (apiMethodGetThenUpdateResponseEncode x)
+
+def apiMethodGetThenDeleteResponseEncode : ApiMethodGetThenDeleteResponse -> Value := fun (x : ApiMethodGetThenDeleteResponse) => jsonObject (jsonObjectCons b"res" (jsonEncodeEither ApiMethodApiError Ghost (apiMethodApiErrorEncode) (jsonEncodeGhost) (apiMethodGetThenDeleteResponseRes x)) (jsonObjectNil))
+
+def apiMethodGetThenDeleteResponseDecode : Value -> Result ApiMethodGetThenDeleteResponse := fun (j : Value) => resultBind (Either (ApiMethodApiError) (Ghost)) ApiMethodGetThenDeleteResponse (jsonField (Either (ApiMethodApiError) (Ghost)) j b"res" (jsonDecodeEither ApiMethodApiError Ghost (apiMethodApiErrorDecode) (jsonDecodeGhost))) (fun (field0 : Either (ApiMethodApiError) (Ghost)) => ok ApiMethodGetThenDeleteResponse (apiMethodGetThenDeleteResponseMake field0))
+
+def apiMethodGetThenDeleteResponseDecodeRender : Value -> Bytes := fun (j : Value) =>
+  case (apiMethodGetThenDeleteResponseDecode j) with | 0 (e : Error) => bytesAppend b"error: " (errorText e)
+  | 1 (x : ApiMethodGetThenDeleteResponse) => valueRender (apiMethodGetThenDeleteResponseEncode x)
+
+def apiMethodUpdateStatusResponseEncode : ApiMethodUpdateStatusResponse -> Value := fun (x : ApiMethodUpdateStatusResponse) => jsonObject (jsonObjectCons b"res" (jsonEncodeEither ApiMethodApiError DynamicObjectT (apiMethodApiErrorEncode) (dynamicObjectTEncode) (apiMethodUpdateStatusResponseRes x)) (jsonObjectNil))
+
+def apiMethodUpdateStatusResponseDecode : Value -> Result ApiMethodUpdateStatusResponse := fun (j : Value) => resultBind (Either (ApiMethodApiError) (DynamicObjectT)) ApiMethodUpdateStatusResponse (jsonField (Either (ApiMethodApiError) (DynamicObjectT)) j b"res" (jsonDecodeEither ApiMethodApiError DynamicObjectT (apiMethodApiErrorDecode) (dynamicObjectTDecode))) (fun (field0 : Either (ApiMethodApiError) (DynamicObjectT)) => ok ApiMethodUpdateStatusResponse (apiMethodUpdateStatusResponseMake field0))
+
+def apiMethodUpdateStatusResponseDecodeRender : Value -> Bytes := fun (j : Value) =>
+  case (apiMethodUpdateStatusResponseDecode j) with | 0 (e : Error) => bytesAppend b"error: " (errorText e)
+  | 1 (x : ApiMethodUpdateStatusResponse) => valueRender (apiMethodUpdateStatusResponseEncode x)
+
+def apiMethodUpdateResponseEncode : ApiMethodUpdateResponse -> Value := fun (x : ApiMethodUpdateResponse) => jsonObject (jsonObjectCons b"res" (jsonEncodeEither ApiMethodApiError DynamicObjectT (apiMethodApiErrorEncode) (dynamicObjectTEncode) (apiMethodUpdateResponseRes x)) (jsonObjectNil))
+
+def apiMethodUpdateResponseDecode : Value -> Result ApiMethodUpdateResponse := fun (j : Value) => resultBind (Either (ApiMethodApiError) (DynamicObjectT)) ApiMethodUpdateResponse (jsonField (Either (ApiMethodApiError) (DynamicObjectT)) j b"res" (jsonDecodeEither ApiMethodApiError DynamicObjectT (apiMethodApiErrorDecode) (dynamicObjectTDecode))) (fun (field0 : Either (ApiMethodApiError) (DynamicObjectT)) => ok ApiMethodUpdateResponse (apiMethodUpdateResponseMake field0))
+
+def apiMethodUpdateResponseDecodeRender : Value -> Bytes := fun (j : Value) =>
+  case (apiMethodUpdateResponseDecode j) with | 0 (e : Error) => bytesAppend b"error: " (errorText e)
+  | 1 (x : ApiMethodUpdateResponse) => valueRender (apiMethodUpdateResponseEncode x)
+
+def apiMethodDeleteResponseEncode : ApiMethodDeleteResponse -> Value := fun (x : ApiMethodDeleteResponse) => jsonObject (jsonObjectCons b"res" (jsonEncodeEither ApiMethodApiError Ghost (apiMethodApiErrorEncode) (jsonEncodeGhost) (apiMethodDeleteResponseRes x)) (jsonObjectNil))
+
+def apiMethodDeleteResponseDecode : Value -> Result ApiMethodDeleteResponse := fun (j : Value) => resultBind (Either (ApiMethodApiError) (Ghost)) ApiMethodDeleteResponse (jsonField (Either (ApiMethodApiError) (Ghost)) j b"res" (jsonDecodeEither ApiMethodApiError Ghost (apiMethodApiErrorDecode) (jsonDecodeGhost))) (fun (field0 : Either (ApiMethodApiError) (Ghost)) => ok ApiMethodDeleteResponse (apiMethodDeleteResponseMake field0))
+
+def apiMethodDeleteResponseDecodeRender : Value -> Bytes := fun (j : Value) =>
+  case (apiMethodDeleteResponseDecode j) with | 0 (e : Error) => bytesAppend b"error: " (errorText e)
+  | 1 (x : ApiMethodDeleteResponse) => valueRender (apiMethodDeleteResponseEncode x)
+
+def apiMethodCreateResponseEncode : ApiMethodCreateResponse -> Value := fun (x : ApiMethodCreateResponse) => jsonObject (jsonObjectCons b"res" (jsonEncodeEither ApiMethodApiError DynamicObjectT (apiMethodApiErrorEncode) (dynamicObjectTEncode) (apiMethodCreateResponseRes x)) (jsonObjectNil))
+
+def apiMethodCreateResponseDecode : Value -> Result ApiMethodCreateResponse := fun (j : Value) => resultBind (Either (ApiMethodApiError) (DynamicObjectT)) ApiMethodCreateResponse (jsonField (Either (ApiMethodApiError) (DynamicObjectT)) j b"res" (jsonDecodeEither ApiMethodApiError DynamicObjectT (apiMethodApiErrorDecode) (dynamicObjectTDecode))) (fun (field0 : Either (ApiMethodApiError) (DynamicObjectT)) => ok ApiMethodCreateResponse (apiMethodCreateResponseMake field0))
+
+def apiMethodCreateResponseDecodeRender : Value -> Bytes := fun (j : Value) =>
+  case (apiMethodCreateResponseDecode j) with | 0 (e : Error) => bytesAppend b"error: " (errorText e)
+  | 1 (x : ApiMethodCreateResponse) => valueRender (apiMethodCreateResponseEncode x)
+
+def rec listDynamicObjectTEncodeItems : ListDynamicObjectT -> Values := fun (xs : ListDynamicObjectT) =>
+  match xs as self in ListDynamicObjectT return Values with
+  | listDynamicObjectTNil => jsonArrayNil
+  | listDynamicObjectTCons h t => jsonArrayCons (dynamicObjectTEncode h) (listDynamicObjectTEncodeItems t)
+
+def listDynamicObjectTEncode : ListDynamicObjectT -> Value := fun (xs : ListDynamicObjectT) => jsonArray (listDynamicObjectTEncodeItems xs)
+
+def rec listDynamicObjectTDecodeItems : Values -> Result ListDynamicObjectT := fun (xs : Values) =>
+  match xs as self in JsonTree sort return Result ListDynamicObjectT with
+  | jsonNull => err ListDynamicObjectT (decodeError b"list" b"expected a JSON array")
+  | jsonBool x => err ListDynamicObjectT (decodeError b"list" b"expected a JSON array")
+  | jsonInt x => err ListDynamicObjectT (decodeError b"list" b"expected a JSON array")
+  | jsonIntLiteral x => err ListDynamicObjectT (decodeError b"list" b"expected a JSON array")
+  | jsonFloat x => err ListDynamicObjectT (decodeError b"list" b"expected a JSON array")
+  | jsonString x => err ListDynamicObjectT (decodeError b"list" b"expected a JSON array")
+  | jsonArray x => err ListDynamicObjectT (decodeError b"list" b"expected a JSON array")
+  | jsonObject x => err ListDynamicObjectT (decodeError b"list" b"expected a JSON array")
+  | jsonArrayNil => ok ListDynamicObjectT listDynamicObjectTNil
+  | jsonArrayCons h t => resultBind (DynamicObjectT) ListDynamicObjectT (dynamicObjectTDecode h) (fun (value : DynamicObjectT) => resultMap ListDynamicObjectT ListDynamicObjectT (fun (tail : ListDynamicObjectT) => listDynamicObjectTCons value tail) (listDynamicObjectTDecodeItems t))
+  | jsonObjectNil => err ListDynamicObjectT (decodeError b"list" b"expected a JSON array")
+  | jsonObjectCons k v t => err ListDynamicObjectT (decodeError b"list" b"expected a JSON array")
+
+def listDynamicObjectTDecode : Value -> Result ListDynamicObjectT := fun (j : Value) => resultBind Values ListDynamicObjectT (jsonGetArray j) listDynamicObjectTDecodeItems
+
+def listDynamicObjectTDecodeRender : Value -> Bytes := fun (j : Value) =>
+  case (listDynamicObjectTDecode j) with | 0 (e : Error) => bytesAppend b"error: " (errorText e)
+  | 1 (x : ListDynamicObjectT) => valueRender (listDynamicObjectTEncode x)
+
+def apiMethodListResponseEncode : ApiMethodListResponse -> Value := fun (x : ApiMethodListResponse) => jsonObject (jsonObjectCons b"res" (jsonEncodeEither ApiMethodApiError ListDynamicObjectT (apiMethodApiErrorEncode) (listDynamicObjectTEncode) (apiMethodListResponseRes x)) (jsonObjectNil))
+
+def apiMethodListResponseDecode : Value -> Result ApiMethodListResponse := fun (j : Value) => resultBind (Either (ApiMethodApiError) (ListDynamicObjectT)) ApiMethodListResponse (jsonField (Either (ApiMethodApiError) (ListDynamicObjectT)) j b"res" (jsonDecodeEither ApiMethodApiError ListDynamicObjectT (apiMethodApiErrorDecode) (listDynamicObjectTDecode))) (fun (field0 : Either (ApiMethodApiError) (ListDynamicObjectT)) => ok ApiMethodListResponse (apiMethodListResponseMake field0))
+
+def apiMethodListResponseDecodeRender : Value -> Bytes := fun (j : Value) =>
+  case (apiMethodListResponseDecode j) with | 0 (e : Error) => bytesAppend b"error: " (errorText e)
+  | 1 (x : ApiMethodListResponse) => valueRender (apiMethodListResponseEncode x)
+
+def apiMethodGetResponseEncode : ApiMethodGetResponse -> Value := fun (x : ApiMethodGetResponse) => jsonObject (jsonObjectCons b"res" (jsonEncodeEither ApiMethodApiError DynamicObjectT (apiMethodApiErrorEncode) (dynamicObjectTEncode) (apiMethodGetResponseRes x)) (jsonObjectNil))
+
+def apiMethodGetResponseDecode : Value -> Result ApiMethodGetResponse := fun (j : Value) => resultBind (Either (ApiMethodApiError) (DynamicObjectT)) ApiMethodGetResponse (jsonField (Either (ApiMethodApiError) (DynamicObjectT)) j b"res" (jsonDecodeEither ApiMethodApiError DynamicObjectT (apiMethodApiErrorDecode) (dynamicObjectTDecode))) (fun (field0 : Either (ApiMethodApiError) (DynamicObjectT)) => ok ApiMethodGetResponse (apiMethodGetResponseMake field0))
+
+def apiMethodGetResponseDecodeRender : Value -> Bytes := fun (j : Value) =>
+  case (apiMethodGetResponseDecode j) with | 0 (e : Error) => bytesAppend b"error: " (errorText e)
+  | 1 (x : ApiMethodGetResponse) => valueRender (apiMethodGetResponseEncode x)
+
+def apiMethodApiResponseEncode : ApiMethodApiResponse -> Value := fun (x : ApiMethodApiResponse) =>
+  match x as self in ApiMethodApiResponse return Value with
+  | apiMethodApiResponseGetResponse x => jsonObject (jsonObjectCons b"tag" (jsonString b"getResponse") (jsonObjectCons b"value" (apiMethodGetResponseEncode x) jsonObjectNil))
+  | apiMethodApiResponseListResponse x => jsonObject (jsonObjectCons b"tag" (jsonString b"listResponse") (jsonObjectCons b"value" (apiMethodListResponseEncode x) jsonObjectNil))
+  | apiMethodApiResponseCreateResponse x => jsonObject (jsonObjectCons b"tag" (jsonString b"createResponse") (jsonObjectCons b"value" (apiMethodCreateResponseEncode x) jsonObjectNil))
+  | apiMethodApiResponseDeleteResponse x => jsonObject (jsonObjectCons b"tag" (jsonString b"deleteResponse") (jsonObjectCons b"value" (apiMethodDeleteResponseEncode x) jsonObjectNil))
+  | apiMethodApiResponseUpdateResponse x => jsonObject (jsonObjectCons b"tag" (jsonString b"updateResponse") (jsonObjectCons b"value" (apiMethodUpdateResponseEncode x) jsonObjectNil))
+  | apiMethodApiResponseUpdateStatusResponse x => jsonObject (jsonObjectCons b"tag" (jsonString b"updateStatusResponse") (jsonObjectCons b"value" (apiMethodUpdateStatusResponseEncode x) jsonObjectNil))
+  | apiMethodApiResponseGetThenDeleteResponse x => jsonObject (jsonObjectCons b"tag" (jsonString b"getThenDeleteResponse") (jsonObjectCons b"value" (apiMethodGetThenDeleteResponseEncode x) jsonObjectNil))
+  | apiMethodApiResponseGetThenUpdateResponse x => jsonObject (jsonObjectCons b"tag" (jsonString b"getThenUpdateResponse") (jsonObjectCons b"value" (apiMethodGetThenUpdateResponseEncode x) jsonObjectNil))
+  | apiMethodApiResponseGetThenUpdateStatusResponse x => jsonObject (jsonObjectCons b"tag" (jsonString b"getThenUpdateStatusResponse") (jsonObjectCons b"value" (apiMethodGetThenUpdateStatusResponseEncode x) jsonObjectNil))
+
+def apiMethodApiResponseDecode : Value -> Result ApiMethodApiResponse := fun (j : Value) => resultBind Bytes ApiMethodApiResponse (jsonField Bytes j b"tag" jsonGetString) (fun (tag : Bytes) => (case (bytesEqual tag b"getResponse") with | 1 (u : Unit) => resultMap ApiMethodGetResponse ApiMethodApiResponse (fun (x : ApiMethodGetResponse) => apiMethodApiResponseGetResponse x) (jsonField ApiMethodGetResponse j b"value" (apiMethodGetResponseDecode)) | 0 (u : Unit) => (case (bytesEqual tag b"listResponse") with | 1 (u : Unit) => resultMap ApiMethodListResponse ApiMethodApiResponse (fun (x : ApiMethodListResponse) => apiMethodApiResponseListResponse x) (jsonField ApiMethodListResponse j b"value" (apiMethodListResponseDecode)) | 0 (u : Unit) => (case (bytesEqual tag b"createResponse") with | 1 (u : Unit) => resultMap ApiMethodCreateResponse ApiMethodApiResponse (fun (x : ApiMethodCreateResponse) => apiMethodApiResponseCreateResponse x) (jsonField ApiMethodCreateResponse j b"value" (apiMethodCreateResponseDecode)) | 0 (u : Unit) => (case (bytesEqual tag b"deleteResponse") with | 1 (u : Unit) => resultMap ApiMethodDeleteResponse ApiMethodApiResponse (fun (x : ApiMethodDeleteResponse) => apiMethodApiResponseDeleteResponse x) (jsonField ApiMethodDeleteResponse j b"value" (apiMethodDeleteResponseDecode)) | 0 (u : Unit) => (case (bytesEqual tag b"updateResponse") with | 1 (u : Unit) => resultMap ApiMethodUpdateResponse ApiMethodApiResponse (fun (x : ApiMethodUpdateResponse) => apiMethodApiResponseUpdateResponse x) (jsonField ApiMethodUpdateResponse j b"value" (apiMethodUpdateResponseDecode)) | 0 (u : Unit) => (case (bytesEqual tag b"updateStatusResponse") with | 1 (u : Unit) => resultMap ApiMethodUpdateStatusResponse ApiMethodApiResponse (fun (x : ApiMethodUpdateStatusResponse) => apiMethodApiResponseUpdateStatusResponse x) (jsonField ApiMethodUpdateStatusResponse j b"value" (apiMethodUpdateStatusResponseDecode)) | 0 (u : Unit) => (case (bytesEqual tag b"getThenDeleteResponse") with | 1 (u : Unit) => resultMap ApiMethodGetThenDeleteResponse ApiMethodApiResponse (fun (x : ApiMethodGetThenDeleteResponse) => apiMethodApiResponseGetThenDeleteResponse x) (jsonField ApiMethodGetThenDeleteResponse j b"value" (apiMethodGetThenDeleteResponseDecode)) | 0 (u : Unit) => (case (bytesEqual tag b"getThenUpdateResponse") with | 1 (u : Unit) => resultMap ApiMethodGetThenUpdateResponse ApiMethodApiResponse (fun (x : ApiMethodGetThenUpdateResponse) => apiMethodApiResponseGetThenUpdateResponse x) (jsonField ApiMethodGetThenUpdateResponse j b"value" (apiMethodGetThenUpdateResponseDecode)) | 0 (u : Unit) => (case (bytesEqual tag b"getThenUpdateStatusResponse") with | 1 (u : Unit) => resultMap ApiMethodGetThenUpdateStatusResponse ApiMethodApiResponse (fun (x : ApiMethodGetThenUpdateStatusResponse) => apiMethodApiResponseGetThenUpdateStatusResponse x) (jsonField ApiMethodGetThenUpdateStatusResponse j b"value" (apiMethodGetThenUpdateStatusResponseDecode)) | 0 (u : Unit) => err ApiMethodApiResponse (decodeError b"ApiMethodApiResponse" tag)))))))))))
+
+def apiMethodApiResponseDecodeRender : Value -> Bytes := fun (j : Value) =>
+  case (apiMethodApiResponseDecode j) with | 0 (e : Error) => bytesAppend b"error: " (errorText e)
+  | 1 (x : ApiMethodApiResponse) => valueRender (apiMethodApiResponseEncode x)

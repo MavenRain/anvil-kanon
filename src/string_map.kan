@@ -1,0 +1,48 @@
+-- Sorted finite maps. Insertion replaces an equal key, as Map.Make(String).
+mu StringMap : Type 0 :=
+| stringMapNil : StringMap
+| stringMapCons (key : Bytes) (value : Bytes) (tail : StringMap) : StringMap
+def stringMapEmpty : StringMap := stringMapNil
+def rec stringMapGet : Bytes -> StringMap -> Option Bytes := fun (key : Bytes) (m : StringMap) =>
+  match m as self in StringMap return Option Bytes with
+  | stringMapNil => none Bytes
+  | stringMapCons k v t =>
+    case (bytesEqual key k) with | 1 (u : Unit) => some Bytes v | 0 (u : Unit) => stringMapGet key t
+def rec stringMapSet : Bytes -> Bytes -> StringMap -> StringMap := fun (key : Bytes) (value : Bytes) (m : StringMap) =>
+  match m as self in StringMap return StringMap with
+  | stringMapNil => stringMapCons key value stringMapNil
+  | stringMapCons k v t =>
+    case (bytesEqual key k) with
+    | 1 (u : Unit) => stringMapCons key value t
+    | 0 (u : Unit) =>
+      case (bytesLess key k) with
+      | 1 (u : Unit) => stringMapCons key value m
+      | 0 (u : Unit) => stringMapCons k v (stringMapSet key value t)
+def rec stringMapRemove : Bytes -> StringMap -> StringMap := fun (key : Bytes) (m : StringMap) =>
+  match m as self in StringMap return StringMap with
+  | stringMapNil => stringMapNil
+  | stringMapCons k v t =>
+    case (bytesEqual key k) with
+    | 1 (u : Unit) => t
+    | 0 (u : Unit) => stringMapCons k v (stringMapRemove key t)
+def rec stringMapSize : StringMap -> Nat := fun (m : StringMap) =>
+  match m as self in StringMap return Nat with
+  | stringMapNil => 0
+  | stringMapCons k v t => natAdd 1 (stringMapSize t)
+def rec stringMapEqual : StringMap -> StringMap -> Bool := fun (a : StringMap) (b : StringMap) =>
+  match a as self in StringMap return Bool with
+  | stringMapNil => natEq (stringMapSize b) 0
+  | stringMapCons k v t =>
+    match b as other in StringMap return Bool with
+    | stringMapNil => false
+    | stringMapCons x y rest =>
+      case (boolAnd (bytesEqual k x) (bytesEqual v y)) with
+      | 0 (u : Unit) => false
+      | 1 (u : Unit) => stringMapEqual t rest
+def rec stringMapSubset : StringMap -> StringMap -> Bool := fun (a : StringMap) (b : StringMap) =>
+  match a as self in StringMap return Bool with
+  | stringMapNil => true
+  | stringMapCons k v t =>
+    case (optionEqual Bytes bytesEqual (some Bytes v) (stringMapGet k b)) with
+    | 0 (u : Unit) => false
+    | 1 (u : Unit) => stringMapSubset t b

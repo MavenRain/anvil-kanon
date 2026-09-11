@@ -1,0 +1,112 @@
+-- Cluster transport. Functions and installed models remain configuration data.
+
+def resourceStoreWireEncode : ResourceStore -> Value := fun (s : ResourceStore) => jsonArray (resourceStoreEncodeItems s)
+
+def hostWireEncode : Host -> Value := fun (x : Host) =>
+  match x as self in Host return Value with
+  | hostApi  => jsonObject (jsonObjectCons b"tag" (jsonString b"api") (jsonObjectNil))
+  | hostBuiltin  => jsonObject (jsonObjectCons b"tag" (jsonString b"builtin") (jsonObjectNil))
+  | hostController f0 f1 => jsonObject (jsonObjectCons b"tag" (jsonString b"controller") (jsonObjectCons b"id" (jsonEncodeInt f0) (jsonObjectCons b"key" (commonObjectRefEncode f1) (jsonObjectNil))))
+  | hostExternal f0 => jsonObject (jsonObjectCons b"tag" (jsonString b"external") (jsonObjectCons b"id" (jsonEncodeInt f0) (jsonObjectNil)))
+  | hostMonkey  => jsonObject (jsonObjectCons b"tag" (jsonString b"monkey") (jsonObjectNil))
+
+def hostWireDecode : Value -> Result Host := fun (j : Value) => resultBind Bytes Host (jsonField Bytes j b"tag" jsonGetString) (fun (tag : Bytes) => (case (bytesEqual tag b"api") with | 1 (u : Unit) => ok Host (hostApi ) | 0 (u : Unit) => (case (bytesEqual tag b"builtin") with | 1 (u : Unit) => ok Host (hostBuiltin ) | 0 (u : Unit) => (case (bytesEqual tag b"controller") with | 1 (u : Unit) => resultBind (Int) Host (jsonField (Int) j b"id" (jsonGetInt)) (fun (f0 : Int) => resultBind (CommonObjectRef) Host (jsonField (CommonObjectRef) j b"key" (commonObjectRefDecode)) (fun (f1 : CommonObjectRef) => ok Host (hostController f0 f1))) | 0 (u : Unit) => (case (bytesEqual tag b"external") with | 1 (u : Unit) => resultBind (Int) Host (jsonField (Int) j b"id" (jsonGetInt)) (fun (f0 : Int) => ok Host (hostExternal f0)) | 0 (u : Unit) => (case (bytesEqual tag b"monkey") with | 1 (u : Unit) => ok Host (hostMonkey ) | 0 (u : Unit) => err Host (decodeError b"Host" tag)))))))
+
+def contentWireEncode : Content -> Value := fun (x : Content) =>
+  match x as self in Content return Value with
+  | contentRequest f0 => jsonObject (jsonObjectCons b"tag" (jsonString b"request") (jsonObjectCons b"body" (apiMethodApiRequestEncode f0) (jsonObjectNil)))
+  | contentResponse f0 => jsonObject (jsonObjectCons b"tag" (jsonString b"response") (jsonObjectCons b"body" (apiMethodApiResponseEncode f0) (jsonObjectNil)))
+  | contentExternalRequest f0 => jsonObject (jsonObjectCons b"tag" (jsonString b"externalRequest") (jsonObjectCons b"body" (jsonEncodeValue f0) (jsonObjectNil)))
+  | contentExternalResponse f0 => jsonObject (jsonObjectCons b"tag" (jsonString b"externalResponse") (jsonObjectCons b"body" (jsonEncodeValue f0) (jsonObjectNil)))
+
+def contentWireDecode : Value -> Result Content := fun (j : Value) => resultBind Bytes Content (jsonField Bytes j b"tag" jsonGetString) (fun (tag : Bytes) => (case (bytesEqual tag b"request") with | 1 (u : Unit) => resultBind (Request) Content (jsonField (Request) j b"body" (apiMethodApiRequestDecode)) (fun (f0 : Request) => ok Content (contentRequest f0)) | 0 (u : Unit) => (case (bytesEqual tag b"response") with | 1 (u : Unit) => resultBind (Response) Content (jsonField (Response) j b"body" (apiMethodApiResponseDecode)) (fun (f0 : Response) => ok Content (contentResponse f0)) | 0 (u : Unit) => (case (bytesEqual tag b"externalRequest") with | 1 (u : Unit) => resultBind (Value) Content (jsonField (Value) j b"body" (jsonDecodeValue)) (fun (f0 : Value) => ok Content (contentExternalRequest f0)) | 0 (u : Unit) => (case (bytesEqual tag b"externalResponse") with | 1 (u : Unit) => resultBind (Value) Content (jsonField (Value) j b"body" (jsonDecodeValue)) (fun (f0 : Value) => ok Content (contentExternalResponse f0)) | 0 (u : Unit) => err Content (decodeError b"Content" tag))))))
+
+def messageWireEncode : Message -> Value := fun (x : Message) => jsonObject (jsonObjectCons b"src" (hostWireEncode x.0) (jsonObjectCons b"dst" (hostWireEncode x.1) (jsonObjectCons b"rpcId" (jsonEncodeInt x.2) (jsonObjectCons b"content" (contentWireEncode x.3) (jsonObjectNil)))))
+
+def messageWireDecode : Value -> Result Message := fun (j : Value) => resultBind (Host) Message (jsonField (Host) j b"src" (hostWireDecode)) (fun (f0 : Host) => resultBind (Host) Message (jsonField (Host) j b"dst" (hostWireDecode)) (fun (f1 : Host) => resultBind (Int) Message (jsonField (Int) j b"rpcId" (jsonGetInt)) (fun (f2 : Int) => resultBind (Content) Message (jsonField (Content) j b"content" (contentWireDecode)) (fun (f3 : Content) => ok Message (tuple (f0, f1, f2, f3))))))
+
+def messagePoolWireEncode : MessagePool -> Value := fun (pool : MessagePool) =>
+  jsonSequenceEncode Message messageWireEncode (messagePoolFold (Sequence Message) pool (sequenceEmpty Message) (sequencePush Message))
+def messagePoolWireDecode : Value -> Result MessagePool := fun (j : Value) => resultMap (Sequence Message) MessagePool
+  (fun (xs : Sequence Message) => sequenceFold Message MessagePool (sequenceReverse Message xs) messagePoolNil (fun (acc : MessagePool) (m : Message) => messagePoolCons m acc))
+  (jsonSequenceDecode Message messageWireDecode j)
+
+def ongoingWireEncode : Ongoing -> Value := fun (x : Ongoing) => jsonObject (jsonObjectCons b"triggeringCr" (dynamicObjectTEncode x.0) (jsonObjectCons b"pendingReqMsg" (jsonEncodeOption Message (messageWireEncode) x.1) (jsonObjectCons b"localState" (jsonEncodeValue x.2) (jsonObjectCons b"reconcileId" (jsonEncodeInt x.3) (jsonObjectNil)))))
+
+def ongoingWireDecode : Value -> Result Ongoing := fun (j : Value) => resultBind (DynamicObjectT) Ongoing (jsonField (DynamicObjectT) j b"triggeringCr" (dynamicObjectTDecode)) (fun (f0 : DynamicObjectT) => resultBind (Option Message) Ongoing (jsonField (Option Message) j b"pendingReqMsg" (jsonOptional Message (messageWireDecode))) (fun (f1 : Option Message) => resultBind (Value) Ongoing (jsonField (Value) j b"localState" (jsonDecodeValue)) (fun (f2 : Value) => resultBind (Int) Ongoing (jsonField (Int) j b"reconcileId" (jsonGetInt)) (fun (f3 : Int) => ok Ongoing (tuple (f0, f1, f2, f3))))))
+
+def ongoingMapWireEncode : OngoingMap -> Value := fun (s : OngoingMap) =>
+  jsonSequenceEncode Value jsonEncodeValue (ongoingMapFold (Sequence Value) s (sequenceEmpty Value) (fun (k : CommonObjectRef) (v : Ongoing) (acc : Sequence Value) => sequencePush Value acc (jsonObject (jsonObjectCons b"key" (commonObjectRefEncode k) (jsonObjectCons b"value" (ongoingWireEncode v) (jsonObjectNil))))))
+
+def ongoingMapWireEntryDecode : Value -> Result (prod (CommonObjectRef, Ongoing)) := fun (j : Value) =>
+  resultBind CommonObjectRef (prod (CommonObjectRef, Ongoing)) (jsonField CommonObjectRef j b"key" (commonObjectRefDecode)) (fun (k : CommonObjectRef) =>
+    resultMap Ongoing (prod (CommonObjectRef, Ongoing)) (fun (v : Ongoing) => tuple (k, v)) (jsonField Ongoing j b"value" (ongoingWireDecode)))
+
+def ongoingMapWireDecode : Value -> Result OngoingMap := fun (j : Value) =>
+  resultMap (Sequence (prod (CommonObjectRef, Ongoing))) OngoingMap (fun (xs : Sequence (prod (CommonObjectRef, Ongoing))) => sequenceFold (prod (CommonObjectRef, Ongoing)) OngoingMap xs ongoingMapNil (fun (s : OngoingMap) (p : prod (CommonObjectRef, Ongoing)) => ongoingMapSet p.0 p.1 s)) (jsonSequenceDecode (prod (CommonObjectRef, Ongoing)) ongoingMapWireEntryDecode j)
+
+def controllerStateWireEncode : ControllerState -> Value := fun (x : ControllerState) => jsonObject (jsonObjectCons b"ongoing" (ongoingMapWireEncode x.0) (jsonObjectCons b"scheduled" (resourceStoreWireEncode x.1) (jsonObjectCons b"reconcileIdAllocator" (jsonEncodeInt x.2) (jsonObjectNil))))
+
+def controllerStateWireDecode : Value -> Result ControllerState := fun (j : Value) => resultBind (OngoingMap) ControllerState (jsonField (OngoingMap) j b"ongoing" (ongoingMapWireDecode)) (fun (f0 : OngoingMap) => resultBind (ResourceStore) ControllerState (jsonField (ResourceStore) j b"scheduled" (resourceStoreDecode)) (fun (f1 : ResourceStore) => resultBind (Int) ControllerState (jsonField (Int) j b"reconcileIdAllocator" (jsonGetInt)) (fun (f2 : Int) => ok ControllerState (tuple (f0, f1, f2)))))
+
+def ExternalState : Type 0 := Value
+def externalStateWireEncode : ExternalState -> Value := fun (s : ExternalState) => jsonObject (jsonObjectCons b"state" s jsonObjectNil)
+def externalStateWireDecode : Value -> Result ExternalState := fun (j : Value) => jsonMember j b"state"
+
+def actorWireEncode : Actor -> Value := fun (x : Actor) => jsonObject (jsonObjectCons b"controller" (controllerStateWireEncode x.0) (jsonObjectCons b"external" (jsonEncodeOption ExternalState (externalStateWireEncode) x.1) (jsonObjectCons b"crashEnabled" (jsonEncodeBool x.2) (jsonObjectNil))))
+
+def actorWireDecode : Value -> Result Actor := fun (j : Value) => resultBind (ControllerState) Actor (jsonField (ControllerState) j b"controller" (controllerStateWireDecode)) (fun (f0 : ControllerState) => resultBind (Option ExternalState) Actor (jsonField (Option ExternalState) j b"external" (jsonOptional ExternalState (externalStateWireDecode))) (fun (f1 : Option ExternalState) => resultBind (Bool) Actor (jsonField (Bool) j b"crashEnabled" (jsonGetBool)) (fun (f2 : Bool) => ok Actor (tuple (f0, f1, f2)))))
+
+def actorMapWireEncode : ActorMap -> Value := fun (s : ActorMap) =>
+  jsonSequenceEncode Value jsonEncodeValue (actorMapFold (Sequence Value) s (sequenceEmpty Value) (fun (k : Int) (v : Actor) (acc : Sequence Value) => sequencePush Value acc (jsonObject (jsonObjectCons b"key" (jsonEncodeInt k) (jsonObjectCons b"value" (actorWireEncode v) (jsonObjectNil))))))
+
+def actorMapWireEntryDecode : Value -> Result (prod (Int, Actor)) := fun (j : Value) =>
+  resultBind Int (prod (Int, Actor)) (jsonField Int j b"key" (jsonGetInt)) (fun (k : Int) =>
+    resultMap Actor (prod (Int, Actor)) (fun (v : Actor) => tuple (k, v)) (jsonField Actor j b"value" (actorWireDecode)))
+
+def actorMapWireDecode : Value -> Result ActorMap := fun (j : Value) =>
+  resultMap (Sequence (prod (Int, Actor))) ActorMap (fun (xs : Sequence (prod (Int, Actor))) => sequenceFold (prod (Int, Actor)) ActorMap xs actorMapNil (fun (s : ActorMap) (p : prod (Int, Actor)) => actorMapSet p.0 p.1 s)) (jsonSequenceDecode (prod (Int, Actor)) actorMapWireEntryDecode j)
+
+def clusterStateWireEncode : ClusterState -> Value := fun (x : ClusterState) => jsonObject (jsonObjectCons b"apiServer" (apiStateEncode x.0) (jsonObjectCons b"controllers" (actorMapWireEncode x.1) (jsonObjectCons b"network" (messagePoolWireEncode x.2) (jsonObjectCons b"rpcIdAllocator" (jsonEncodeInt x.3) (jsonObjectCons b"reqDropEnabled" (jsonEncodeBool x.4) (jsonObjectCons b"podMonkeyEnabled" (jsonEncodeBool x.5) (jsonObjectNil)))))))
+
+def clusterStateWireDecode : Value -> Result ClusterState := fun (j : Value) => resultBind (ApiState) ClusterState (jsonField (ApiState) j b"apiServer" (apiStateDecode)) (fun (f0 : ApiState) => resultBind (ActorMap) ClusterState (jsonField (ActorMap) j b"controllers" (actorMapWireDecode)) (fun (f1 : ActorMap) => resultBind (MessagePool) ClusterState (jsonField (MessagePool) j b"network" (messagePoolWireDecode)) (fun (f2 : MessagePool) => resultBind (Int) ClusterState (jsonField (Int) j b"rpcIdAllocator" (jsonGetInt)) (fun (f3 : Int) => resultBind (Bool) ClusterState (jsonField (Bool) j b"reqDropEnabled" (jsonGetBool)) (fun (f4 : Bool) => resultBind (Bool) ClusterState (jsonField (Bool) j b"podMonkeyEnabled" (jsonGetBool)) (fun (f5 : Bool) => ok ClusterState (tuple (f0, f1, f2, f3, f4, f5))))))))
+
+def boundWireEncode : Bound -> Value := fun (x : Bound) => jsonObject (jsonObjectCons b"maxInFlight" (jsonEncodeInt x.0) (jsonObjectCons b"maxObjectsPerKind" (jsonEncodeInt x.1) (jsonObjectCons b"maxControllers" (jsonEncodeInt x.2) (jsonObjectCons b"uidCeiling" (jsonEncodeInt x.3) (jsonObjectCons b"rvCeiling" (jsonEncodeInt x.4) (jsonObjectCons b"reconcileCeiling" (jsonEncodeInt x.5) (jsonObjectCons b"maxReconcileDepth" (jsonEncodeInt x.6) (jsonObjectCons b"monkeyForge" (listPodTResourceEncode x.7) (jsonObjectNil)))))))))
+
+def boundWireDecode : Value -> Result Bound := fun (j : Value) => resultBind (Int) Bound (jsonField (Int) j b"maxInFlight" (jsonGetInt)) (fun (f0 : Int) => resultBind (Int) Bound (jsonField (Int) j b"maxObjectsPerKind" (jsonGetInt)) (fun (f1 : Int) => resultBind (Int) Bound (jsonField (Int) j b"maxControllers" (jsonGetInt)) (fun (f2 : Int) => resultBind (Int) Bound (jsonField (Int) j b"uidCeiling" (jsonGetInt)) (fun (f3 : Int) => resultBind (Int) Bound (jsonField (Int) j b"rvCeiling" (jsonGetInt)) (fun (f4 : Int) => resultBind (Int) Bound (jsonField (Int) j b"reconcileCeiling" (jsonGetInt)) (fun (f5 : Int) => resultBind (Int) Bound (jsonField (Int) j b"maxReconcileDepth" (jsonGetInt)) (fun (f6 : Int) => resultBind (ListPodT) Bound (jsonField (ListPodT) j b"monkeyForge" (listPodTResourceDecode)) (fun (f7 : ListPodT) => ok Bound (tuple (f0, f1, f2, f3, f4, f5, f6, f7))))))))))
+
+def clusterStepWireEncode : ClusterStep -> Value := fun (x : ClusterStep) =>
+  match x as self in ClusterStep return Value with
+  | stepApi f0 => jsonObject (jsonObjectCons b"tag" (jsonString b"api") (jsonObjectCons b"recv" (jsonEncodeOption Message (messageWireEncode) f0) (jsonObjectNil)))
+  | stepBuiltin f0 => jsonObject (jsonObjectCons b"tag" (jsonString b"builtin") (jsonObjectCons b"key" (commonObjectRefEncode f0) (jsonObjectNil)))
+  | stepController f0 f1 f2 => jsonObject (jsonObjectCons b"tag" (jsonString b"controller") (jsonObjectCons b"id" (jsonEncodeInt f0) (jsonObjectCons b"recv" (jsonEncodeOption Message (messageWireEncode) f1) (jsonObjectCons b"key" (jsonEncodeOption CommonObjectRef (commonObjectRefEncode) f2) (jsonObjectNil)))))
+  | stepSchedule f0 f1 => jsonObject (jsonObjectCons b"tag" (jsonString b"schedule") (jsonObjectCons b"id" (jsonEncodeInt f0) (jsonObjectCons b"key" (commonObjectRefEncode f1) (jsonObjectNil))))
+  | stepRestart f0 => jsonObject (jsonObjectCons b"tag" (jsonString b"restart") (jsonObjectCons b"id" (jsonEncodeInt f0) (jsonObjectNil)))
+  | stepDisableCrash f0 => jsonObject (jsonObjectCons b"tag" (jsonString b"disableCrash") (jsonObjectCons b"id" (jsonEncodeInt f0) (jsonObjectNil)))
+  | stepDrop f0 f1 => jsonObject (jsonObjectCons b"tag" (jsonString b"drop") (jsonObjectCons b"msg" (messageWireEncode f0) (jsonObjectCons b"error" (apiMethodApiErrorEncode f1) (jsonObjectNil))))
+  | stepDisableDrop  => jsonObject (jsonObjectCons b"tag" (jsonString b"disableDrop") (jsonObjectNil))
+  | stepMonkey f0 => jsonObject (jsonObjectCons b"tag" (jsonString b"monkey") (jsonObjectCons b"pod" (podTResourceEncode f0) (jsonObjectNil)))
+  | stepDisableMonkey  => jsonObject (jsonObjectCons b"tag" (jsonString b"disableMonkey") (jsonObjectNil))
+  | stepExternal f0 f1 => jsonObject (jsonObjectCons b"tag" (jsonString b"external") (jsonObjectCons b"id" (jsonEncodeInt f0) (jsonObjectCons b"recv" (jsonEncodeOption Message (messageWireEncode) f1) (jsonObjectNil))))
+  | stepStutter  => jsonObject (jsonObjectCons b"tag" (jsonString b"stutter") (jsonObjectNil))
+
+def clusterStepWireDecode : Value -> Result ClusterStep := fun (j : Value) => resultBind Bytes ClusterStep (jsonField Bytes j b"tag" jsonGetString) (fun (tag : Bytes) => (case (bytesEqual tag b"api") with | 1 (u : Unit) => resultBind (Option Message) ClusterStep (jsonField (Option Message) j b"recv" (jsonOptional Message (messageWireDecode))) (fun (f0 : Option Message) => ok ClusterStep (stepApi f0)) | 0 (u : Unit) => (case (bytesEqual tag b"builtin") with | 1 (u : Unit) => resultBind (CommonObjectRef) ClusterStep (jsonField (CommonObjectRef) j b"key" (commonObjectRefDecode)) (fun (f0 : CommonObjectRef) => ok ClusterStep (stepBuiltin f0)) | 0 (u : Unit) => (case (bytesEqual tag b"controller") with | 1 (u : Unit) => resultBind (Int) ClusterStep (jsonField (Int) j b"id" (jsonGetInt)) (fun (f0 : Int) => resultBind (Option Message) ClusterStep (jsonField (Option Message) j b"recv" (jsonOptional Message (messageWireDecode))) (fun (f1 : Option Message) => resultBind (Option CommonObjectRef) ClusterStep (jsonField (Option CommonObjectRef) j b"key" (jsonOptional CommonObjectRef (commonObjectRefDecode))) (fun (f2 : Option CommonObjectRef) => ok ClusterStep (stepController f0 f1 f2)))) | 0 (u : Unit) => (case (bytesEqual tag b"schedule") with | 1 (u : Unit) => resultBind (Int) ClusterStep (jsonField (Int) j b"id" (jsonGetInt)) (fun (f0 : Int) => resultBind (CommonObjectRef) ClusterStep (jsonField (CommonObjectRef) j b"key" (commonObjectRefDecode)) (fun (f1 : CommonObjectRef) => ok ClusterStep (stepSchedule f0 f1))) | 0 (u : Unit) => (case (bytesEqual tag b"restart") with | 1 (u : Unit) => resultBind (Int) ClusterStep (jsonField (Int) j b"id" (jsonGetInt)) (fun (f0 : Int) => ok ClusterStep (stepRestart f0)) | 0 (u : Unit) => (case (bytesEqual tag b"disableCrash") with | 1 (u : Unit) => resultBind (Int) ClusterStep (jsonField (Int) j b"id" (jsonGetInt)) (fun (f0 : Int) => ok ClusterStep (stepDisableCrash f0)) | 0 (u : Unit) => (case (bytesEqual tag b"drop") with | 1 (u : Unit) => resultBind (Message) ClusterStep (jsonField (Message) j b"msg" (messageWireDecode)) (fun (f0 : Message) => resultBind (ApiError) ClusterStep (jsonField (ApiError) j b"error" (apiMethodApiErrorDecode)) (fun (f1 : ApiError) => ok ClusterStep (stepDrop f0 f1))) | 0 (u : Unit) => (case (bytesEqual tag b"disableDrop") with | 1 (u : Unit) => ok ClusterStep (stepDisableDrop ) | 0 (u : Unit) => (case (bytesEqual tag b"monkey") with | 1 (u : Unit) => resultBind (PodT) ClusterStep (jsonField (PodT) j b"pod" (podTResourceDecode)) (fun (f0 : PodT) => ok ClusterStep (stepMonkey f0)) | 0 (u : Unit) => (case (bytesEqual tag b"disableMonkey") with | 1 (u : Unit) => ok ClusterStep (stepDisableMonkey ) | 0 (u : Unit) => (case (bytesEqual tag b"external") with | 1 (u : Unit) => resultBind (Int) ClusterStep (jsonField (Int) j b"id" (jsonGetInt)) (fun (f0 : Int) => resultBind (Option Message) ClusterStep (jsonField (Option Message) j b"recv" (jsonOptional Message (messageWireDecode))) (fun (f1 : Option Message) => ok ClusterStep (stepExternal f0 f1))) | 0 (u : Unit) => (case (bytesEqual tag b"stutter") with | 1 (u : Unit) => ok ClusterStep (stepStutter ) | 0 (u : Unit) => err ClusterStep (decodeError b"ClusterStep" tag))))))))))))))
+
+def rec successorsWireItems : Successors -> Values := fun (xs : Successors) => match xs as self in Successors return Values with
+  | successorsNil => jsonArrayNil
+  | successorsCons step state tail => jsonArrayCons (jsonObject (jsonObjectCons b"step" (clusterStepWireEncode step)
+      (jsonObjectCons b"state" (clusterStateWireEncode state) jsonObjectNil))) (successorsWireItems tail)
+def successorsWireEncode : Successors -> Value := fun (xs : Successors) => jsonArray (successorsWireItems xs)
+def fixtureModels : ModelMap := modelMapCons (nonnegative 0) (tuple (vrsProgram, none ExternalProgram))
+  (modelMapCons (nonnegative 1) (tuple (deploymentProgram, none ExternalProgram)) (modelMapCons (nonnegative 2) (tuple (statefulProgram, none ExternalProgram)) modelMapNil))
+def fixtureModelsFor : Bool -> ModelMap := fun (echo : Bool) =>
+  let external : ExternalProgram := tuple (jsonNull, (fun (request : Value) (state : Value) (resources : ResourceStore) => tuple (request, state))) in
+  select ModelMap echo (modelMapSet (nonnegative 2) (tuple (statefulProgram, some ExternalProgram external)) fixtureModels) fixtureModels
+def clusterFixtureInvoke : Value -> Result Value := fun (input : Value) =>
+  resultBind InstalledTypes Value (jsonField InstalledTypes input b"policy" apiFixturePolicy) (fun (policy : InstalledTypes) =>
+  resultBind ClusterState Value (jsonField ClusterState input b"state" clusterStateWireDecode) (fun (s : ClusterState) =>
+  resultBind Bool Value (jsonField Bool input b"echoExternal" jsonGetBool) (fun (echo : Bool) =>
+  resultMap Bound Value (fun (bound : Bound) => successorsWireEncode (clusterEnabledSuccessors bound (tuple (policy, fixtureModelsFor echo)) s))
+    (jsonField Bound input b"bound" boundWireDecode))))
+def clusterFixtureRender : Value -> Bytes := fun (input : Value) => case (clusterFixtureInvoke input) with
+  | 0 (e : Error) => bytesAppend b"error: " (errorText e) | 1 (v : Value) => valueRender v

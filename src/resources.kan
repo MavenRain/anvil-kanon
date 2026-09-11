@@ -1,0 +1,161 @@
+-- Resource marshal/unmarshal contracts, including kind and null checks.
+
+def decodeResourceObject : (0 A : Type 0) -> Bytes -> Bytes -> (Value -> Result A) -> Value -> Result A :=
+  fun (0 A : Type 0) (label : Bytes) (detail : Bytes) (decode : Value -> Result A) (v : Value) =>
+  case (jsonGetObject v) with | 0 (e : Error) => err A (decodeError label detail) | 1 (m : Members) => decode v
+def decodeResourceOptional : (0 A : Type 0) -> Bytes -> (Value -> Result A) -> Value -> Result (Option A) :=
+  fun (0 A : Type 0) (label : Bytes) (decode : Value -> Result A) (v : Value) =>
+  case (jsonIsNull v) with | 1 (u : Unit) => ok (Option A) (none A)
+  | 0 (u : Unit) => resultMap A (Option A) (fun (x : A) => some A x) (decodeResourceObject A label b"expected object or null" decode v)
+def decodeResourceNull : Bytes -> Value -> Result Ghost := fun (label : Bytes) (v : Value) =>
+  case (jsonIsNull v) with | 1 (u : Unit) => ok Ghost ghost | 0 (u : Unit) => err Ghost (decodeError label b"expected null")
+def encodeResourceNull : Ghost -> Value := fun (x : Ghost) => jsonNull
+
+
+def podTKind : CommonKind := commonKindPod
+
+def podTMarshalSpec : Option PodSpecT -> Value := fun (x : Option PodSpecT) => jsonEncodeOption PodSpecT (podSpecTEncode) x
+
+def podTUnmarshalSpec : Value -> Result (Option PodSpecT) := fun (x : Value) => decodeResourceOptional PodSpecT b"pod.spec" (podSpecTDecode) x
+
+def podTMarshalStatus : Option Ghost -> Value := fun (x : Option Ghost) => jsonEncodeOption Ghost (jsonEncodeGhost) x
+
+def podTUnmarshalStatus : Value -> Result (Option Ghost) := fun (x : Value) => decodeResourceOptional Ghost b"pod.status" (jsonDecodeGhost) x
+
+def podTMarshal : PodT -> DynamicObjectT := fun (x : PodT) =>
+  dynamicObjectTMake podTKind (podTMetadata x) (podTMarshalSpec (podTSpec x)) (podTMarshalStatus (podTStatus x))
+
+def podTUnmarshal : DynamicObjectT -> Result PodT := fun (x : DynamicObjectT) =>
+  case (commonKindEqual (dynamicObjectTKind x) podTKind) with
+  | 0 (u : Unit) => err PodT (kindMismatch (kindShow podTKind) (kindShow (dynamicObjectTKind x)))
+  | 1 (u : Unit) => resultBind (Option PodSpecT) PodT (podTUnmarshalSpec (dynamicObjectTSpec x)) (fun (spec : Option PodSpecT) =>
+    resultMap (Option Ghost) PodT (fun (status : Option Ghost) => podTMake (dynamicObjectTMetadata x) spec status) (podTUnmarshalStatus (dynamicObjectTStatus x)))
+
+def statefulSetTKind : CommonKind := commonKindStatefulSet
+
+def statefulSetTMarshalSpec : Option StatefulSetSsSpec -> Value := fun (x : Option StatefulSetSsSpec) => jsonEncodeOption StatefulSetSsSpec (statefulSetSsSpecEncode) x
+
+def statefulSetTUnmarshalSpec : Value -> Result (Option StatefulSetSsSpec) := fun (x : Value) => decodeResourceOptional StatefulSetSsSpec b"stateful_set.spec" (statefulSetSsSpecDecode) x
+
+def statefulSetTMarshalStatus : Option StatefulSetSsStatus -> Value := fun (x : Option StatefulSetSsStatus) => jsonEncodeOption StatefulSetSsStatus (statefulSetSsStatusEncode) x
+
+def statefulSetTUnmarshalStatus : Value -> Result (Option StatefulSetSsStatus) := fun (x : Value) => decodeResourceOptional StatefulSetSsStatus b"stateful_set.status" (statefulSetSsStatusDecode) x
+
+def statefulSetTMarshal : StatefulSetT -> DynamicObjectT := fun (x : StatefulSetT) =>
+  dynamicObjectTMake statefulSetTKind (statefulSetTMetadata x) (statefulSetTMarshalSpec (statefulSetTSpec x)) (statefulSetTMarshalStatus (statefulSetTStatus x))
+
+def statefulSetTUnmarshal : DynamicObjectT -> Result StatefulSetT := fun (x : DynamicObjectT) =>
+  case (commonKindEqual (dynamicObjectTKind x) statefulSetTKind) with
+  | 0 (u : Unit) => err StatefulSetT (kindMismatch (kindShow statefulSetTKind) (kindShow (dynamicObjectTKind x)))
+  | 1 (u : Unit) => resultBind (Option StatefulSetSsSpec) StatefulSetT (statefulSetTUnmarshalSpec (dynamicObjectTSpec x)) (fun (spec : Option StatefulSetSsSpec) =>
+    resultMap (Option StatefulSetSsStatus) StatefulSetT (fun (status : Option StatefulSetSsStatus) => statefulSetTMake (dynamicObjectTMetadata x) spec status) (statefulSetTUnmarshalStatus (dynamicObjectTStatus x)))
+
+def vreplicaSetTKind : CommonKind := (commonKindCustomResource b"vreplicaset")
+
+def vreplicaSetTMarshalSpec : VreplicaSetVrsSpec -> Value := fun (x : VreplicaSetVrsSpec) => vreplicaSetVrsSpecEncode x
+
+def vreplicaSetTUnmarshalSpec : Value -> Result (VreplicaSetVrsSpec) := fun (x : Value) => decodeResourceObject VreplicaSetVrsSpec b"vreplica_set.spec" b"expected object" (vreplicaSetVrsSpecDecode) x
+
+def vreplicaSetTMarshalStatus : Option VreplicaSetVrsStatus -> Value := fun (x : Option VreplicaSetVrsStatus) => jsonEncodeOption VreplicaSetVrsStatus (vreplicaSetVrsStatusEncode) x
+
+def vreplicaSetTUnmarshalStatus : Value -> Result (Option VreplicaSetVrsStatus) := fun (x : Value) => decodeResourceOptional VreplicaSetVrsStatus b"vreplica_set.status" (vreplicaSetVrsStatusDecode) x
+
+def vreplicaSetTMarshal : VreplicaSetT -> DynamicObjectT := fun (x : VreplicaSetT) =>
+  dynamicObjectTMake vreplicaSetTKind (vreplicaSetTMetadata x) (vreplicaSetTMarshalSpec (vreplicaSetTSpec x)) (vreplicaSetTMarshalStatus (vreplicaSetTStatus x))
+
+def vreplicaSetTUnmarshal : DynamicObjectT -> Result VreplicaSetT := fun (x : DynamicObjectT) =>
+  case (commonKindEqual (dynamicObjectTKind x) vreplicaSetTKind) with
+  | 0 (u : Unit) => err VreplicaSetT (kindMismatch (kindShow vreplicaSetTKind) (kindShow (dynamicObjectTKind x)))
+  | 1 (u : Unit) => resultBind (VreplicaSetVrsSpec) VreplicaSetT (vreplicaSetTUnmarshalSpec (dynamicObjectTSpec x)) (fun (spec : VreplicaSetVrsSpec) =>
+    resultMap (Option VreplicaSetVrsStatus) VreplicaSetT (fun (status : Option VreplicaSetVrsStatus) => vreplicaSetTMake (dynamicObjectTMetadata x) spec status) (vreplicaSetTUnmarshalStatus (dynamicObjectTStatus x)))
+
+def vreplicaSetTControllerOwner : VreplicaSetT -> Option OwnerReferenceT := fun (x : VreplicaSetT) =>
+  let m : ObjectMetaT := vreplicaSetTMetadata x in
+  optionBind Bytes OwnerReferenceT (objectMetaTName m) (fun (name : Bytes) =>
+    optionMap Int OwnerReferenceT (fun (uid : Int) => ownerReferenceTMake (some Bool true) (some Bool true) vreplicaSetTKind name uid) (objectMetaTUid m))
+
+def vDeploymentTKind : CommonKind := (commonKindCustomResource b"vdeployment")
+
+def vDeploymentTMarshalSpec : VDeploymentVdSpec -> Value := fun (x : VDeploymentVdSpec) => vDeploymentVdSpecEncode x
+
+def vDeploymentTUnmarshalSpec : Value -> Result (VDeploymentVdSpec) := fun (x : Value) => decodeResourceObject VDeploymentVdSpec b"v_deployment.spec" b"expected object" (vDeploymentVdSpecDecode) x
+
+def vDeploymentTMarshalStatus : Ghost -> Value := fun (x : Ghost) => encodeResourceNull x
+
+def vDeploymentTUnmarshalStatus : Value -> Result (Ghost) := fun (x : Value) => decodeResourceNull b"v_deployment.status" x
+
+def vDeploymentTMarshal : VDeploymentT -> DynamicObjectT := fun (x : VDeploymentT) =>
+  dynamicObjectTMake vDeploymentTKind (vDeploymentTMetadata x) (vDeploymentTMarshalSpec (vDeploymentTSpec x)) (vDeploymentTMarshalStatus (vDeploymentTStatus x))
+
+def vDeploymentTUnmarshal : DynamicObjectT -> Result VDeploymentT := fun (x : DynamicObjectT) =>
+  case (commonKindEqual (dynamicObjectTKind x) vDeploymentTKind) with
+  | 0 (u : Unit) => err VDeploymentT (kindMismatch (kindShow vDeploymentTKind) (kindShow (dynamicObjectTKind x)))
+  | 1 (u : Unit) => resultBind (VDeploymentVdSpec) VDeploymentT (vDeploymentTUnmarshalSpec (dynamicObjectTSpec x)) (fun (spec : VDeploymentVdSpec) =>
+    resultMap (Ghost) VDeploymentT (fun (status : Ghost) => vDeploymentTMake (dynamicObjectTMetadata x) spec status) (vDeploymentTUnmarshalStatus (dynamicObjectTStatus x)))
+
+def vDeploymentTControllerOwner : VDeploymentT -> Option OwnerReferenceT := fun (x : VDeploymentT) =>
+  let m : ObjectMetaT := vDeploymentTMetadata x in
+  optionBind Bytes OwnerReferenceT (objectMetaTName m) (fun (name : Bytes) =>
+    optionMap Int OwnerReferenceT (fun (uid : Int) => ownerReferenceTMake (some Bool true) (some Bool true) vDeploymentTKind name uid) (objectMetaTUid m))
+
+def vStatefulSetTKind : CommonKind := (commonKindCustomResource b"vstatefulset")
+
+def vStatefulSetTMarshalSpec : StatefulSetSsSpec -> Value := fun (x : StatefulSetSsSpec) => statefulSetSsSpecEncode x
+
+def vStatefulSetTUnmarshalSpec : Value -> Result (StatefulSetSsSpec) := fun (x : Value) => decodeResourceObject StatefulSetSsSpec b"v_stateful_set.spec" b"expected object" (statefulSetSsSpecDecode) x
+
+def vStatefulSetTMarshalStatus : Option StatefulSetSsStatus -> Value := fun (x : Option StatefulSetSsStatus) => jsonEncodeOption StatefulSetSsStatus (statefulSetSsStatusEncode) x
+
+def vStatefulSetTUnmarshalStatus : Value -> Result (Option StatefulSetSsStatus) := fun (x : Value) => decodeResourceOptional StatefulSetSsStatus b"v_stateful_set.status" (statefulSetSsStatusDecode) x
+
+def vStatefulSetTMarshal : VStatefulSetT -> DynamicObjectT := fun (x : VStatefulSetT) =>
+  dynamicObjectTMake vStatefulSetTKind (vStatefulSetTMetadata x) (vStatefulSetTMarshalSpec (vStatefulSetTSpec x)) (vStatefulSetTMarshalStatus (vStatefulSetTStatus x))
+
+def vStatefulSetTUnmarshal : DynamicObjectT -> Result VStatefulSetT := fun (x : DynamicObjectT) =>
+  case (commonKindEqual (dynamicObjectTKind x) vStatefulSetTKind) with
+  | 0 (u : Unit) => err VStatefulSetT (kindMismatch (kindShow vStatefulSetTKind) (kindShow (dynamicObjectTKind x)))
+  | 1 (u : Unit) => resultBind (StatefulSetSsSpec) VStatefulSetT (vStatefulSetTUnmarshalSpec (dynamicObjectTSpec x)) (fun (spec : StatefulSetSsSpec) =>
+    resultMap (Option StatefulSetSsStatus) VStatefulSetT (fun (status : Option StatefulSetSsStatus) => vStatefulSetTMake (dynamicObjectTMetadata x) spec status) (vStatefulSetTUnmarshalStatus (dynamicObjectTStatus x)))
+
+def vStatefulSetTControllerOwner : VStatefulSetT -> Option OwnerReferenceT := fun (x : VStatefulSetT) =>
+  let m : ObjectMetaT := vStatefulSetTMetadata x in
+  optionBind Bytes OwnerReferenceT (objectMetaTName m) (fun (name : Bytes) =>
+    optionMap Int OwnerReferenceT (fun (uid : Int) => ownerReferenceTMake (some Bool true) (some Bool true) vStatefulSetTKind name uid) (objectMetaTUid m))
+
+def configMapTKind : CommonKind := commonKindConfigMap
+
+def configMapTMarshalSpec : Option StringMap -> Value := fun (x : Option StringMap) => jsonEncodeOption StringMap (jsonEncodeMap) x
+
+def configMapTUnmarshalSpec : Value -> Result (Option StringMap) := fun (x : Value) => decodeResourceOptional StringMap b"config_map.data" (jsonDecodeMap) x
+
+def configMapTMarshalStatus : Ghost -> Value := fun (x : Ghost) => encodeResourceNull x
+
+def configMapTUnmarshalStatus : Value -> Result (Ghost) := fun (x : Value) => decodeResourceNull b"config_map.status" x
+
+def configMapTMarshal : ConfigMapT -> DynamicObjectT := fun (x : ConfigMapT) =>
+  dynamicObjectTMake configMapTKind (configMapTMetadata x) (configMapTMarshalSpec (configMapTData x)) (configMapTMarshalStatus ghost)
+
+def configMapTUnmarshal : DynamicObjectT -> Result ConfigMapT := fun (x : DynamicObjectT) =>
+  case (commonKindEqual (dynamicObjectTKind x) configMapTKind) with
+  | 0 (u : Unit) => err ConfigMapT (kindMismatch (kindShow configMapTKind) (kindShow (dynamicObjectTKind x)))
+  | 1 (u : Unit) => resultBind (Option StringMap) ConfigMapT (configMapTUnmarshalSpec (dynamicObjectTSpec x)) (fun (spec : Option StringMap) =>
+    resultMap (Ghost) ConfigMapT (fun (status : Ghost) => configMapTMake (dynamicObjectTMetadata x) spec) (configMapTUnmarshalStatus (dynamicObjectTStatus x)))
+
+def persistentVolumeClaimTKind : CommonKind := commonKindPersistentVolumeClaim
+
+def persistentVolumeClaimTMarshalSpec : Option PersistentVolumeClaimSpec -> Value := fun (x : Option PersistentVolumeClaimSpec) => jsonEncodeOption PersistentVolumeClaimSpec (persistentVolumeClaimSpecEncode) x
+
+def persistentVolumeClaimTUnmarshalSpec : Value -> Result (Option PersistentVolumeClaimSpec) := fun (x : Value) => decodeResourceOptional PersistentVolumeClaimSpec b"PersistentVolumeClaimSpec" (persistentVolumeClaimSpecDecode) x
+
+def persistentVolumeClaimTMarshalStatus : Option PersistentVolumeClaimStatus -> Value := fun (x : Option PersistentVolumeClaimStatus) => jsonEncodeOption PersistentVolumeClaimStatus (persistentVolumeClaimStatusEncode) x
+
+def persistentVolumeClaimTUnmarshalStatus : Value -> Result (Option PersistentVolumeClaimStatus) := fun (x : Value) => decodeResourceOptional PersistentVolumeClaimStatus b"PersistentVolumeClaimStatus" (persistentVolumeClaimStatusDecode) x
+
+def persistentVolumeClaimTMarshal : PersistentVolumeClaimT -> DynamicObjectT := fun (x : PersistentVolumeClaimT) =>
+  dynamicObjectTMake persistentVolumeClaimTKind (persistentVolumeClaimTMetadata x) (persistentVolumeClaimTMarshalSpec (persistentVolumeClaimTSpec x)) (persistentVolumeClaimTMarshalStatus (persistentVolumeClaimTStatus x))
+
+def persistentVolumeClaimTUnmarshal : DynamicObjectT -> Result PersistentVolumeClaimT := fun (x : DynamicObjectT) =>
+  case (commonKindEqual (dynamicObjectTKind x) persistentVolumeClaimTKind) with
+  | 0 (u : Unit) => err PersistentVolumeClaimT (kindMismatch (kindShow persistentVolumeClaimTKind) (kindShow (dynamicObjectTKind x)))
+  | 1 (u : Unit) => resultBind (Option PersistentVolumeClaimSpec) PersistentVolumeClaimT (persistentVolumeClaimTUnmarshalSpec (dynamicObjectTSpec x)) (fun (spec : Option PersistentVolumeClaimSpec) =>
+    resultMap (Option PersistentVolumeClaimStatus) PersistentVolumeClaimT (fun (status : Option PersistentVolumeClaimStatus) => persistentVolumeClaimTMake (dynamicObjectTMetadata x) spec status) (persistentVolumeClaimTUnmarshalStatus (dynamicObjectTStatus x)))

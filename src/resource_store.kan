@@ -1,0 +1,47 @@
+-- ObjectRef maps enumerate by (kind display tag, namespace, name).
+def objectRefLess : CommonObjectRef -> CommonObjectRef -> Bool := fun (a : CommonObjectRef) (b : CommonObjectRef) =>
+  let ak : Bytes := kindShow (commonObjectRefKind a) in
+  let bk : Bytes := kindShow (commonObjectRefKind b) in
+  case (bytesEqual ak bk) with | 0 (u : Unit) => bytesLess ak bk
+  | 1 (u : Unit) => (case (bytesEqual (commonObjectRefNamespace a) (commonObjectRefNamespace b)) with
+    | 0 (u : Unit) => bytesLess (commonObjectRefNamespace a) (commonObjectRefNamespace b)
+    | 1 (u : Unit) => bytesLess (commonObjectRefName a) (commonObjectRefName b))
+def objectRefKeyEqual : CommonObjectRef -> CommonObjectRef -> Bool := fun (a : CommonObjectRef) (b : CommonObjectRef) =>
+  boolAnd (boolNot (objectRefLess a b)) (boolNot (objectRefLess b a))
+mu ResourceStore : Type 0 := | resourceStoreNil : ResourceStore | resourceStoreCons (key : CommonObjectRef) (obj : DynamicObjectT) (tail : ResourceStore) : ResourceStore
+def rec resourceStoreGet : CommonObjectRef -> ResourceStore -> Option DynamicObjectT := fun (key : CommonObjectRef) (s : ResourceStore) =>
+  match s as self in ResourceStore return Option DynamicObjectT with | resourceStoreNil => none DynamicObjectT
+  | resourceStoreCons k v t => (case (objectRefKeyEqual key k) with | 1 (u : Unit) => some DynamicObjectT v | 0 (u : Unit) => resourceStoreGet key t)
+def rec resourceStoreSet : CommonObjectRef -> DynamicObjectT -> ResourceStore -> ResourceStore := fun (key : CommonObjectRef) (obj : DynamicObjectT) (s : ResourceStore) =>
+  match s as self in ResourceStore return ResourceStore with | resourceStoreNil => resourceStoreCons key obj resourceStoreNil
+  | resourceStoreCons k v t => (case (objectRefKeyEqual key k) with | 1 (u : Unit) => resourceStoreCons key obj t
+    | 0 (u : Unit) => (case (objectRefLess key k) with | 1 (u : Unit) => resourceStoreCons key obj s | 0 (u : Unit) => resourceStoreCons k v (resourceStoreSet key obj t)))
+def rec resourceStoreRemove : CommonObjectRef -> ResourceStore -> ResourceStore := fun (key : CommonObjectRef) (s : ResourceStore) =>
+  match s as self in ResourceStore return ResourceStore with | resourceStoreNil => resourceStoreNil
+  | resourceStoreCons k v t => (case (objectRefKeyEqual key k) with | 1 (u : Unit) => t | 0 (u : Unit) => resourceStoreCons k v (resourceStoreRemove key t))
+def rec resourceStoreSize : ResourceStore -> Nat := fun (s : ResourceStore) =>
+  match s as self in ResourceStore return Nat with | resourceStoreNil => 0 | resourceStoreCons k v t => natAdd 1 (resourceStoreSize t)
+def rec resourceStoreEqual : ResourceStore -> ResourceStore -> Bool := fun (a : ResourceStore) (b : ResourceStore) =>
+  match a as self in ResourceStore return Bool with | resourceStoreNil => natEq (resourceStoreSize b) 0
+  | resourceStoreCons k v t => (match b as self in ResourceStore return Bool with | resourceStoreNil => false
+    | resourceStoreCons l w r => boolAnd (objectRefKeyEqual k l) (boolAnd (dynamicObjectTEqual v w) (resourceStoreEqual t r)))
+def rec resourceStoreFold : (0 A : Type 0) -> ResourceStore -> A -> (CommonObjectRef -> DynamicObjectT -> A -> A) -> A :=
+  fun (0 A : Type 0) (s : ResourceStore) (acc : A) (f : CommonObjectRef -> DynamicObjectT -> A -> A) =>
+  match s as self in ResourceStore return A with | resourceStoreNil => acc | resourceStoreCons k v t => resourceStoreFold A t (f k v acc) f
+def rec resourceStoreList : CommonKind -> Bytes -> ResourceStore -> ListDynamicObjectT := fun (kind : CommonKind) (ns : Bytes) (s : ResourceStore) =>
+  match s as self in ResourceStore return ListDynamicObjectT with | resourceStoreNil => listDynamicObjectTNil
+  | resourceStoreCons k v t =>
+    let rest : ListDynamicObjectT := resourceStoreList kind ns t in
+    select ListDynamicObjectT (boolAnd (commonKindEqual (commonObjectRefKind k) kind) (bytesEqual (commonObjectRefNamespace k) ns)) (listDynamicObjectTCons v rest) rest
+def resourceStoreHasName : Bytes -> ResourceStore -> Bool := fun (name : Bytes) (s : ResourceStore) =>
+  resourceStoreFold Bool s false (fun (k : CommonObjectRef) (v : DynamicObjectT) (found : Bool) => boolOr found (bytesEqual name (commonObjectRefName k)))
+def rec resourceStoreFreshName : ResourceStore -> ResourceStore -> Bytes -> Nat -> Bytes := fun (fuel : ResourceStore) (s : ResourceStore) (prefix : Bytes) (i : Nat) =>
+  match fuel as self in ResourceStore return Bytes with
+  | resourceStoreNil =>
+    let candidate : Bytes := bytesAppend prefix (decimal i) in
+    select Bytes (resourceStoreHasName candidate s) (bytesAppend prefix (decimal (natAdd i 1))) candidate
+  | resourceStoreCons k v t =>
+    let candidate : Bytes := bytesAppend prefix (decimal i) in
+    (case (resourceStoreHasName candidate s) with | 0 (u : Unit) => candidate
+    | 1 (u : Unit) => resourceStoreFreshName t s prefix (natAdd i 1))
+def resourceStoreGeneratedName : ResourceStore -> Bytes -> Bytes := fun (s : ResourceStore) (prefix : Bytes) => resourceStoreFreshName s s prefix 0

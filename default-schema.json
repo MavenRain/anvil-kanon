@@ -1,0 +1,401 @@
+[
+  {
+    "source": "lib/controllers/v_deployment.ml",
+    "module": "v_deployment",
+    "name": "vd_spec_default",
+    "type": "vd_spec",
+    "body": "{ replicas = None; selector = Label_selector.default (); template = Pod_template_spec.default (); min_ready_seconds = None; progress_deadline_seconds = None; strategy = None; revision_history_limit = None; paused = None; }"
+  },
+  {
+    "source": "lib/controllers/v_deployment.ml",
+    "module": "v_deployment",
+    "name": "default",
+    "type": "t",
+    "body": "{ metadata = Object_meta.default (); spec = vd_spec_default (); status = () }"
+  },
+  {
+    "source": "lib/controllers/v_stateful_set.ml",
+    "module": "v_stateful_set",
+    "name": "default",
+    "type": "t",
+    "body": "{ metadata = Object_meta.default (); spec = Stateful_set.ss_spec_default (); status = None; }"
+  },
+  {
+    "source": "lib/controllers/vreplica_set.ml",
+    "module": "vreplica_set",
+    "name": "vrs_spec_default",
+    "type": "vrs_spec",
+    "body": "{ replicas = None; selector = Label_selector.default (); template = None }"
+  },
+  {
+    "source": "lib/controllers/vreplica_set.ml",
+    "module": "vreplica_set",
+    "name": "vrs_status_default",
+    "type": "vrs_status",
+    "body": "{ replicas = 0 }"
+  },
+  {
+    "source": "lib/controllers/vreplica_set.ml",
+    "module": "vreplica_set",
+    "name": "default",
+    "type": "t",
+    "body": "{ metadata = Object_meta.default (); spec = vrs_spec_default (); status = None; }"
+  },
+  {
+    "source": "lib/controllers/vreplica_set.ml",
+    "module": "vreplica_set",
+    "name": "status_default",
+    "type": "vrs_status",
+    "body": "vrs_status_default ()"
+  },
+  {
+    "source": "lib/k8s_objects/affinity.ml",
+    "module": "affinity",
+    "name": "default",
+    "type": "t",
+    "body": "()"
+  },
+  {
+    "source": "lib/k8s_objects/api_method.ml",
+    "module": "api_method",
+    "name": "preconditions_default",
+    "type": "preconditions",
+    "body": "{ uid = None; resource_version = None }"
+  },
+  {
+    "source": "lib/k8s_objects/container.ml",
+    "module": "container",
+    "name": "exec_action_default",
+    "type": "exec_action",
+    "body": "{ command = None }"
+  },
+  {
+    "source": "lib/k8s_objects/container.ml",
+    "module": "container",
+    "name": "tcp_socket_action_default",
+    "type": "tcp_socket_action",
+    "body": "{ host = None; port = 0 }"
+  },
+  {
+    "source": "lib/k8s_objects/container.ml",
+    "module": "container",
+    "name": "lifecycle_handler_default",
+    "type": "lifecycle_handler",
+    "body": "{ exec_ = None }"
+  },
+  {
+    "source": "lib/k8s_objects/container.ml",
+    "module": "container",
+    "name": "lifecycle_default",
+    "type": "lifecycle",
+    "body": "{ pre_stop = None }"
+  },
+  {
+    "source": "lib/k8s_objects/container.ml",
+    "module": "container",
+    "name": "container_port_default",
+    "type": "container_port",
+    "body": "{ container_port = 0; name = None; protocol = None }"
+  },
+  {
+    "source": "lib/k8s_objects/container.ml",
+    "module": "container",
+    "name": "volume_mount_default",
+    "type": "volume_mount",
+    "body": "{ mount_path = \"\"; name = \"\"; read_only = Some false; sub_path = None; mount_propagation = None; }"
+  },
+  {
+    "source": "lib/k8s_objects/container.ml",
+    "module": "container",
+    "name": "env_var_source_default",
+    "type": "env_var_source",
+    "body": "{ field_ref = None }"
+  },
+  {
+    "source": "lib/k8s_objects/container.ml",
+    "module": "container",
+    "name": "env_var_default",
+    "type": "env_var",
+    "body": "{ name = \"\"; value = None; value_from = None }"
+  },
+  {
+    "source": "lib/k8s_objects/container.ml",
+    "module": "container",
+    "name": "probe_default",
+    "type": "probe",
+    "body": "{ exec_ = None; failure_threshold = None; initial_delay_seconds = None; period_seconds = None; success_threshold = None; tcp_socket = None; timeout_seconds = None; }"
+  },
+  {
+    "source": "lib/k8s_objects/container.ml",
+    "module": "container",
+    "name": "security_context_default",
+    "type": "security_context",
+    "body": "()"
+  },
+  {
+    "source": "lib/k8s_objects/container.ml",
+    "module": "container",
+    "name": "default",
+    "type": "t",
+    "body": "{ env = None; image = None; name = \"\"; ports = None; volume_mounts = None; lifecycle = None; resources = None; readiness_probe = None; liveness_probe = None; command = None; image_pull_policy = None; args = None; security_context = None; }"
+  },
+  {
+    "source": "lib/k8s_objects/deployment_strategy.ml",
+    "module": "deployment_strategy",
+    "name": "default",
+    "type": "t",
+    "body": "{ type_ = None; rolling_update = None }"
+  },
+  {
+    "source": "lib/k8s_objects/label_selector.ml",
+    "module": "label_selector",
+    "name": "default",
+    "type": "t",
+    "body": "{ match_labels = None }"
+  },
+  {
+    "source": "lib/k8s_objects/local_object_reference.ml",
+    "module": "local_object_reference",
+    "name": "default",
+    "type": "t",
+    "body": "()"
+  },
+  {
+    "source": "lib/k8s_objects/object_field_selector.ml",
+    "module": "object_field_selector",
+    "name": "default",
+    "type": "t",
+    "body": "{ field_path = \"\"; api_version = None }"
+  },
+  {
+    "source": "lib/k8s_objects/object_meta.ml",
+    "module": "object_meta",
+    "name": "default",
+    "type": "t",
+    "body": "{ name = None; generate_name = None; namespace = None; resource_version = None; uid = None; labels = None; annotations = None; owner_references = None; finalizers = None; deletion_timestamp = None; }"
+  },
+  {
+    "source": "lib/k8s_objects/owner_reference.ml",
+    "module": "owner_reference",
+    "name": "default",
+    "type": "t",
+    "body": "{ block_owner_deletion = None; controller = None; kind = Common.Custom_resource \"\"; name = \"\"; uid = Common.Uid.of_int 0; }"
+  },
+  {
+    "source": "lib/k8s_objects/persistent_volume_claim.ml",
+    "module": "persistent_volume_claim",
+    "name": "spec_default",
+    "type": "spec",
+    "body": "{ storage_class_name = None; access_modes = None; resources = None }"
+  },
+  {
+    "source": "lib/k8s_objects/persistent_volume_claim.ml",
+    "module": "persistent_volume_claim",
+    "name": "status_default",
+    "type": "status",
+    "body": "()"
+  },
+  {
+    "source": "lib/k8s_objects/persistent_volume_claim.ml",
+    "module": "persistent_volume_claim",
+    "name": "default",
+    "type": "t",
+    "body": "{ metadata = Object_meta.default (); spec = None; status = None }"
+  },
+  {
+    "source": "lib/k8s_objects/pod_security_context.ml",
+    "module": "pod_security_context",
+    "name": "default",
+    "type": "t",
+    "body": "()"
+  },
+  {
+    "source": "lib/k8s_objects/pod_spec.ml",
+    "module": "pod_spec",
+    "name": "default",
+    "type": "t",
+    "body": "{ affinity = None; containers = []; volumes = None; init_containers = None; service_account_name = None; tolerations = None; node_selector = None; runtime_class_name = None; dns_policy = None; priority_class_name = None; scheduler_name = None; security_context = None; host_network = None; termination_grace_period_seconds = None; image_pull_secrets = None; hostname = None; subdomain = None; }"
+  },
+  {
+    "source": "lib/k8s_objects/pod_template_spec.ml",
+    "module": "pod_template_spec",
+    "name": "default",
+    "type": "t",
+    "body": "{ metadata = None; spec = None }"
+  },
+  {
+    "source": "lib/k8s_objects/resource_requirements.ml",
+    "module": "resource_requirements",
+    "name": "default",
+    "type": "t",
+    "body": "{ limits = None; requests = None }"
+  },
+  {
+    "source": "lib/k8s_objects/toleration.ml",
+    "module": "toleration",
+    "name": "default",
+    "type": "t",
+    "body": "()"
+  },
+  {
+    "source": "lib/k8s_objects/views/config_map.ml",
+    "module": "config_map",
+    "name": "default",
+    "type": "t",
+    "body": "{ metadata = Object_meta.default (); data = None }"
+  },
+  {
+    "source": "lib/k8s_objects/views/pod.ml",
+    "module": "pod",
+    "name": "default",
+    "type": "t",
+    "body": "{ metadata = Object_meta.default (); spec = None; status = None }"
+  },
+  {
+    "source": "lib/k8s_objects/views/stateful_set.ml",
+    "module": "stateful_set",
+    "name": "ordinals_default",
+    "type": "ordinals",
+    "body": "{ start = None }"
+  },
+  {
+    "source": "lib/k8s_objects/views/stateful_set.ml",
+    "module": "stateful_set",
+    "name": "rolling_update_default",
+    "type": "rolling_update",
+    "body": "{ partition = None; max_unavailable = None }"
+  },
+  {
+    "source": "lib/k8s_objects/views/stateful_set.ml",
+    "module": "stateful_set",
+    "name": "update_strategy_default",
+    "type": "update_strategy",
+    "body": "{ type_ = None; rolling_update = None }"
+  },
+  {
+    "source": "lib/k8s_objects/views/stateful_set.ml",
+    "module": "stateful_set",
+    "name": "retention_policy_default",
+    "type": "retention_policy",
+    "body": "{ when_deleted = None; when_scaled = None }"
+  },
+  {
+    "source": "lib/k8s_objects/views/stateful_set.ml",
+    "module": "stateful_set",
+    "name": "ss_spec_default",
+    "type": "ss_spec",
+    "body": "{ min_ready_seconds = None; ordinals = None; persistent_volume_claim_retention_policy = None; pod_management_policy = None; replicas = None; revision_history_limit = None; selector = Label_selector.default (); service_name = \"\"; template = Pod_template_spec.default (); update_strategy = None; volume_claim_templates = None; }"
+  },
+  {
+    "source": "lib/k8s_objects/views/stateful_set.ml",
+    "module": "stateful_set",
+    "name": "ss_status_default",
+    "type": "ss_status",
+    "body": "{ ready_replicas = None }"
+  },
+  {
+    "source": "lib/k8s_objects/views/stateful_set.ml",
+    "module": "stateful_set",
+    "name": "default",
+    "type": "t",
+    "body": "{ metadata = Object_meta.default (); spec = None; status = None }"
+  },
+  {
+    "source": "lib/k8s_objects/volume.ml",
+    "module": "volume",
+    "name": "key_to_path_default",
+    "type": "key_to_path",
+    "body": "{ key = \"\"; path = \"\" }"
+  },
+  {
+    "source": "lib/k8s_objects/volume.ml",
+    "module": "volume",
+    "name": "config_map_projection_default",
+    "type": "config_map_projection",
+    "body": "{ items = None; name = None }"
+  },
+  {
+    "source": "lib/k8s_objects/volume.ml",
+    "module": "volume",
+    "name": "secret_projection_default",
+    "type": "secret_projection",
+    "body": "{ items = None; name = None }"
+  },
+  {
+    "source": "lib/k8s_objects/volume.ml",
+    "module": "volume",
+    "name": "volume_projection_default",
+    "type": "volume_projection",
+    "body": "{ config_map = None; secret = None }"
+  },
+  {
+    "source": "lib/k8s_objects/volume.ml",
+    "module": "volume",
+    "name": "projected_volume_source_default",
+    "type": "projected_volume_source",
+    "body": "{ sources = None }"
+  },
+  {
+    "source": "lib/k8s_objects/volume.ml",
+    "module": "volume",
+    "name": "downward_api_volume_file_default",
+    "type": "downward_api_volume_file",
+    "body": "{ field_ref = None; path = \"\" }"
+  },
+  {
+    "source": "lib/k8s_objects/volume.ml",
+    "module": "volume",
+    "name": "downward_api_volume_source_default",
+    "type": "downward_api_volume_source",
+    "body": "{ items = None }"
+  },
+  {
+    "source": "lib/k8s_objects/volume.ml",
+    "module": "volume",
+    "name": "host_path_volume_source_default",
+    "type": "host_path_volume_source",
+    "body": "{ path = \"\" }"
+  },
+  {
+    "source": "lib/k8s_objects/volume.ml",
+    "module": "volume",
+    "name": "config_map_volume_source_default",
+    "type": "config_map_volume_source",
+    "body": "{ name = None }"
+  },
+  {
+    "source": "lib/k8s_objects/volume.ml",
+    "module": "volume",
+    "name": "secret_volume_source_default",
+    "type": "secret_volume_source",
+    "body": "{ secret_name = None }"
+  },
+  {
+    "source": "lib/k8s_objects/volume.ml",
+    "module": "volume",
+    "name": "empty_dir_volume_source_default",
+    "type": "empty_dir_volume_source",
+    "body": "{ medium = None; size_limit = None }"
+  },
+  {
+    "source": "lib/k8s_objects/volume.ml",
+    "module": "volume",
+    "name": "persistent_volume_claim_volume_source_default",
+    "type": "persistent_volume_claim_volume_source",
+    "body": "{ claim_name = \"\"; read_only = None }"
+  },
+  {
+    "source": "lib/k8s_objects/volume.ml",
+    "module": "volume",
+    "name": "default",
+    "type": "t",
+    "body": "{ host_path = None; config_map = None; name = \"\"; projected = None; secret = None; downward_api = None; empty_dir = None; persistent_volume_claim = None; }"
+  },
+  {
+    "source": "lib/k8s_objects/volume_resource_requirements.ml",
+    "module": "volume_resource_requirements",
+    "name": "default",
+    "type": "t",
+    "body": "{ limits = None; requests = None }"
+  }
+]

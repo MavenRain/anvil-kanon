@@ -1,0 +1,3153 @@
+{
+  "source": "https://github.com/MavenRain/anvil-ocaml",
+  "revision": "1b6ac2c60f18595858ac8ac193e642f5868757ba",
+  "files": [
+    {
+      "path": "bin/operator.ml",
+      "sha256": "bc768e9642056c20f6fd78136962a847b7f3849a04885cf1488f82f64b4aa9c4",
+      "lines": 72,
+      "status": "entrypoint-replaced",
+      "targets": [
+        "bin/anvil.mjs"
+      ]
+    },
+    {
+      "path": "lib/assurance/correspondence.ml",
+      "sha256": "249167d7f6d2107552ec30cd43ed9d2d8ef113f0dc2bc6516a6f2471329ec2a5",
+      "lines": 220,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/assurance_base.kan",
+        "src/assurance_response.kan",
+        "src/assurance_stateful.kan",
+        "src/assurance_local.kan",
+        "src/assurance_vrs.kan",
+        "src/assurance_families.kan",
+        "src/oracle_api.kan",
+        "src/scenario.kan"
+      ]
+    },
+    {
+      "path": "lib/assurance/correspondence.mli",
+      "sha256": "bb9bbfdb4d857ddde5da72c21e2538ae8ec2a0723860fa2990fbdd9234fd697e",
+      "lines": 148,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/assurance_base.kan",
+        "src/assurance_response.kan",
+        "src/assurance_stateful.kan",
+        "src/assurance_local.kan",
+        "src/assurance_vrs.kan",
+        "src/assurance_families.kan",
+        "src/oracle_api.kan",
+        "src/scenario.kan"
+      ]
+    },
+    {
+      "path": "lib/assurance/helper_invariants.ml",
+      "sha256": "07225df41e74a0d0806d6d7ff4ab9216a355437142ada16b27cc10c5cfaeb022",
+      "lines": 123,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/assurance_base.kan",
+        "src/assurance_response.kan",
+        "src/assurance_stateful.kan",
+        "src/assurance_local.kan",
+        "src/assurance_vrs.kan",
+        "src/assurance_families.kan",
+        "src/oracle_api.kan",
+        "src/scenario.kan"
+      ]
+    },
+    {
+      "path": "lib/assurance/helper_invariants.mli",
+      "sha256": "f72a8930a018b71e9243acd9c7b0bfe96dd4e8da74a88cf6d3f9819c17c4093e",
+      "lines": 199,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/assurance_base.kan",
+        "src/assurance_response.kan",
+        "src/assurance_stateful.kan",
+        "src/assurance_local.kan",
+        "src/assurance_vrs.kan",
+        "src/assurance_families.kan",
+        "src/oracle_api.kan",
+        "src/scenario.kan"
+      ]
+    },
+    {
+      "path": "lib/assurance/internal_guarantee.ml",
+      "sha256": "f0643918772de06a7068f1435450d35ec2908964fe6f3edd447bb403d440c744",
+      "lines": 476,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/assurance_base.kan",
+        "src/assurance_response.kan",
+        "src/assurance_stateful.kan",
+        "src/assurance_local.kan",
+        "src/assurance_vrs.kan",
+        "src/assurance_families.kan",
+        "src/oracle_api.kan",
+        "src/scenario.kan"
+      ]
+    },
+    {
+      "path": "lib/assurance/internal_guarantee.mli",
+      "sha256": "ae5d3a99e2af6b479def13df58ce352aeef1b5044dc262230f5d5682c892fb66",
+      "lines": 296,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/assurance_base.kan",
+        "src/assurance_response.kan",
+        "src/assurance_stateful.kan",
+        "src/assurance_local.kan",
+        "src/assurance_vrs.kan",
+        "src/assurance_families.kan",
+        "src/oracle_api.kan",
+        "src/scenario.kan"
+      ]
+    },
+    {
+      "path": "lib/assurance/invariants.ml",
+      "sha256": "8c42318c651a56c068cac4fc71772e8b32c823de4dc8d9ad1e9c415f5eddeec8",
+      "lines": 1046,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/assurance_base.kan",
+        "src/assurance_response.kan",
+        "src/assurance_stateful.kan",
+        "src/assurance_local.kan",
+        "src/assurance_vrs.kan",
+        "src/assurance_families.kan",
+        "src/oracle_api.kan",
+        "src/scenario.kan"
+      ]
+    },
+    {
+      "path": "lib/assurance/invariants.mli",
+      "sha256": "0ad9986a5c977edf453ea16c771f8bd9499682bb533e4e7a10977e5092bac3be",
+      "lines": 133,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/assurance_base.kan",
+        "src/assurance_response.kan",
+        "src/assurance_stateful.kan",
+        "src/assurance_local.kan",
+        "src/assurance_vrs.kan",
+        "src/assurance_families.kan",
+        "src/oracle_api.kan",
+        "src/scenario.kan"
+      ]
+    },
+    {
+      "path": "lib/assurance/local_binding.ml",
+      "sha256": "0b96a5a5dc045ca4562721b6d3fa7b807f8beffc01311b14a43fc62517393ef0",
+      "lines": 353,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/assurance_base.kan",
+        "src/assurance_response.kan",
+        "src/assurance_stateful.kan",
+        "src/assurance_local.kan",
+        "src/assurance_vrs.kan",
+        "src/assurance_families.kan",
+        "src/oracle_api.kan",
+        "src/scenario.kan"
+      ]
+    },
+    {
+      "path": "lib/assurance/local_binding.mli",
+      "sha256": "cd27712126fa83fb537bb098341cb4c3de2e17159308e5b1d3f0ebc2eb0f468f",
+      "lines": 371,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/assurance_base.kan",
+        "src/assurance_response.kan",
+        "src/assurance_stateful.kan",
+        "src/assurance_local.kan",
+        "src/assurance_vrs.kan",
+        "src/assurance_families.kan",
+        "src/oracle_api.kan",
+        "src/scenario.kan"
+      ]
+    },
+    {
+      "path": "lib/assurance/msg_provenance.ml",
+      "sha256": "b8718071da1c41a54c85b4762b38c5d42291c64208d63e057aa698c8989e8c4b",
+      "lines": 189,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/assurance_base.kan",
+        "src/assurance_response.kan",
+        "src/assurance_stateful.kan",
+        "src/assurance_local.kan",
+        "src/assurance_vrs.kan",
+        "src/assurance_families.kan",
+        "src/oracle_api.kan",
+        "src/scenario.kan"
+      ]
+    },
+    {
+      "path": "lib/assurance/msg_provenance.mli",
+      "sha256": "a298e768507649d5c8a9c6ccc9de4fa7031c2be83cc8415aa6dda611dd972f84",
+      "lines": 163,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/assurance_base.kan",
+        "src/assurance_response.kan",
+        "src/assurance_stateful.kan",
+        "src/assurance_local.kan",
+        "src/assurance_vrs.kan",
+        "src/assurance_families.kan",
+        "src/oracle_api.kan",
+        "src/scenario.kan"
+      ]
+    },
+    {
+      "path": "lib/assurance/objects_in_store.ml",
+      "sha256": "7a7545235777494cfc51681a9e038fe79ccef43b2ff827e7a4216a07dc5b8946",
+      "lines": 20,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/assurance_base.kan",
+        "src/assurance_response.kan",
+        "src/assurance_stateful.kan",
+        "src/assurance_local.kan",
+        "src/assurance_vrs.kan",
+        "src/assurance_families.kan",
+        "src/oracle_api.kan",
+        "src/scenario.kan"
+      ]
+    },
+    {
+      "path": "lib/assurance/objects_in_store.mli",
+      "sha256": "7f2742f410af85ef9bf29ead1173e005c120d2f995185b4667e4271d6e824123",
+      "lines": 169,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/assurance_base.kan",
+        "src/assurance_response.kan",
+        "src/assurance_stateful.kan",
+        "src/assurance_local.kan",
+        "src/assurance_vrs.kan",
+        "src/assurance_families.kan",
+        "src/oracle_api.kan",
+        "src/scenario.kan"
+      ]
+    },
+    {
+      "path": "lib/assurance/oracle_api_server.ml",
+      "sha256": "13a4e9456d41a6208fc811502e509972c7d14a90dba53ba42088cdfe440f74d9",
+      "lines": 602,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/assurance_base.kan",
+        "src/assurance_response.kan",
+        "src/assurance_stateful.kan",
+        "src/assurance_local.kan",
+        "src/assurance_vrs.kan",
+        "src/assurance_families.kan",
+        "src/oracle_api.kan",
+        "src/scenario.kan"
+      ]
+    },
+    {
+      "path": "lib/assurance/oracle_api_server.mli",
+      "sha256": "6f1f831761c2a44a29da974ebcf74c2e181547d640d2472dc3afc69cde1b6869",
+      "lines": 51,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/assurance_base.kan",
+        "src/assurance_response.kan",
+        "src/assurance_stateful.kan",
+        "src/assurance_local.kan",
+        "src/assurance_vrs.kan",
+        "src/assurance_families.kan",
+        "src/oracle_api.kan",
+        "src/scenario.kan"
+      ]
+    },
+    {
+      "path": "lib/assurance/reconcile_correspondence.ml",
+      "sha256": "f02a72e584d2eb62e446a1386fba5fcaf21eaa1efdf966e9c399072dc8e26ffb",
+      "lines": 315,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/assurance_base.kan",
+        "src/assurance_response.kan",
+        "src/assurance_stateful.kan",
+        "src/assurance_local.kan",
+        "src/assurance_vrs.kan",
+        "src/assurance_families.kan",
+        "src/oracle_api.kan",
+        "src/scenario.kan"
+      ]
+    },
+    {
+      "path": "lib/assurance/reconcile_correspondence.mli",
+      "sha256": "5774869685d300897ef5aa25b1804da5fa103fd2f20df938c5e37859e3297845",
+      "lines": 187,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/assurance_base.kan",
+        "src/assurance_response.kan",
+        "src/assurance_stateful.kan",
+        "src/assurance_local.kan",
+        "src/assurance_vrs.kan",
+        "src/assurance_families.kan",
+        "src/oracle_api.kan",
+        "src/scenario.kan"
+      ]
+    },
+    {
+      "path": "lib/assurance/rely_conditions.ml",
+      "sha256": "dd0f84db177a56ee2895c504d31f5c10ce06ecbd764c23b9662c941972db610f",
+      "lines": 255,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/assurance_base.kan",
+        "src/assurance_response.kan",
+        "src/assurance_stateful.kan",
+        "src/assurance_local.kan",
+        "src/assurance_vrs.kan",
+        "src/assurance_families.kan",
+        "src/oracle_api.kan",
+        "src/scenario.kan"
+      ]
+    },
+    {
+      "path": "lib/assurance/rely_conditions.mli",
+      "sha256": "e603410624443448762d7dfc5e6e0c256332190c5637e7fca52cfa3b88a70700",
+      "lines": 253,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/assurance_base.kan",
+        "src/assurance_response.kan",
+        "src/assurance_stateful.kan",
+        "src/assurance_local.kan",
+        "src/assurance_vrs.kan",
+        "src/assurance_families.kan",
+        "src/oracle_api.kan",
+        "src/scenario.kan"
+      ]
+    },
+    {
+      "path": "lib/assurance/req_resp_correspondence.ml",
+      "sha256": "c0dc1131a1fee836692898be7fbb6c276769fb53d0a6cb0eed22d013c3ecde7c",
+      "lines": 419,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/assurance_base.kan",
+        "src/assurance_response.kan",
+        "src/assurance_stateful.kan",
+        "src/assurance_local.kan",
+        "src/assurance_vrs.kan",
+        "src/assurance_families.kan",
+        "src/oracle_api.kan",
+        "src/scenario.kan"
+      ]
+    },
+    {
+      "path": "lib/assurance/req_resp_correspondence.mli",
+      "sha256": "d332585a585d14875fdc49d0aa8413012722b5fb53a315d5384c730263dff2fc",
+      "lines": 210,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/assurance_base.kan",
+        "src/assurance_response.kan",
+        "src/assurance_stateful.kan",
+        "src/assurance_local.kan",
+        "src/assurance_vrs.kan",
+        "src/assurance_families.kan",
+        "src/oracle_api.kan",
+        "src/scenario.kan"
+      ]
+    },
+    {
+      "path": "lib/assurance/scenario.ml",
+      "sha256": "204776f498f399cf1c672d59f72692bf7d298ad2be6c07ecd3ec2e10ba20566e",
+      "lines": 1000,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/assurance_base.kan",
+        "src/assurance_response.kan",
+        "src/assurance_stateful.kan",
+        "src/assurance_local.kan",
+        "src/assurance_vrs.kan",
+        "src/assurance_families.kan",
+        "src/oracle_api.kan",
+        "src/scenario.kan"
+      ]
+    },
+    {
+      "path": "lib/assurance/scenario.mli",
+      "sha256": "50d6b15d89bcda65132b8bbb102ab189b262d536af5f2968c41b48f54508c817",
+      "lines": 505,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/assurance_base.kan",
+        "src/assurance_response.kan",
+        "src/assurance_stateful.kan",
+        "src/assurance_local.kan",
+        "src/assurance_vrs.kan",
+        "src/assurance_families.kan",
+        "src/oracle_api.kan",
+        "src/scenario.kan"
+      ]
+    },
+    {
+      "path": "lib/assurance/state_predicates.ml",
+      "sha256": "346b73237d620a5503ee886a7cffac05b144a69f12b17fce0ec772b226b212a6",
+      "lines": 764,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/assurance_base.kan",
+        "src/assurance_response.kan",
+        "src/assurance_stateful.kan",
+        "src/assurance_local.kan",
+        "src/assurance_vrs.kan",
+        "src/assurance_families.kan",
+        "src/oracle_api.kan",
+        "src/scenario.kan"
+      ]
+    },
+    {
+      "path": "lib/assurance/state_predicates.mli",
+      "sha256": "e2b62aed411c65058c646a781b2bbee3e9af1b87c98739577265c7ea514525f0",
+      "lines": 1234,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/assurance_base.kan",
+        "src/assurance_response.kan",
+        "src/assurance_stateful.kan",
+        "src/assurance_local.kan",
+        "src/assurance_vrs.kan",
+        "src/assurance_families.kan",
+        "src/oracle_api.kan",
+        "src/scenario.kan"
+      ]
+    },
+    {
+      "path": "lib/assurance/vsts_invariants.ml",
+      "sha256": "9fed5c9d175f9704b967809e37ab6e6993d94e22a0c6e4ddb430f67f350bbc6f",
+      "lines": 300,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/assurance_base.kan",
+        "src/assurance_response.kan",
+        "src/assurance_stateful.kan",
+        "src/assurance_local.kan",
+        "src/assurance_vrs.kan",
+        "src/assurance_families.kan",
+        "src/oracle_api.kan",
+        "src/scenario.kan"
+      ]
+    },
+    {
+      "path": "lib/assurance/vsts_invariants.mli",
+      "sha256": "4675b42c8f1e0b2b4b107d38824d658452c5633129b1e2baae64a73ed932401b",
+      "lines": 54,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/assurance_base.kan",
+        "src/assurance_response.kan",
+        "src/assurance_stateful.kan",
+        "src/assurance_local.kan",
+        "src/assurance_vrs.kan",
+        "src/assurance_families.kan",
+        "src/oracle_api.kan",
+        "src/scenario.kan"
+      ]
+    },
+    {
+      "path": "lib/checker/cluster_check.ml",
+      "sha256": "937f636ffc25443a35de7bd22f7ebf1bec423dd9dec6d87075730671eed09d71",
+      "lines": 688,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/model_check.kan",
+        "src/temporal.kan",
+        "src/cluster_check.kan",
+        "src/checker_scenarios.kan",
+        "src/fault_check.kan",
+        "src/fault_scenarios.kan"
+      ]
+    },
+    {
+      "path": "lib/checker/cluster_check.mli",
+      "sha256": "7a5bb09c92a5c6a9dd7221cb2e3322f8c4696fc0bd8d3913105442d262fa2e53",
+      "lines": 340,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/model_check.kan",
+        "src/temporal.kan",
+        "src/cluster_check.kan",
+        "src/checker_scenarios.kan",
+        "src/fault_check.kan",
+        "src/fault_scenarios.kan"
+      ]
+    },
+    {
+      "path": "lib/checker/fault_check.ml",
+      "sha256": "cf9ebb5542f08726b67c37116c1b370578b6a4fd5ce4f757318d1b0d0ce3ae77",
+      "lines": 1292,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/model_check.kan",
+        "src/temporal.kan",
+        "src/cluster_check.kan",
+        "src/checker_scenarios.kan",
+        "src/fault_check.kan",
+        "src/fault_scenarios.kan"
+      ]
+    },
+    {
+      "path": "lib/checker/fault_check.mli",
+      "sha256": "f14624274d88e6fd46d1757ddc34da1a89bc33362aa65179b41dc1ed0aeac3b9",
+      "lines": 2538,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/model_check.kan",
+        "src/temporal.kan",
+        "src/cluster_check.kan",
+        "src/checker_scenarios.kan",
+        "src/fault_check.kan",
+        "src/fault_scenarios.kan"
+      ]
+    },
+    {
+      "path": "lib/checker/model_check.ml",
+      "sha256": "9b4a9a7858ed499b35b587a48dbdb1c7ddbd807bb5a806bebf386afe546a3664",
+      "lines": 285,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/model_check.kan",
+        "src/temporal.kan",
+        "src/cluster_check.kan",
+        "src/checker_scenarios.kan",
+        "src/fault_check.kan",
+        "src/fault_scenarios.kan"
+      ]
+    },
+    {
+      "path": "lib/checker/model_check.mli",
+      "sha256": "4e79bb1feb53238376ab8e5c626005f5802c887df230d91fddd991c7299f6dda",
+      "lines": 150,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/model_check.kan",
+        "src/temporal.kan",
+        "src/cluster_check.kan",
+        "src/checker_scenarios.kan",
+        "src/fault_check.kan",
+        "src/fault_scenarios.kan"
+      ]
+    },
+    {
+      "path": "lib/cluster/api_server.ml",
+      "sha256": "35600b7476de029493d90dae8de93c7a73c837f182ff929ef5d1b882067106fb",
+      "lines": 763,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/cluster.kan",
+        "src/cluster_types.kan",
+        "src/api_server.kan",
+        "src/controller_driver.kan",
+        "src/network.kan",
+        "src/programs.kan",
+        "src/successors.kan",
+        "src/esr.kan"
+      ]
+    },
+    {
+      "path": "lib/cluster/api_server.mli",
+      "sha256": "c53ae2f8e8f838f528d39e68e0f6191a66f0bbedb1efb72d380355d8f910ac04",
+      "lines": 190,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/cluster.kan",
+        "src/cluster_types.kan",
+        "src/api_server.kan",
+        "src/controller_driver.kan",
+        "src/network.kan",
+        "src/programs.kan",
+        "src/successors.kan",
+        "src/esr.kan"
+      ]
+    },
+    {
+      "path": "lib/cluster/bound.ml",
+      "sha256": "c4446cb3db95964c23a4b8f283c9eb3fd5fa5f6ea8f2423e73eeae4ff30337f7",
+      "lines": 22,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/cluster.kan",
+        "src/cluster_types.kan",
+        "src/api_server.kan",
+        "src/controller_driver.kan",
+        "src/network.kan",
+        "src/programs.kan",
+        "src/successors.kan",
+        "src/esr.kan"
+      ]
+    },
+    {
+      "path": "lib/cluster/bound.mli",
+      "sha256": "284039002cf1e0253069e130dfa99982636f7f2d92f17d07b648f4f700c51e22",
+      "lines": 112,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/cluster.kan",
+        "src/cluster_types.kan",
+        "src/api_server.kan",
+        "src/controller_driver.kan",
+        "src/network.kan",
+        "src/programs.kan",
+        "src/successors.kan",
+        "src/esr.kan"
+      ]
+    },
+    {
+      "path": "lib/cluster/builtin_controllers.ml",
+      "sha256": "1d3e39ab312ca5342fd82fefee15f8f250950525d124b47fb3056ef4c610c0f5",
+      "lines": 119,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/cluster.kan",
+        "src/cluster_types.kan",
+        "src/api_server.kan",
+        "src/controller_driver.kan",
+        "src/network.kan",
+        "src/programs.kan",
+        "src/successors.kan",
+        "src/esr.kan"
+      ]
+    },
+    {
+      "path": "lib/cluster/builtin_controllers.mli",
+      "sha256": "25ca96189805ec30ed6cd539d817bd5d4f24945932fa849c3873281c47f97dfc",
+      "lines": 69,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/cluster.kan",
+        "src/cluster_types.kan",
+        "src/api_server.kan",
+        "src/controller_driver.kan",
+        "src/network.kan",
+        "src/programs.kan",
+        "src/successors.kan",
+        "src/esr.kan"
+      ]
+    },
+    {
+      "path": "lib/cluster/cluster.ml",
+      "sha256": "4f807b0cbda81876b80838e17815a8072ecb68edf9fe21fdb27c50eff4bdac1b",
+      "lines": 808,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/cluster.kan",
+        "src/cluster_types.kan",
+        "src/api_server.kan",
+        "src/controller_driver.kan",
+        "src/network.kan",
+        "src/programs.kan",
+        "src/successors.kan",
+        "src/esr.kan"
+      ]
+    },
+    {
+      "path": "lib/cluster/cluster.mli",
+      "sha256": "492f9330dfd0e9023dd1155d74adb47b3dea888dc56effcc70170bb4403e7802",
+      "lines": 195,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/cluster.kan",
+        "src/cluster_types.kan",
+        "src/api_server.kan",
+        "src/controller_driver.kan",
+        "src/network.kan",
+        "src/programs.kan",
+        "src/successors.kan",
+        "src/esr.kan"
+      ]
+    },
+    {
+      "path": "lib/cluster/controller.ml",
+      "sha256": "86859d2e8209ae347b90e192ff33941f26ec76d6ea129895dfebcd2ed4da955a",
+      "lines": 363,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/cluster.kan",
+        "src/cluster_types.kan",
+        "src/api_server.kan",
+        "src/controller_driver.kan",
+        "src/network.kan",
+        "src/programs.kan",
+        "src/successors.kan",
+        "src/esr.kan"
+      ]
+    },
+    {
+      "path": "lib/cluster/controller.mli",
+      "sha256": "e2550ccaebe4369c969a23caf8fd4724edff6692832934a71ebabbb476bd4759",
+      "lines": 207,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/cluster.kan",
+        "src/cluster_types.kan",
+        "src/api_server.kan",
+        "src/controller_driver.kan",
+        "src/network.kan",
+        "src/programs.kan",
+        "src/successors.kan",
+        "src/esr.kan"
+      ]
+    },
+    {
+      "path": "lib/cluster/controller_pack.ml",
+      "sha256": "31abf8f6752e4ad3f892dd93b8ac147427c16e951beb19841405d7a168e034b2",
+      "lines": 38,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/cluster.kan",
+        "src/cluster_types.kan",
+        "src/api_server.kan",
+        "src/controller_driver.kan",
+        "src/network.kan",
+        "src/programs.kan",
+        "src/successors.kan",
+        "src/esr.kan"
+      ]
+    },
+    {
+      "path": "lib/cluster/erase.ml",
+      "sha256": "ed63806a93a8d0a707a9e100c6d01f311d56da76084a7a6af3cbae9121b5c848",
+      "lines": 74,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/cluster.kan",
+        "src/cluster_types.kan",
+        "src/api_server.kan",
+        "src/controller_driver.kan",
+        "src/network.kan",
+        "src/programs.kan",
+        "src/successors.kan",
+        "src/esr.kan"
+      ]
+    },
+    {
+      "path": "lib/cluster/erase.mli",
+      "sha256": "713d85a0807a9a724dd569ab746602061afb4dfe36c79efa27e4cf94cdd604a9",
+      "lines": 51,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/cluster.kan",
+        "src/cluster_types.kan",
+        "src/api_server.kan",
+        "src/controller_driver.kan",
+        "src/network.kan",
+        "src/programs.kan",
+        "src/successors.kan",
+        "src/esr.kan"
+      ]
+    },
+    {
+      "path": "lib/cluster/esr.ml",
+      "sha256": "3ea3931ef51d9dba534d8718a860a8d2cbd13b812df85fec8fc5d11118b9b0f7",
+      "lines": 47,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/cluster.kan",
+        "src/cluster_types.kan",
+        "src/api_server.kan",
+        "src/controller_driver.kan",
+        "src/network.kan",
+        "src/programs.kan",
+        "src/successors.kan",
+        "src/esr.kan"
+      ]
+    },
+    {
+      "path": "lib/cluster/esr.mli",
+      "sha256": "e07f82a17a217e81407d80487cc5c17fd54bb7c9d4e864f07f0a5e95c50197a4",
+      "lines": 33,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/cluster.kan",
+        "src/cluster_types.kan",
+        "src/api_server.kan",
+        "src/controller_driver.kan",
+        "src/network.kan",
+        "src/programs.kan",
+        "src/successors.kan",
+        "src/esr.kan"
+      ]
+    },
+    {
+      "path": "lib/cluster/external.ml",
+      "sha256": "ce28522652fc014d29bd8fd92562647a56c55d689e41cf6a72ea7239eb46f452",
+      "lines": 94,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/cluster.kan",
+        "src/cluster_types.kan",
+        "src/api_server.kan",
+        "src/controller_driver.kan",
+        "src/network.kan",
+        "src/programs.kan",
+        "src/successors.kan",
+        "src/esr.kan"
+      ]
+    },
+    {
+      "path": "lib/cluster/external.mli",
+      "sha256": "d8ddebc66c81c17f6c50fd52acc441bf1ec4d5f0a94a73cb46752de452422957",
+      "lines": 79,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/cluster.kan",
+        "src/cluster_types.kan",
+        "src/api_server.kan",
+        "src/controller_driver.kan",
+        "src/network.kan",
+        "src/programs.kan",
+        "src/successors.kan",
+        "src/esr.kan"
+      ]
+    },
+    {
+      "path": "lib/cluster/message.ml",
+      "sha256": "7e718d5db61ba6912f2f7a32d31453e62e64056162603d83366675b127444892",
+      "lines": 361,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/cluster.kan",
+        "src/cluster_types.kan",
+        "src/api_server.kan",
+        "src/controller_driver.kan",
+        "src/network.kan",
+        "src/programs.kan",
+        "src/successors.kan",
+        "src/esr.kan"
+      ]
+    },
+    {
+      "path": "lib/cluster/message.mli",
+      "sha256": "cb27c56178d4eb0fa245f0429accb8b75e93a9b18a2c651a192fae1e92be6f3f",
+      "lines": 257,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/cluster.kan",
+        "src/cluster_types.kan",
+        "src/api_server.kan",
+        "src/controller_driver.kan",
+        "src/network.kan",
+        "src/programs.kan",
+        "src/successors.kan",
+        "src/esr.kan"
+      ]
+    },
+    {
+      "path": "lib/cluster/network.ml",
+      "sha256": "8440159e6c335b4205f0c50935e81af6e84551aa948cc75f33b0a8ae24b66393",
+      "lines": 46,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/cluster.kan",
+        "src/cluster_types.kan",
+        "src/api_server.kan",
+        "src/controller_driver.kan",
+        "src/network.kan",
+        "src/programs.kan",
+        "src/successors.kan",
+        "src/esr.kan"
+      ]
+    },
+    {
+      "path": "lib/cluster/network.mli",
+      "sha256": "8c798675a0ab5c501e0a64dbb5cd881202817278fa35682eead54a2c65ef03b9",
+      "lines": 28,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/cluster.kan",
+        "src/cluster_types.kan",
+        "src/api_server.kan",
+        "src/controller_driver.kan",
+        "src/network.kan",
+        "src/programs.kan",
+        "src/successors.kan",
+        "src/esr.kan"
+      ]
+    },
+    {
+      "path": "lib/cluster/object_ref_map.ml",
+      "sha256": "a3e895a94337fdb3edb0cc543973344002dc3d5aa83702a19cad410c180bf18d",
+      "lines": 26,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/cluster.kan",
+        "src/cluster_types.kan",
+        "src/api_server.kan",
+        "src/controller_driver.kan",
+        "src/network.kan",
+        "src/programs.kan",
+        "src/successors.kan",
+        "src/esr.kan"
+      ]
+    },
+    {
+      "path": "lib/cluster/pod_monkey.ml",
+      "sha256": "a6b8292b40343d2fbb87469ad5311dc204b4e6e4f5b1eeceff085e21ec8a9dd6",
+      "lines": 137,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/cluster.kan",
+        "src/cluster_types.kan",
+        "src/api_server.kan",
+        "src/controller_driver.kan",
+        "src/network.kan",
+        "src/programs.kan",
+        "src/successors.kan",
+        "src/esr.kan"
+      ]
+    },
+    {
+      "path": "lib/cluster/pod_monkey.mli",
+      "sha256": "0ca9730482a82f128ab45661af721ce1252f3a1f8532e3941e2531e8eabc0ed8",
+      "lines": 66,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/cluster.kan",
+        "src/cluster_types.kan",
+        "src/api_server.kan",
+        "src/controller_driver.kan",
+        "src/network.kan",
+        "src/programs.kan",
+        "src/successors.kan",
+        "src/esr.kan"
+      ]
+    },
+    {
+      "path": "lib/cluster/step.ml",
+      "sha256": "2444d31deca8b59eb63a1492fac8c76660cc2f460cf55e8c81a8fe54a5386469",
+      "lines": 47,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/cluster.kan",
+        "src/cluster_types.kan",
+        "src/api_server.kan",
+        "src/controller_driver.kan",
+        "src/network.kan",
+        "src/programs.kan",
+        "src/successors.kan",
+        "src/esr.kan"
+      ]
+    },
+    {
+      "path": "lib/controllers/v_deployment.ml",
+      "sha256": "c0b257d7b2a8bfffb16e1d7fa2db38275d70026b421ebd88e51068eb3981dba2",
+      "lines": 231,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/vrs.kan",
+        "src/deployment.kan",
+        "src/stateful.kan",
+        "src/stateful_core.kan",
+        "src/packs.kan",
+        "src/validators.kan"
+      ]
+    },
+    {
+      "path": "lib/controllers/v_deployment.mli",
+      "sha256": "f610e78591618e5e90d27be6d9fd107a8a06383982fafffab7ab578d5142c642",
+      "lines": 66,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/vrs.kan",
+        "src/deployment.kan",
+        "src/stateful.kan",
+        "src/stateful_core.kan",
+        "src/packs.kan",
+        "src/validators.kan"
+      ]
+    },
+    {
+      "path": "lib/controllers/v_deployment_pack.ml",
+      "sha256": "6c179f4400447be2f356a52314b6f856e922a42b6f9a53c5fde8da02f0b401a8",
+      "lines": 66,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/vrs.kan",
+        "src/deployment.kan",
+        "src/stateful.kan",
+        "src/stateful_core.kan",
+        "src/packs.kan",
+        "src/validators.kan"
+      ]
+    },
+    {
+      "path": "lib/controllers/v_deployment_pack.mli",
+      "sha256": "931365c9310790ecffdcbdcbc89410a6c08f2a022d641d6e4e29e88e30ec1b5e",
+      "lines": 42,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/vrs.kan",
+        "src/deployment.kan",
+        "src/stateful.kan",
+        "src/stateful_core.kan",
+        "src/packs.kan",
+        "src/validators.kan"
+      ]
+    },
+    {
+      "path": "lib/controllers/v_deployment_reconciler.ml",
+      "sha256": "2b540235929a69dbfa50a0a1da1c6383e62b7681159699fbac009c10d08216a5",
+      "lines": 491,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/vrs.kan",
+        "src/deployment.kan",
+        "src/stateful.kan",
+        "src/stateful_core.kan",
+        "src/packs.kan",
+        "src/validators.kan"
+      ]
+    },
+    {
+      "path": "lib/controllers/v_deployment_reconciler.mli",
+      "sha256": "702e897c29ded5b7957164c8c012f56d623a216f2060670216c3eccef85fb05a",
+      "lines": 68,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/vrs.kan",
+        "src/deployment.kan",
+        "src/stateful.kan",
+        "src/stateful_core.kan",
+        "src/packs.kan",
+        "src/validators.kan"
+      ]
+    },
+    {
+      "path": "lib/controllers/v_stateful_set.ml",
+      "sha256": "591384172a427546531bc74d62f8f34102d9ec77f835b0c58bbb2da84020993f",
+      "lines": 191,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/vrs.kan",
+        "src/deployment.kan",
+        "src/stateful.kan",
+        "src/stateful_core.kan",
+        "src/packs.kan",
+        "src/validators.kan"
+      ]
+    },
+    {
+      "path": "lib/controllers/v_stateful_set.mli",
+      "sha256": "19e9611f7619b26a63dbf5294970f9058c7f0f1fe32495c753881a2c3feb3be0",
+      "lines": 51,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/vrs.kan",
+        "src/deployment.kan",
+        "src/stateful.kan",
+        "src/stateful_core.kan",
+        "src/packs.kan",
+        "src/validators.kan"
+      ]
+    },
+    {
+      "path": "lib/controllers/v_stateful_set_pack.ml",
+      "sha256": "2c2db8f0f97ed43dce1e27ebcbc3e6c0833068bc7b4d011adc196f675aab827f",
+      "lines": 134,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/vrs.kan",
+        "src/deployment.kan",
+        "src/stateful.kan",
+        "src/stateful_core.kan",
+        "src/packs.kan",
+        "src/validators.kan"
+      ]
+    },
+    {
+      "path": "lib/controllers/v_stateful_set_pack.mli",
+      "sha256": "cad5dbf84a90662f2f1f2f3a892d2269c8c83ad1ef5d4e0d49706ed638390597",
+      "lines": 38,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/vrs.kan",
+        "src/deployment.kan",
+        "src/stateful.kan",
+        "src/stateful_core.kan",
+        "src/packs.kan",
+        "src/validators.kan"
+      ]
+    },
+    {
+      "path": "lib/controllers/v_stateful_set_reconciler.ml",
+      "sha256": "5266138476e488ef6b058c1e86c9d852ebcd986a085bc3764538dd43202cf851",
+      "lines": 816,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/vrs.kan",
+        "src/deployment.kan",
+        "src/stateful.kan",
+        "src/stateful_core.kan",
+        "src/packs.kan",
+        "src/validators.kan"
+      ]
+    },
+    {
+      "path": "lib/controllers/v_stateful_set_reconciler.mli",
+      "sha256": "d582c2ae2ffd9289ec1e40939841d574e6c70b1fc74e227205d56c5ec59f8da4",
+      "lines": 159,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/vrs.kan",
+        "src/deployment.kan",
+        "src/stateful.kan",
+        "src/stateful_core.kan",
+        "src/packs.kan",
+        "src/validators.kan"
+      ]
+    },
+    {
+      "path": "lib/controllers/vreplica_set.ml",
+      "sha256": "cc0012eb61709307e4a2ecf0b17f321776ff8b182126b34ab1f053029d9d2846",
+      "lines": 181,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/vrs.kan",
+        "src/deployment.kan",
+        "src/stateful.kan",
+        "src/stateful_core.kan",
+        "src/packs.kan",
+        "src/validators.kan"
+      ]
+    },
+    {
+      "path": "lib/controllers/vreplica_set.mli",
+      "sha256": "35a3f6270d56027571ba1dbd5148722b2598484188f4fe5449160a8aa589b42f",
+      "lines": 98,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/vrs.kan",
+        "src/deployment.kan",
+        "src/stateful.kan",
+        "src/stateful_core.kan",
+        "src/packs.kan",
+        "src/validators.kan"
+      ]
+    },
+    {
+      "path": "lib/controllers/vreplica_set_pack.ml",
+      "sha256": "4fa27e5580cb7f3b6a2b0ab29785328797899ebf11629515a9a9d483b91c63cd",
+      "lines": 59,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/vrs.kan",
+        "src/deployment.kan",
+        "src/stateful.kan",
+        "src/stateful_core.kan",
+        "src/packs.kan",
+        "src/validators.kan"
+      ]
+    },
+    {
+      "path": "lib/controllers/vreplica_set_pack.mli",
+      "sha256": "9ff6a09c3509929ca033c2551e5676789d81cd22d265a148fac5697abaa67548",
+      "lines": 35,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/vrs.kan",
+        "src/deployment.kan",
+        "src/stateful.kan",
+        "src/stateful_core.kan",
+        "src/packs.kan",
+        "src/validators.kan"
+      ]
+    },
+    {
+      "path": "lib/controllers/vreplica_set_reconciler.ml",
+      "sha256": "00b44662516163b6d784a1269ed8914bd0f1773b817a53fe091c156ab0316e3e",
+      "lines": 357,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/vrs.kan",
+        "src/deployment.kan",
+        "src/stateful.kan",
+        "src/stateful_core.kan",
+        "src/packs.kan",
+        "src/validators.kan"
+      ]
+    },
+    {
+      "path": "lib/controllers/vreplica_set_reconciler.mli",
+      "sha256": "e72b92ac29766fc0fd422f0548e7f13fd8c3c0e6d380940ed22dcc25e0aa9573",
+      "lines": 92,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/vrs.kan",
+        "src/deployment.kan",
+        "src/stateful.kan",
+        "src/stateful_core.kan",
+        "src/packs.kan",
+        "src/validators.kan"
+      ]
+    },
+    {
+      "path": "lib/exec_shim/concurrency.ml",
+      "sha256": "c902cfc12bff666f12a3397cb91b591f59a4329bfcb412885dadecb4996d0387",
+      "lines": 22,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/runtime.kan",
+        "src/exec_seed.kan",
+        "src/state_machine.kan"
+      ]
+    },
+    {
+      "path": "lib/exec_shim/concurrency.mli",
+      "sha256": "fea17a17bbb0ebfaea38264be4bef2d599783f98fcbc6339bbc42131f2c1ee20",
+      "lines": 52,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/runtime.kan",
+        "src/exec_seed.kan",
+        "src/state_machine.kan"
+      ]
+    },
+    {
+      "path": "lib/exec_shim/controller_runtime.ml",
+      "sha256": "fec3422e72ae1df3522f9ffb94c35967a87e9b3d7f5150a2a676c0a237050bce",
+      "lines": 154,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/runtime.kan",
+        "src/exec_seed.kan",
+        "src/state_machine.kan"
+      ]
+    },
+    {
+      "path": "lib/exec_shim/controller_runtime.mli",
+      "sha256": "18a62acfbbc5d3c17885e74e6988de14cea283710a9304d293893a0ddeb80490",
+      "lines": 85,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/runtime.kan",
+        "src/exec_seed.kan",
+        "src/state_machine.kan"
+      ]
+    },
+    {
+      "path": "lib/exec_shim/exec_api_server.ml",
+      "sha256": "2c64fd379064f4d6609252ec8b502a1c02609971109d9be068749ee006287871",
+      "lines": 145,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/runtime.kan",
+        "src/exec_seed.kan",
+        "src/state_machine.kan"
+      ]
+    },
+    {
+      "path": "lib/exec_shim/exec_api_server.mli",
+      "sha256": "9d1c4cb4f1aa10e6202237ef9e5e7706eebb580847f9be9c7cb848dd1c834387",
+      "lines": 83,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/runtime.kan",
+        "src/exec_seed.kan",
+        "src/state_machine.kan"
+      ]
+    },
+    {
+      "path": "lib/exec_shim/k8s_client.mli",
+      "sha256": "fd2240df2c6e8fd670a54fb34f20a3558a36f535ea808aa32feeb0b7fa200d99",
+      "lines": 57,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/runtime.kan",
+        "src/exec_seed.kan",
+        "src/state_machine.kan"
+      ]
+    },
+    {
+      "path": "lib/exec_shim/k8s_client_native.ml",
+      "sha256": "7138cce1de35a6369453bdb34c9d537628a016f4c48377b45cf505ee6207e304",
+      "lines": 28,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/runtime.kan",
+        "src/exec_seed.kan",
+        "src/state_machine.kan"
+      ]
+    },
+    {
+      "path": "lib/exec_shim/k8s_client_native.mli",
+      "sha256": "287d8957782b7ca14d99d0532053cb41be4c6e8ca69125c1e4f199b196d9bc24",
+      "lines": 49,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/runtime.kan",
+        "src/exec_seed.kan",
+        "src/state_machine.kan"
+      ]
+    },
+    {
+      "path": "lib/exec_shim/multi_controller.ml",
+      "sha256": "07b9153435b5c134c7ab0c0471ae3767b3a0d0e96a88b7523cf59c707b3e6473",
+      "lines": 141,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/runtime.kan",
+        "src/exec_seed.kan",
+        "src/state_machine.kan"
+      ]
+    },
+    {
+      "path": "lib/exec_shim/multi_controller.mli",
+      "sha256": "aa2a49c00c1679106cad4b2b797664dba0f660f31ae00bc56cef273ee8fd0b7a",
+      "lines": 43,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/runtime.kan",
+        "src/exec_seed.kan",
+        "src/state_machine.kan"
+      ]
+    },
+    {
+      "path": "lib/k8s_objects/affinity.ml",
+      "sha256": "f61932d7ebeb3cea84c70e8bea088dc391fdf103caabe098a9ac9d9a395268df",
+      "lines": 21,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/model.kan",
+        "src/codecs.kan",
+        "src/objects.kan",
+        "src/resources.kan",
+        "src/defaults.kan",
+        "runtime/host.mjs"
+      ]
+    },
+    {
+      "path": "lib/k8s_objects/api_method.ml",
+      "sha256": "28bf3d38009c7b5d3ff1e1045d4f157ce9137fbcc3613e699c00c9b9cb444ef4",
+      "lines": 193,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/model.kan",
+        "src/codecs.kan",
+        "src/objects.kan",
+        "src/resources.kan",
+        "src/defaults.kan",
+        "runtime/host.mjs"
+      ]
+    },
+    {
+      "path": "lib/k8s_objects/api_method.mli",
+      "sha256": "9a972321338677ac80945d3f45760ab53d7b7d5e7afd347a22db828fefb68d28",
+      "lines": 190,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/model.kan",
+        "src/codecs.kan",
+        "src/objects.kan",
+        "src/resources.kan",
+        "src/defaults.kan",
+        "runtime/host.mjs"
+      ]
+    },
+    {
+      "path": "lib/k8s_objects/common.ml",
+      "sha256": "ef542cd4cea722a9afd8c70e48f68cf0057521de0910a0c43ce7035d5f593d26",
+      "lines": 79,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/model.kan",
+        "src/codecs.kan",
+        "src/objects.kan",
+        "src/resources.kan",
+        "src/defaults.kan",
+        "runtime/host.mjs"
+      ]
+    },
+    {
+      "path": "lib/k8s_objects/common.mli",
+      "sha256": "1910345a35fd5229c3e246d25191966b27737334a144217807c94d5edc8c704b",
+      "lines": 61,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/model.kan",
+        "src/codecs.kan",
+        "src/objects.kan",
+        "src/resources.kan",
+        "src/defaults.kan",
+        "runtime/host.mjs"
+      ]
+    },
+    {
+      "path": "lib/k8s_objects/container.ml",
+      "sha256": "a3406b3b97a95342538c48c279a701d8a31fb7878cd0358e311a44c89c9c46d8",
+      "lines": 396,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/model.kan",
+        "src/codecs.kan",
+        "src/objects.kan",
+        "src/resources.kan",
+        "src/defaults.kan",
+        "runtime/host.mjs"
+      ]
+    },
+    {
+      "path": "lib/k8s_objects/deployment_strategy.ml",
+      "sha256": "aa6c862f7d0540974cfaad2e00c3c1797f9ce38a9798fedd08d191399e5758b3",
+      "lines": 81,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/model.kan",
+        "src/codecs.kan",
+        "src/objects.kan",
+        "src/resources.kan",
+        "src/defaults.kan",
+        "runtime/host.mjs"
+      ]
+    },
+    {
+      "path": "lib/k8s_objects/deployment_strategy.mli",
+      "sha256": "240b89a9d80449a89820034013febbebb2b80572d648f037636ae467c6ee68ba",
+      "lines": 41,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/model.kan",
+        "src/codecs.kan",
+        "src/objects.kan",
+        "src/resources.kan",
+        "src/defaults.kan",
+        "runtime/host.mjs"
+      ]
+    },
+    {
+      "path": "lib/k8s_objects/dynamic_object.ml",
+      "sha256": "2d0cd895102335a85e418fcfa5f1bac39b077d5a543bee494ed72ac766fbfbbe",
+      "lines": 77,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/model.kan",
+        "src/codecs.kan",
+        "src/objects.kan",
+        "src/resources.kan",
+        "src/defaults.kan",
+        "runtime/host.mjs"
+      ]
+    },
+    {
+      "path": "lib/k8s_objects/dynamic_object.mli",
+      "sha256": "f57ee366dd7ab7b42af962709ad76af9c417745399fefeb591a92b44324cae43",
+      "lines": 58,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/model.kan",
+        "src/codecs.kan",
+        "src/objects.kan",
+        "src/resources.kan",
+        "src/defaults.kan",
+        "runtime/host.mjs"
+      ]
+    },
+    {
+      "path": "lib/k8s_objects/json.ml",
+      "sha256": "f83efaef761e9090074c883260c19b93b71adc472545f58748ee86cc118bb651",
+      "lines": 111,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/model.kan",
+        "src/codecs.kan",
+        "src/objects.kan",
+        "src/resources.kan",
+        "src/defaults.kan",
+        "runtime/host.mjs"
+      ]
+    },
+    {
+      "path": "lib/k8s_objects/json.mli",
+      "sha256": "b3b896937810bc7c8495401a99c9f9fcf1d612fd262813fc1ba957c3511e6454",
+      "lines": 66,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/model.kan",
+        "src/codecs.kan",
+        "src/objects.kan",
+        "src/resources.kan",
+        "src/defaults.kan",
+        "runtime/host.mjs"
+      ]
+    },
+    {
+      "path": "lib/k8s_objects/label_selector.ml",
+      "sha256": "617fe3cc806d5a75ee0b5fd0228b792be3c1c43e9965489078f414c35ac6cf00",
+      "lines": 28,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/model.kan",
+        "src/codecs.kan",
+        "src/objects.kan",
+        "src/resources.kan",
+        "src/defaults.kan",
+        "runtime/host.mjs"
+      ]
+    },
+    {
+      "path": "lib/k8s_objects/local_object_reference.ml",
+      "sha256": "11be652d60f9b86ba3a8b8042a6da2b4c448456adac113f585b8843a27839f4d",
+      "lines": 19,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/model.kan",
+        "src/codecs.kan",
+        "src/objects.kan",
+        "src/resources.kan",
+        "src/defaults.kan",
+        "runtime/host.mjs"
+      ]
+    },
+    {
+      "path": "lib/k8s_objects/object_field_selector.ml",
+      "sha256": "5911e32de67d581a7303327080816c9eff52ae39862b3d36618092aeb95f7d9e",
+      "lines": 24,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/model.kan",
+        "src/codecs.kan",
+        "src/objects.kan",
+        "src/resources.kan",
+        "src/defaults.kan",
+        "runtime/host.mjs"
+      ]
+    },
+    {
+      "path": "lib/k8s_objects/object_meta.ml",
+      "sha256": "52ff491de208210530ebde4e9ee56651cd838885d3ec672d3ead9b8ea8305e2e",
+      "lines": 155,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/model.kan",
+        "src/codecs.kan",
+        "src/objects.kan",
+        "src/resources.kan",
+        "src/defaults.kan",
+        "runtime/host.mjs"
+      ]
+    },
+    {
+      "path": "lib/k8s_objects/object_meta.mli",
+      "sha256": "c10ac83128a7f72a6237514f938a7e7fdad8e427cf1c582b7d3b15d3bf1611e7",
+      "lines": 116,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/model.kan",
+        "src/codecs.kan",
+        "src/objects.kan",
+        "src/resources.kan",
+        "src/defaults.kan",
+        "runtime/host.mjs"
+      ]
+    },
+    {
+      "path": "lib/k8s_objects/owner_reference.ml",
+      "sha256": "9b9f46302c5c6658fe72c284d51b408d715ec2cb24370788da8f1e477a4dc82b",
+      "lines": 59,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/model.kan",
+        "src/codecs.kan",
+        "src/objects.kan",
+        "src/resources.kan",
+        "src/defaults.kan",
+        "runtime/host.mjs"
+      ]
+    },
+    {
+      "path": "lib/k8s_objects/owner_reference.mli",
+      "sha256": "b714f1128abb3cea8b7b6b81f0c64cd3c7a00cdc8d0615b03735c63a07d3fe1b",
+      "lines": 37,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/model.kan",
+        "src/codecs.kan",
+        "src/objects.kan",
+        "src/resources.kan",
+        "src/defaults.kan",
+        "runtime/host.mjs"
+      ]
+    },
+    {
+      "path": "lib/k8s_objects/persistent_volume_claim.ml",
+      "sha256": "c6524c4930ccbf2b75490ed5386985867d908646f4512480e5813c8994f25f72",
+      "lines": 142,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/model.kan",
+        "src/codecs.kan",
+        "src/objects.kan",
+        "src/resources.kan",
+        "src/defaults.kan",
+        "runtime/host.mjs"
+      ]
+    },
+    {
+      "path": "lib/k8s_objects/pod_security_context.ml",
+      "sha256": "8eb10276759f832239cb4d94c82b0421e94c167b44ff3eaed746b47047437ff4",
+      "lines": 20,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/model.kan",
+        "src/codecs.kan",
+        "src/objects.kan",
+        "src/resources.kan",
+        "src/defaults.kan",
+        "runtime/host.mjs"
+      ]
+    },
+    {
+      "path": "lib/k8s_objects/pod_spec.ml",
+      "sha256": "c31affca846ee88fa5981582c6d0eb21da8765bfcb1887712709b4440b578daf",
+      "lines": 152,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/model.kan",
+        "src/codecs.kan",
+        "src/objects.kan",
+        "src/resources.kan",
+        "src/defaults.kan",
+        "runtime/host.mjs"
+      ]
+    },
+    {
+      "path": "lib/k8s_objects/pod_template_spec.ml",
+      "sha256": "806a29ec007e84fc376b6ba15e9b6d46e403aea03b619f9458aa15bf4fb07ec1",
+      "lines": 28,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/model.kan",
+        "src/codecs.kan",
+        "src/objects.kan",
+        "src/resources.kan",
+        "src/defaults.kan",
+        "runtime/host.mjs"
+      ]
+    },
+    {
+      "path": "lib/k8s_objects/resource_requirements.ml",
+      "sha256": "116eae146017b07558c8bd6dc053ae8b2516cbce4fb40a4795a3c4ef9c29d6ff",
+      "lines": 26,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/model.kan",
+        "src/codecs.kan",
+        "src/objects.kan",
+        "src/resources.kan",
+        "src/defaults.kan",
+        "runtime/host.mjs"
+      ]
+    },
+    {
+      "path": "lib/k8s_objects/resource_view.ml",
+      "sha256": "3b32127e17064701a91ed7f06f7b5b3a5cc3675c65ab15d1e3e6f188a591e92d",
+      "lines": 69,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/model.kan",
+        "src/codecs.kan",
+        "src/objects.kan",
+        "src/resources.kan",
+        "src/defaults.kan",
+        "runtime/host.mjs"
+      ]
+    },
+    {
+      "path": "lib/k8s_objects/resource_view.mli",
+      "sha256": "f5ada846b6f6ec7673b98ae9ccdbfdb445259c5fdd71ed4431f25ee30100e816",
+      "lines": 78,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/model.kan",
+        "src/codecs.kan",
+        "src/objects.kan",
+        "src/resources.kan",
+        "src/defaults.kan",
+        "runtime/host.mjs"
+      ]
+    },
+    {
+      "path": "lib/k8s_objects/toleration.ml",
+      "sha256": "8cdc2d07b4a67c16756a337dc9b7920b2939a0d8e2ff83137699103db889206e",
+      "lines": 18,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/model.kan",
+        "src/codecs.kan",
+        "src/objects.kan",
+        "src/resources.kan",
+        "src/defaults.kan",
+        "runtime/host.mjs"
+      ]
+    },
+    {
+      "path": "lib/k8s_objects/value.ml",
+      "sha256": "fed23a8fb6f64b3f8094287a77463d6aeef7d8e833ca911074e9541c88665e5c",
+      "lines": 20,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/model.kan",
+        "src/codecs.kan",
+        "src/objects.kan",
+        "src/resources.kan",
+        "src/defaults.kan",
+        "runtime/host.mjs"
+      ]
+    },
+    {
+      "path": "lib/k8s_objects/value.mli",
+      "sha256": "46593c6b3a65927ce60b85c63b6a85c86394cfb985a89898b9b74697e9df732e",
+      "lines": 26,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/model.kan",
+        "src/codecs.kan",
+        "src/objects.kan",
+        "src/resources.kan",
+        "src/defaults.kan",
+        "runtime/host.mjs"
+      ]
+    },
+    {
+      "path": "lib/k8s_objects/views/config_map.ml",
+      "sha256": "d239f7ba3103f555043d0654cdffa2fc00e86d44050f1ce527d43b0c40bc28a6",
+      "lines": 61,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/model.kan",
+        "src/codecs.kan",
+        "src/objects.kan",
+        "src/resources.kan",
+        "src/defaults.kan",
+        "runtime/host.mjs"
+      ]
+    },
+    {
+      "path": "lib/k8s_objects/views/config_map.mli",
+      "sha256": "2940e44fc6d9bf22d7480cc9d82676940882b0d5bca47cb45929544dd4429fdd",
+      "lines": 41,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/model.kan",
+        "src/codecs.kan",
+        "src/objects.kan",
+        "src/resources.kan",
+        "src/defaults.kan",
+        "runtime/host.mjs"
+      ]
+    },
+    {
+      "path": "lib/k8s_objects/views/pod.ml",
+      "sha256": "404c935431814a041cdd538ff327fcf650ef674d587ebf6336d90a37b24dc9e3",
+      "lines": 77,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/model.kan",
+        "src/codecs.kan",
+        "src/objects.kan",
+        "src/resources.kan",
+        "src/defaults.kan",
+        "runtime/host.mjs"
+      ]
+    },
+    {
+      "path": "lib/k8s_objects/views/pod.mli",
+      "sha256": "9e6dfbc7b639d6c94a357662358a7d8a475438c737452e66626a93ec28418937",
+      "lines": 43,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/model.kan",
+        "src/codecs.kan",
+        "src/objects.kan",
+        "src/resources.kan",
+        "src/defaults.kan",
+        "runtime/host.mjs"
+      ]
+    },
+    {
+      "path": "lib/k8s_objects/views/stateful_set.ml",
+      "sha256": "51be4335da55595a05f55db6f5629891464bbbfb8910c9747856b6621b9a3901",
+      "lines": 337,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/model.kan",
+        "src/codecs.kan",
+        "src/objects.kan",
+        "src/resources.kan",
+        "src/defaults.kan",
+        "runtime/host.mjs"
+      ]
+    },
+    {
+      "path": "lib/k8s_objects/views/stateful_set.mli",
+      "sha256": "e41bf8603d4e8917a910da0ecf63adb595cf4c18a94d511db99fef369841e0b3",
+      "lines": 136,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/model.kan",
+        "src/codecs.kan",
+        "src/objects.kan",
+        "src/resources.kan",
+        "src/defaults.kan",
+        "runtime/host.mjs"
+      ]
+    },
+    {
+      "path": "lib/k8s_objects/volume.ml",
+      "sha256": "55bbe37c9e4e4249b49e324180d52ef5cd26b4e7a689bb8ffe4b6144dba3b4cc",
+      "lines": 407,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/model.kan",
+        "src/codecs.kan",
+        "src/objects.kan",
+        "src/resources.kan",
+        "src/defaults.kan",
+        "runtime/host.mjs"
+      ]
+    },
+    {
+      "path": "lib/k8s_objects/volume_resource_requirements.ml",
+      "sha256": "c24ad4cd465dec83535f88a5fa9011ebae2aa200da2d5663ee6eb086857d5041",
+      "lines": 28,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/model.kan",
+        "src/codecs.kan",
+        "src/objects.kan",
+        "src/resources.kan",
+        "src/defaults.kan",
+        "runtime/host.mjs"
+      ]
+    },
+    {
+      "path": "lib/proof/discharge.ml",
+      "sha256": "38d7aadacd2f4a536ba5da4691a3810e67cc2ad98fed5fbd0b5a641f964a81b5",
+      "lines": 107,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/discharge.kan",
+        "src/proof_kernel.kan",
+        "src/liveness.kan"
+      ]
+    },
+    {
+      "path": "lib/proof/discharge.mli",
+      "sha256": "02b77e94431c97218a2fdb2b85e3bd34f2369905e3e8710b82bb384e3289f39d",
+      "lines": 103,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/discharge.kan",
+        "src/proof_kernel.kan",
+        "src/liveness.kan"
+      ]
+    },
+    {
+      "path": "lib/proof/step_view.ml",
+      "sha256": "5d4b909d738c37e6f49aedb496cda243e8ed8b80318f2860b9cb9b48a2c1a361",
+      "lines": 46,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/discharge.kan",
+        "src/proof_kernel.kan",
+        "src/liveness.kan"
+      ]
+    },
+    {
+      "path": "lib/proof/step_view.mli",
+      "sha256": "9b5d5aaa8e0e2c6ad4ea0a53e9d722a413d4fa7940d5543bcd89becda40f1ad2",
+      "lines": 61,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/discharge.kan",
+        "src/proof_kernel.kan",
+        "src/liveness.kan"
+      ]
+    },
+    {
+      "path": "lib/proof/vrs_liveness.ml",
+      "sha256": "090e2a25658508c34981baa89ac4089e345939f16e7e9892582aef32b1b0074a",
+      "lines": 490,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/discharge.kan",
+        "src/proof_kernel.kan",
+        "src/liveness.kan"
+      ]
+    },
+    {
+      "path": "lib/proof/vrs_liveness.mli",
+      "sha256": "a203a429918d522d22a9dcbdf05a1ec54e8caf4843fae831f1a94156a5921628",
+      "lines": 185,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/discharge.kan",
+        "src/proof_kernel.kan",
+        "src/liveness.kan"
+      ]
+    },
+    {
+      "path": "lib/proof/vsts_liveness.ml",
+      "sha256": "947fe6364ffdef912cadfcab6f27b0675ee3d49e31611a0c2698b8d3ca6e74aa",
+      "lines": 425,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/discharge.kan",
+        "src/proof_kernel.kan",
+        "src/liveness.kan"
+      ]
+    },
+    {
+      "path": "lib/proof/vsts_liveness.mli",
+      "sha256": "d1aff702591ad3f1bd88146c90faa426acfc6b04cefd7d7b25a3975809581447",
+      "lines": 172,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/discharge.kan",
+        "src/proof_kernel.kan",
+        "src/liveness.kan"
+      ]
+    },
+    {
+      "path": "lib/proof/vsts_step_view.ml",
+      "sha256": "999cef4ddc35c2c2334eca8aa1a983bf69195257147f068d06afacfbebd1a0bf",
+      "lines": 47,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/discharge.kan",
+        "src/proof_kernel.kan",
+        "src/liveness.kan"
+      ]
+    },
+    {
+      "path": "lib/proof/vsts_step_view.mli",
+      "sha256": "cb4505e0f5e8425c2352e3de39fe0675b731fcbe4b4745d5331a415842506e26",
+      "lines": 63,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/discharge.kan",
+        "src/proof_kernel.kan",
+        "src/liveness.kan"
+      ]
+    },
+    {
+      "path": "lib/reconciler/io.ml",
+      "sha256": "bbb5a28da4a13c35fe4bfa195fbc8ac4080989326a0f01547b177173f479fc56",
+      "lines": 9,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/io.kan",
+        "src/programs.kan"
+      ]
+    },
+    {
+      "path": "lib/reconciler/io.mli",
+      "sha256": "3b1d30b9273cdeb90607afc53c9ff33e892d03a845cfa538b0876e955acd02c3",
+      "lines": 26,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/io.kan",
+        "src/programs.kan"
+      ]
+    },
+    {
+      "path": "lib/reconciler/io_resp.ml",
+      "sha256": "88f946926e5880400315a653e6b007e74d363a8574f3155dfbf80f415632c498",
+      "lines": 95,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/io.kan",
+        "src/programs.kan"
+      ]
+    },
+    {
+      "path": "lib/reconciler/io_resp.mli",
+      "sha256": "6dc865c01e12f80aa258a3d527c1779b5ef6b5ebb6a7d7b20b5a763a952541bd",
+      "lines": 50,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/io.kan",
+        "src/programs.kan"
+      ]
+    },
+    {
+      "path": "lib/reconciler/reconciler.ml",
+      "sha256": "7f9c3e2dc5454df526564101b4d464a11cb02bd52b47ff788033f18df98cfb49",
+      "lines": 49,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/io.kan",
+        "src/programs.kan"
+      ]
+    },
+    {
+      "path": "lib/state_machine/action.ml",
+      "sha256": "8dad34531a22cc89266d2f42d1d87ae27fb8ba284acee9703c3e4530eb8d5bda",
+      "lines": 29,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/state_machine.kan"
+      ]
+    },
+    {
+      "path": "lib/state_machine/action.mli",
+      "sha256": "fb135900a9adf5c40b34de329f51717bc590e804bf0186e3f9e8a848aec473a1",
+      "lines": 49,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/state_machine.kan"
+      ]
+    },
+    {
+      "path": "lib/state_machine/state_machine.ml",
+      "sha256": "89c3ddbf59a9031512dd60dfb366c05bd63fc2b7a7f95371b0feb435354923b2",
+      "lines": 23,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/state_machine.kan"
+      ]
+    },
+    {
+      "path": "lib/state_machine/state_machine.mli",
+      "sha256": "07ac4229b126313f6fa2a8c0a80c429ce4743520b103b00a6b2becca3d8ffd17",
+      "lines": 51,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/state_machine.kan"
+      ]
+    },
+    {
+      "path": "lib/support/err.ml",
+      "sha256": "0227413ceac3207fe9ca40f348c64b3a2f16607aa543ef38907af88d53090ec7",
+      "lines": 19,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/support.kan",
+        "src/sequence.kan",
+        "src/string_map.kan",
+        "src/network.kan"
+      ]
+    },
+    {
+      "path": "lib/support/err.mli",
+      "sha256": "c2c42d873054de498d15a8b078d33ef891d14113e9222de46b585f66a6a86122",
+      "lines": 38,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/support.kan",
+        "src/sequence.kan",
+        "src/string_map.kan",
+        "src/network.kan"
+      ]
+    },
+    {
+      "path": "lib/support/imap.ml",
+      "sha256": "138b0d76b4c454b81f0d794ed4868de0e9b9238f55a5e895535e325f533a342d",
+      "lines": 5,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/support.kan",
+        "src/sequence.kan",
+        "src/string_map.kan",
+        "src/network.kan"
+      ]
+    },
+    {
+      "path": "lib/support/multiset.ml",
+      "sha256": "3f97f7d842611c04d91ee9c87f04a16364d4f70a24a537ba81eb2eda7c4c1a23",
+      "lines": 49,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/support.kan",
+        "src/sequence.kan",
+        "src/string_map.kan",
+        "src/network.kan"
+      ]
+    },
+    {
+      "path": "lib/support/multiset.mli",
+      "sha256": "3faaa4986130e29bab829e06349d8a466f4d288b8f1cba5e3bca4c68cff0e9f8",
+      "lines": 70,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/support.kan",
+        "src/sequence.kan",
+        "src/string_map.kan",
+        "src/network.kan"
+      ]
+    },
+    {
+      "path": "lib/support/res.ml",
+      "sha256": "89495bd6bf0ea1bf93b1d09a4e1e0121bba95c335db58bcdca09503083be6ff9",
+      "lines": 37,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/support.kan",
+        "src/sequence.kan",
+        "src/string_map.kan",
+        "src/network.kan"
+      ]
+    },
+    {
+      "path": "lib/support/res.mli",
+      "sha256": "dc20db87ac311bf794d8aef809cf42b4bffac0e87e3f2123962072ac5ec11466",
+      "lines": 36,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/support.kan",
+        "src/sequence.kan",
+        "src/string_map.kan",
+        "src/network.kan"
+      ]
+    },
+    {
+      "path": "lib/support/smap.ml",
+      "sha256": "607d2292f2e1dc6ee7fb5b142bb341be1a28f2f4a91ac54666a4c1be8fced1cd",
+      "lines": 5,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/support.kan",
+        "src/sequence.kan",
+        "src/string_map.kan",
+        "src/network.kan"
+      ]
+    },
+    {
+      "path": "lib/support/sset.ml",
+      "sha256": "881eec851d10ada71979813caed25896100e39502485a008eef15c64e4f63e38",
+      "lines": 3,
+      "status": "behavior-mapped",
+      "targets": [
+        "src/support.kan",
+        "src/sequence.kan",
+        "src/string_map.kan",
+        "src/network.kan"
+      ]
+    },
+    {
+      "path": "test/p12_witness.ml",
+      "sha256": "3aaecfda7b15ac435436bfd44f57463b8d72284310d6eb4aa56bf05390ce1ec9",
+      "lines": 30,
+      "status": "source-test-reference",
+      "targets": [
+        "VALIDATION.md",
+        "test/"
+      ]
+    },
+    {
+      "path": "test/p13_witness.ml",
+      "sha256": "a1d33c9a0fbbde119a0b78508916d74679dcac85cdeafe0d4d4f14111a6384cd",
+      "lines": 172,
+      "status": "source-test-reference",
+      "targets": [
+        "VALIDATION.md",
+        "test/"
+      ]
+    },
+    {
+      "path": "test/p14_witness.ml",
+      "sha256": "4a95380c7a7f6962307ceba1ad7860c0224ebee06c947e10013252da3aab8f60",
+      "lines": 288,
+      "status": "source-test-reference",
+      "targets": [
+        "VALIDATION.md",
+        "test/"
+      ]
+    },
+    {
+      "path": "test/p15_witness.ml",
+      "sha256": "ffb592d342f9a16982bb096fb26f4072d3aaa2a1a96ee7a5a7e0551b0401f580",
+      "lines": 344,
+      "status": "source-test-reference",
+      "targets": [
+        "VALIDATION.md",
+        "test/"
+      ]
+    },
+    {
+      "path": "test/p16_witness.ml",
+      "sha256": "7ac6afc1622fb2e6a7183fea5d6d6162281e326e99f8a8ddca9524c10a69e05a",
+      "lines": 387,
+      "status": "source-test-reference",
+      "targets": [
+        "VALIDATION.md",
+        "test/"
+      ]
+    },
+    {
+      "path": "test/p17_witness.ml",
+      "sha256": "864973adf5abbc225faf77ed401735deac5befe0c14b59f29d709642230da87a",
+      "lines": 182,
+      "status": "source-test-reference",
+      "targets": [
+        "VALIDATION.md",
+        "test/"
+      ]
+    },
+    {
+      "path": "test/p18_witness.ml",
+      "sha256": "b32f2cd7eb15a5e700dfcd152e5de9616b22788f4e76ed4e89146c6fb4aaba3c",
+      "lines": 206,
+      "status": "source-test-reference",
+      "targets": [
+        "VALIDATION.md",
+        "test/"
+      ]
+    },
+    {
+      "path": "test/p19_witness.ml",
+      "sha256": "dd715c34d493873fcb75b86a331f8bb083bb0fabd334d567d31b00531949af7e",
+      "lines": 218,
+      "status": "source-test-reference",
+      "targets": [
+        "VALIDATION.md",
+        "test/"
+      ]
+    },
+    {
+      "path": "test/p20_witness.ml",
+      "sha256": "f963c2286f15517d8621e4393284c80954f47086b9cf61aa3a96bba4311f144b",
+      "lines": 379,
+      "status": "source-test-reference",
+      "targets": [
+        "VALIDATION.md",
+        "test/"
+      ]
+    },
+    {
+      "path": "test/p21_witness.ml",
+      "sha256": "402168f77d569f41c51df9d36e753ecf6e9bac9983f5d7329fec3169e07fe6a6",
+      "lines": 245,
+      "status": "source-test-reference",
+      "targets": [
+        "VALIDATION.md",
+        "test/"
+      ]
+    },
+    {
+      "path": "test/p22_witness.ml",
+      "sha256": "4a88c1213cf91ec98d16025ec3b4b6f0be407931aceab6bb20dbd43566b2ee9b",
+      "lines": 205,
+      "status": "source-test-reference",
+      "targets": [
+        "VALIDATION.md",
+        "test/"
+      ]
+    },
+    {
+      "path": "test/p23_witness.ml",
+      "sha256": "1f87485025d826a79f281c3c3703d0fdce5d40b9bcdaa4493182f21e63a0c2c6",
+      "lines": 403,
+      "status": "source-test-reference",
+      "targets": [
+        "VALIDATION.md",
+        "test/"
+      ]
+    },
+    {
+      "path": "test/p24_witness.ml",
+      "sha256": "c972deabd6796d3adc9e8bbf6c1df758028cbec7076c94072dffe9a2407e9a11",
+      "lines": 1374,
+      "status": "source-test-reference",
+      "targets": [
+        "VALIDATION.md",
+        "test/"
+      ]
+    },
+    {
+      "path": "test/p25_witness.ml",
+      "sha256": "1d62a6c4bf573230d213aa7f94de37a8b2374158bfcaee95a2640da6140c1304",
+      "lines": 254,
+      "status": "source-test-reference",
+      "targets": [
+        "VALIDATION.md",
+        "test/"
+      ]
+    },
+    {
+      "path": "test/pair_guard.ml",
+      "sha256": "0d6782a28ce7085b35dccbdc092dd1d1967e5ba44759dc1393e8297fdaed4e98",
+      "lines": 49,
+      "status": "source-test-reference",
+      "targets": [
+        "VALIDATION.md",
+        "test/"
+      ]
+    },
+    {
+      "path": "test/t_api_method.ml",
+      "sha256": "b0de229fa3972f16ddb5ce65f3afd7f4dfd45b2bd690df68ed7727d7f48f4db3",
+      "lines": 163,
+      "status": "source-test-reference",
+      "targets": [
+        "VALIDATION.md",
+        "test/"
+      ]
+    },
+    {
+      "path": "test/t_api_server.ml",
+      "sha256": "de043356e9adf0fb657588b4403f76971dc8c60117c8cfb136dbc416353d56ad",
+      "lines": 184,
+      "status": "source-test-reference",
+      "targets": [
+        "VALIDATION.md",
+        "test/"
+      ]
+    },
+    {
+      "path": "test/t_cluster.ml",
+      "sha256": "675e4ec7839c825f8cd99cc5a37dd5620c7bfbac5ad17f03d0146b6f8305d3ca",
+      "lines": 310,
+      "status": "source-test-reference",
+      "targets": [
+        "VALIDATION.md",
+        "test/"
+      ]
+    },
+    {
+      "path": "test/t_common.ml",
+      "sha256": "03d53aabdf627d1a8d840c394b019714e6ab7f9b90534f5ca442c8e60011ef10",
+      "lines": 51,
+      "status": "source-test-reference",
+      "targets": [
+        "VALIDATION.md",
+        "test/"
+      ]
+    },
+    {
+      "path": "test/t_functor.ml",
+      "sha256": "480d109d9050fc9a148d9d7c1a2044e13b090fa77b057ba5e83e62aa739e74bb",
+      "lines": 72,
+      "status": "source-test-reference",
+      "targets": [
+        "VALIDATION.md",
+        "test/"
+      ]
+    },
+    {
+      "path": "test/t_functor_views.ml",
+      "sha256": "04ea52547ebfe77d641988fa5357100e95aecadd9985bba2d07def59577ab27d",
+      "lines": 181,
+      "status": "source-test-reference",
+      "targets": [
+        "VALIDATION.md",
+        "test/"
+      ]
+    },
+    {
+      "path": "test/t_marshal_props.ml",
+      "sha256": "8eb7a01daa94a8f39308b2ac765c92fceb1ff0b15b64b9e8936a535955eef536",
+      "lines": 505,
+      "status": "source-test-reference",
+      "targets": [
+        "VALIDATION.md",
+        "test/"
+      ]
+    },
+    {
+      "path": "test/t_message.ml",
+      "sha256": "1ed68f611e9778b75a99986579ceed32100aab296e564a6400161a7db6ac32db",
+      "lines": 189,
+      "status": "source-test-reference",
+      "targets": [
+        "VALIDATION.md",
+        "test/"
+      ]
+    },
+    {
+      "path": "test/t_object_meta.ml",
+      "sha256": "8fcdb8ce9874ed39433dca51109b1c0a5b341a3d7f559f78d9d7ee82d7ebb5f1",
+      "lines": 75,
+      "status": "source-test-reference",
+      "targets": [
+        "VALIDATION.md",
+        "test/"
+      ]
+    },
+    {
+      "path": "test/t_p10_mutation.ml",
+      "sha256": "09eb33872f607b5d69bcfa128076907c65ce858bed32e91c2965fccabf4389ba",
+      "lines": 199,
+      "status": "source-test-reference",
+      "targets": [
+        "VALIDATION.md",
+        "test/"
+      ]
+    },
+    {
+      "path": "test/t_p10_witness.ml",
+      "sha256": "ea5afe5731b106c57f4de66f50338243515ac90b34a22b1d1c260851ca06d676",
+      "lines": 233,
+      "status": "source-test-reference",
+      "targets": [
+        "VALIDATION.md",
+        "test/"
+      ]
+    },
+    {
+      "path": "test/t_p11_mutation.ml",
+      "sha256": "6723f2e1d1f96202fd219eaf04831d245e310ce8045166c22fb1c78115192e41",
+      "lines": 346,
+      "status": "source-test-reference",
+      "targets": [
+        "VALIDATION.md",
+        "test/"
+      ]
+    },
+    {
+      "path": "test/t_p11_vsts_esr.ml",
+      "sha256": "e71f3cdc9d48adc96a6812afe79ccd58263745a2c99654ba40e76517800947c0",
+      "lines": 235,
+      "status": "source-test-reference",
+      "targets": [
+        "VALIDATION.md",
+        "test/"
+      ]
+    },
+    {
+      "path": "test/t_p11_vsts_invariants.ml",
+      "sha256": "aa24bc507790069811191cf49212d5435556c311955b3967402ff083197a70ae",
+      "lines": 223,
+      "status": "source-test-reference",
+      "targets": [
+        "VALIDATION.md",
+        "test/"
+      ]
+    },
+    {
+      "path": "test/t_p11_vsts_liveness.ml",
+      "sha256": "74b5053a6325448ba0466224f00213d4255e3c744f479d1bcb53c5e3c772ed47",
+      "lines": 156,
+      "status": "source-test-reference",
+      "targets": [
+        "VALIDATION.md",
+        "test/"
+      ]
+    },
+    {
+      "path": "test/t_p12_concurrent.ml",
+      "sha256": "cfc5ece1633cf9f17fb3f157136fba4ff61444855240ba48322bab3ab597c045",
+      "lines": 276,
+      "status": "source-test-reference",
+      "targets": [
+        "VALIDATION.md",
+        "test/"
+      ]
+    },
+    {
+      "path": "test/t_p12_mutation.ml",
+      "sha256": "f20ef2a102c0ff7de38e5ecb3eecf7287044439084f5a565beb2c4fc1c4f8934",
+      "lines": 170,
+      "status": "source-test-reference",
+      "targets": [
+        "VALIDATION.md",
+        "test/"
+      ]
+    },
+    {
+      "path": "test/t_p13_faults.ml",
+      "sha256": "0ca409e783c4f31ed2ce4344c121871e0aa4126a58117f01b16ee12657f19547",
+      "lines": 654,
+      "status": "source-test-reference",
+      "targets": [
+        "VALIDATION.md",
+        "test/"
+      ]
+    },
+    {
+      "path": "test/t_p13_mutation.ml",
+      "sha256": "5be4d28faa7996b85e316a88636b6b0ca5ee22df8bf135af70f3124244e94c5c",
+      "lines": 434,
+      "status": "source-test-reference",
+      "targets": [
+        "VALIDATION.md",
+        "test/"
+      ]
+    },
+    {
+      "path": "test/t_p14_correspondence.ml",
+      "sha256": "5b3e9afd1cbfb1c0f80ac4dd9be560e93c21f90012cea9ae8a9754ae24016d85",
+      "lines": 625,
+      "status": "source-test-reference",
+      "targets": [
+        "VALIDATION.md",
+        "test/"
+      ]
+    },
+    {
+      "path": "test/t_p14_mutation.ml",
+      "sha256": "8c9045419527fed1e12aee924d702e0accd2962754253b152a789066c238ae57",
+      "lines": 1025,
+      "status": "source-test-reference",
+      "targets": [
+        "VALIDATION.md",
+        "test/"
+      ]
+    },
+    {
+      "path": "test/t_p14_regression.ml",
+      "sha256": "b0723f6d479e9ef749e9675746a0e8c7c6f9e506abe44cfbf4c2c9ddf865e95e",
+      "lines": 181,
+      "status": "source-test-reference",
+      "targets": [
+        "VALIDATION.md",
+        "test/"
+      ]
+    },
+    {
+      "path": "test/t_p15_mutation.ml",
+      "sha256": "431d85da47d58124aa427dbead4394d1e5e747dc5716aa2d4acf164c7f327b61",
+      "lines": 715,
+      "status": "source-test-reference",
+      "targets": [
+        "VALIDATION.md",
+        "test/"
+      ]
+    },
+    {
+      "path": "test/t_p15_reconcile_correspondence.ml",
+      "sha256": "217e78471c5ee2d68bb1dcfbfbb3b39ebae50ca2a170ef4c00fd09c761a5fb14",
+      "lines": 1133,
+      "status": "source-test-reference",
+      "targets": [
+        "VALIDATION.md",
+        "test/"
+      ]
+    },
+    {
+      "path": "test/t_p15_regression.ml",
+      "sha256": "152370e29856f9911790fce907bae723e81fa2266f5cf29138a01b784aaa941c",
+      "lines": 264,
+      "status": "source-test-reference",
+      "targets": [
+        "VALIDATION.md",
+        "test/"
+      ]
+    },
+    {
+      "path": "test/t_p16_mutation.ml",
+      "sha256": "cd666561805086e79379b15df631bb4d6603d988bfa3237ff223f6404c931f3e",
+      "lines": 1083,
+      "status": "source-test-reference",
+      "targets": [
+        "VALIDATION.md",
+        "test/"
+      ]
+    },
+    {
+      "path": "test/t_p16_regression.ml",
+      "sha256": "8fbca223c064ed9f0a29b33859605c45f67745bb16935a958a696246f9fbf534",
+      "lines": 1068,
+      "status": "source-test-reference",
+      "targets": [
+        "VALIDATION.md",
+        "test/"
+      ]
+    },
+    {
+      "path": "test/t_p16_req_resp.ml",
+      "sha256": "4cbe10346bc56a30dc3e9c8f5ceb067df385495201573939b05c7d0c4ffa1260",
+      "lines": 1138,
+      "status": "source-test-reference",
+      "targets": [
+        "VALIDATION.md",
+        "test/"
+      ]
+    },
+    {
+      "path": "test/t_p17_mutation.ml",
+      "sha256": "c6e21404572decf102c593dbf1ff29995a03561e409809074dfc44051c8841c5",
+      "lines": 721,
+      "status": "source-test-reference",
+      "targets": [
+        "VALIDATION.md",
+        "test/"
+      ]
+    },
+    {
+      "path": "test/t_p17_regression.ml",
+      "sha256": "c3dda86db969d6740821665ce3f96410d2a74aeab6ed6e2983f53c976c6dd9a1",
+      "lines": 499,
+      "status": "source-test-reference",
+      "targets": [
+        "VALIDATION.md",
+        "test/"
+      ]
+    },
+    {
+      "path": "test/t_p17_store.ml",
+      "sha256": "d4448249a5f39ca1b4cd637ceb29a86582fe547c03251e26702ad6515b2f8cb0",
+      "lines": 454,
+      "status": "source-test-reference",
+      "targets": [
+        "VALIDATION.md",
+        "test/"
+      ]
+    },
+    {
+      "path": "test/t_p18_helper.ml",
+      "sha256": "38f93d96d3d574ab95314f2996b9319f5d8c4f6eefc569b10bad18cb0d1dd5e2",
+      "lines": 525,
+      "status": "source-test-reference",
+      "targets": [
+        "VALIDATION.md",
+        "test/"
+      ]
+    },
+    {
+      "path": "test/t_p18_mutation.ml",
+      "sha256": "34c4a0a807defcd83af8f24f5a2a3722d2c0dbae8340583a7390b7743675f091",
+      "lines": 938,
+      "status": "source-test-reference",
+      "targets": [
+        "VALIDATION.md",
+        "test/"
+      ]
+    },
+    {
+      "path": "test/t_p18_regression.ml",
+      "sha256": "40caf2d8710fb105b6567e91ae9ab02e163ee669a448fcce368a486289b1eeed",
+      "lines": 547,
+      "status": "source-test-reference",
+      "targets": [
+        "VALIDATION.md",
+        "test/"
+      ]
+    },
+    {
+      "path": "test/t_p19_mutation.ml",
+      "sha256": "bb93b65a286c9b1126c022af1864a40f9615b2f0ea4c7756fddd21a1f89326b9",
+      "lines": 791,
+      "status": "source-test-reference",
+      "targets": [
+        "VALIDATION.md",
+        "test/"
+      ]
+    },
+    {
+      "path": "test/t_p19_provenance.ml",
+      "sha256": "2f2d055aa919099cec652b30df3e94ca8718eca2caf545d61bad113cab4fe127",
+      "lines": 589,
+      "status": "source-test-reference",
+      "targets": [
+        "VALIDATION.md",
+        "test/"
+      ]
+    },
+    {
+      "path": "test/t_p19_regression.ml",
+      "sha256": "abc7564053f71718558c935ce3f6efee176885d3b3e0e1f6ce6b886c20427a9b",
+      "lines": 635,
+      "status": "source-test-reference",
+      "targets": [
+        "VALIDATION.md",
+        "test/"
+      ]
+    },
+    {
+      "path": "test/t_p20_mutation.ml",
+      "sha256": "7ba1ccd6882f32eb9f898bab34d49997e5f38cd089328dc9d15b180c95300008",
+      "lines": 1168,
+      "status": "source-test-reference",
+      "targets": [
+        "VALIDATION.md",
+        "test/"
+      ]
+    },
+    {
+      "path": "test/t_p20_regression.ml",
+      "sha256": "75bfcb6db9cb355c338c26ac089ce0494ca00c238cba2e478324e4bfbedae91d",
+      "lines": 508,
+      "status": "source-test-reference",
+      "targets": [
+        "VALIDATION.md",
+        "test/"
+      ]
+    },
+    {
+      "path": "test/t_p20_rely.ml",
+      "sha256": "59ad353de4d136b7185a33824b77e04ba23c3e3100bdbc440301dbc16c714fb5",
+      "lines": 965,
+      "status": "source-test-reference",
+      "targets": [
+        "VALIDATION.md",
+        "test/"
+      ]
+    },
+    {
+      "path": "test/t_p21_guarantee.ml",
+      "sha256": "183faa065ff95f830f1ea68e1c985d5e0a72960e3c36c7cf081efe5f410c08d6",
+      "lines": 619,
+      "status": "source-test-reference",
+      "targets": [
+        "VALIDATION.md",
+        "test/"
+      ]
+    },
+    {
+      "path": "test/t_p21_mutation.ml",
+      "sha256": "cb8d060b084758ffb7810b2dc5af3debfcdbf368f4ab9eff803114d6a1d19f09",
+      "lines": 502,
+      "status": "source-test-reference",
+      "targets": [
+        "VALIDATION.md",
+        "test/"
+      ]
+    },
+    {
+      "path": "test/t_p21_regression.ml",
+      "sha256": "973ec644c55b0cf2ce82747b93a173be89c3a795357392366d93e5038c2d02ec",
+      "lines": 651,
+      "status": "source-test-reference",
+      "targets": [
+        "VALIDATION.md",
+        "test/"
+      ]
+    },
+    {
+      "path": "test/t_p22_mutation.ml",
+      "sha256": "d9eaf9111cc088dd043c8a9078708b70a70a3bb42cce852d129de42a7d04bc35",
+      "lines": 456,
+      "status": "source-test-reference",
+      "targets": [
+        "VALIDATION.md",
+        "test/"
+      ]
+    },
+    {
+      "path": "test/t_p22_regression.ml",
+      "sha256": "ccce9bf14843fcaa10eb6674171910a6b3ce9eab974065b0f0cbe8f4c686ee5d",
+      "lines": 435,
+      "status": "source-test-reference",
+      "targets": [
+        "VALIDATION.md",
+        "test/"
+      ]
+    },
+    {
+      "path": "test/t_p22_scaledown.ml",
+      "sha256": "3adbec9b26ebe9a1f310260ddf1983054dccc724952f5c670c6bb527db6aee9d",
+      "lines": 646,
+      "status": "source-test-reference",
+      "targets": [
+        "VALIDATION.md",
+        "test/"
+      ]
+    },
+    {
+      "path": "test/t_p23_local_binding.ml",
+      "sha256": "7cb84f1b7a69d41cb248e2c50ceacda387054820f97382643df0a7bb156bccdd",
+      "lines": 898,
+      "status": "source-test-reference",
+      "targets": [
+        "VALIDATION.md",
+        "test/"
+      ]
+    },
+    {
+      "path": "test/t_p23_mutation.ml",
+      "sha256": "158a6188033371c3548db1a14d56de147ea9d3b08a4ea4cf3fa45c2d0c526e15",
+      "lines": 1053,
+      "status": "source-test-reference",
+      "targets": [
+        "VALIDATION.md",
+        "test/"
+      ]
+    },
+    {
+      "path": "test/t_p23_regression.ml",
+      "sha256": "38d7a21c210f468b04034af17723b265871734e35b3fad4b37746c892e1e574f",
+      "lines": 544,
+      "status": "source-test-reference",
+      "targets": [
+        "VALIDATION.md",
+        "test/"
+      ]
+    },
+    {
+      "path": "test/t_p24_mutation.ml",
+      "sha256": "77a94b12453958487713c20d76b19f80eaf6087b3cedfc4c091c2aa992ef701c",
+      "lines": 1416,
+      "status": "source-test-reference",
+      "targets": [
+        "VALIDATION.md",
+        "test/"
+      ]
+    },
+    {
+      "path": "test/t_p24_regression.ml",
+      "sha256": "8972cc27815def16e039586bd2ca97eff3ccde4752c4c7d6fbefec5ce15f4dcb",
+      "lines": 849,
+      "status": "source-test-reference",
+      "targets": [
+        "VALIDATION.md",
+        "test/"
+      ]
+    },
+    {
+      "path": "test/t_p24_state_predicates.ml",
+      "sha256": "58b0feaf0e487ccbebd9c3750ba08da2cd01c8a511117c123afc84a8e6a64133",
+      "lines": 1718,
+      "status": "source-test-reference",
+      "targets": [
+        "VALIDATION.md",
+        "test/"
+      ]
+    },
+    {
+      "path": "test/t_p25_e3_multi_cr.ml",
+      "sha256": "cbb27d093c8fe044bf38ea71b24e7511b8906fdd9befd0e3a91e2562098107bd",
+      "lines": 142,
+      "status": "source-test-reference",
+      "targets": [
+        "VALIDATION.md",
+        "test/"
+      ]
+    },
+    {
+      "path": "test/t_p25_reconcile.ml",
+      "sha256": "8bf2e9d05cf3264ef5f7557b4ffdc654318c0f6f968464497f045ad35621afb2",
+      "lines": 1262,
+      "status": "source-test-reference",
+      "targets": [
+        "VALIDATION.md",
+        "test/"
+      ]
+    },
+    {
+      "path": "test/t_p25_state_predicates.ml",
+      "sha256": "fca60a1520348e765f0991d056f66b13045cc8dd78a2b2b9051a255d5fbd3199",
+      "lines": 693,
+      "status": "source-test-reference",
+      "targets": [
+        "VALIDATION.md",
+        "test/"
+      ]
+    },
+    {
+      "path": "test/t_p26_pins.ml",
+      "sha256": "639371f4efc44c8cc341ad90232e438cca45e1e7a01bea1360e0f5ec8b30dfd0",
+      "lines": 2393,
+      "status": "source-test-reference",
+      "targets": [
+        "VALIDATION.md",
+        "test/"
+      ]
+    },
+    {
+      "path": "test/t_p4_enumerator.ml",
+      "sha256": "33348812fefcc78cde7dd2007314b8b53aec118797a1a0bdcf82770d71e1a03a",
+      "lines": 247,
+      "status": "source-test-reference",
+      "targets": [
+        "VALIDATION.md",
+        "test/"
+      ]
+    },
+    {
+      "path": "test/t_p4_invariants.ml",
+      "sha256": "a81c6bcaa00e15e711efdfe268b86783cdcd1c6abef29403c56804b3be6be12c",
+      "lines": 790,
+      "status": "source-test-reference",
+      "targets": [
+        "VALIDATION.md",
+        "test/"
+      ]
+    },
+    {
+      "path": "test/t_p4_oracle.ml",
+      "sha256": "8593e53939d2e023637eb3ed2c28a6c4fe9475b7b0747f17451955de460a285c",
+      "lines": 751,
+      "status": "source-test-reference",
+      "targets": [
+        "VALIDATION.md",
+        "test/"
+      ]
+    },
+    {
+      "path": "test/t_p4_roundtrip.ml",
+      "sha256": "05f189c5ff6c209de981303a2768b4928cb497d391a8db5c3699a119b6eea9f9",
+      "lines": 318,
+      "status": "source-test-reference",
+      "targets": [
+        "VALIDATION.md",
+        "test/"
+      ]
+    },
+    {
+      "path": "test/t_p5_cluster_check.ml",
+      "sha256": "02e3950d1ebe10efaca42ba17200a1e70d76c9c215dc67306003ed5d3271d0a9",
+      "lines": 331,
+      "status": "source-test-reference",
+      "targets": [
+        "VALIDATION.md",
+        "test/"
+      ]
+    },
+    {
+      "path": "test/t_p5_model_check.ml",
+      "sha256": "eebd444af50ab012d689699e8fdda58611faf30b7c84d24af5ba8f3161246309",
+      "lines": 366,
+      "status": "source-test-reference",
+      "targets": [
+        "VALIDATION.md",
+        "test/"
+      ]
+    },
+    {
+      "path": "test/t_p5_mutation.ml",
+      "sha256": "e0007296c0e4395ef11aaae58c1f747f1f03fa36eefdcf6a3d53032d5491fe9b",
+      "lines": 211,
+      "status": "source-test-reference",
+      "targets": [
+        "VALIDATION.md",
+        "test/"
+      ]
+    },
+    {
+      "path": "test/t_p5_state_eq.ml",
+      "sha256": "ac0ed1aefa565479993c0d77b765a54116a5ebef31e3f372425e738c9216d221",
+      "lines": 100,
+      "status": "source-test-reference",
+      "targets": [
+        "VALIDATION.md",
+        "test/"
+      ]
+    },
+    {
+      "path": "test/t_p6_discharge.ml",
+      "sha256": "91339a132f07a39fda3eeb93880425372ae4d2d4cfdafb849c72b7b469ce4066",
+      "lines": 147,
+      "status": "source-test-reference",
+      "targets": [
+        "VALIDATION.md",
+        "test/"
+      ]
+    },
+    {
+      "path": "test/t_p6_mutation.ml",
+      "sha256": "0843390aa3b05b28ffcb6e22e5a855db6af92b699eb992d68737ca9fb4d6c95e",
+      "lines": 231,
+      "status": "source-test-reference",
+      "targets": [
+        "VALIDATION.md",
+        "test/"
+      ]
+    },
+    {
+      "path": "test/t_p6_step_view.ml",
+      "sha256": "0929874a4de61cbc355c3456fa26212a401ce058604fa994fb13c8f4bf238e33",
+      "lines": 189,
+      "status": "source-test-reference",
+      "targets": [
+        "VALIDATION.md",
+        "test/"
+      ]
+    },
+    {
+      "path": "test/t_p6_vrs_liveness.ml",
+      "sha256": "b504e8c5652a8f67a8464fda39894cd56a1c7a099f26bad64ac7b51dd5e5a20c",
+      "lines": 200,
+      "status": "source-test-reference",
+      "targets": [
+        "VALIDATION.md",
+        "test/"
+      ]
+    },
+    {
+      "path": "test/t_p7_concurrency.ml",
+      "sha256": "7ba73f59d8a93e73d24de679093b63a171b07f7c796737c52f9a7af3f4e4765e",
+      "lines": 37,
+      "status": "source-test-reference",
+      "targets": [
+        "VALIDATION.md",
+        "test/"
+      ]
+    },
+    {
+      "path": "test/t_p7_controller_runtime.ml",
+      "sha256": "ff2120cd6092ec510dc19cc4ec4ef92b89f340cb9fcdec1e10c354611cc05c86",
+      "lines": 110,
+      "status": "source-test-reference",
+      "targets": [
+        "VALIDATION.md",
+        "test/"
+      ]
+    },
+    {
+      "path": "test/t_p7_correspondence.ml",
+      "sha256": "8ae770ead57436118121679a9c2a9ec0e8d6729d06f88cf8a54029e8053e656b",
+      "lines": 62,
+      "status": "source-test-reference",
+      "targets": [
+        "VALIDATION.md",
+        "test/"
+      ]
+    },
+    {
+      "path": "test/t_p7_exec_api_server.ml",
+      "sha256": "99a0954e2e4b6609cb01648c1640fb0a888c9e772a90ce508b09b6795b88fab5",
+      "lines": 162,
+      "status": "source-test-reference",
+      "targets": [
+        "VALIDATION.md",
+        "test/"
+      ]
+    },
+    {
+      "path": "test/t_p7_mutation.ml",
+      "sha256": "3e41bcde3030b18e1eef65be4c9b1bf2c8e2b5babb66646a2c999dfbbdad113e",
+      "lines": 134,
+      "status": "source-test-reference",
+      "targets": [
+        "VALIDATION.md",
+        "test/"
+      ]
+    },
+    {
+      "path": "test/t_p8_mutation.ml",
+      "sha256": "56268bc2993b0d6c405d1ecd1499f29cae067ded8d0a2c7c1baed7ba3ab6e02a",
+      "lines": 268,
+      "status": "source-test-reference",
+      "targets": [
+        "VALIDATION.md",
+        "test/"
+      ]
+    },
+    {
+      "path": "test/t_p8_settle.ml",
+      "sha256": "5b471bf2c3b526272c8c389141559af8b74db6b12f48918e8889f78c7e30a1a1",
+      "lines": 287,
+      "status": "source-test-reference",
+      "targets": [
+        "VALIDATION.md",
+        "test/"
+      ]
+    },
+    {
+      "path": "test/t_p9_mutation.ml",
+      "sha256": "7d388e49ae4a5e5c6c8a389ae643daa31922fcb442ed401a550f4aeaea532b2b",
+      "lines": 354,
+      "status": "source-test-reference",
+      "targets": [
+        "VALIDATION.md",
+        "test/"
+      ]
+    },
+    {
+      "path": "test/t_p9_two_controller.ml",
+      "sha256": "c4348f6b80724168bdc393455704228ae7f8df704a756dfc73f7c3616fa479bf",
+      "lines": 154,
+      "status": "source-test-reference",
+      "targets": [
+        "VALIDATION.md",
+        "test/"
+      ]
+    },
+    {
+      "path": "test/t_reconcile_driver.ml",
+      "sha256": "3895d498a654f11e0ae513e605f775bb2f5022014399d7917825886c65aed188",
+      "lines": 140,
+      "status": "source-test-reference",
+      "targets": [
+        "VALIDATION.md",
+        "test/"
+      ]
+    },
+    {
+      "path": "test/t_state_machine.ml",
+      "sha256": "2edd07a831a587027f8e64a1be6004eef404c05761e633378e073bbd7cb0c0ba",
+      "lines": 123,
+      "status": "source-test-reference",
+      "targets": [
+        "VALIDATION.md",
+        "test/"
+      ]
+    },
+    {
+      "path": "test/t_v_deployment.ml",
+      "sha256": "1c6cf41564716d8f50dd7fc77dc5779b66f93c9e648ff5a730bd275590c44653",
+      "lines": 180,
+      "status": "source-test-reference",
+      "targets": [
+        "VALIDATION.md",
+        "test/"
+      ]
+    },
+    {
+      "path": "test/t_v_deployment_reconciler.ml",
+      "sha256": "57ff07c2ef96432fe872863c6b5f4413b0449d33c50658ff311c1fe8f0ed762a",
+      "lines": 272,
+      "status": "source-test-reference",
+      "targets": [
+        "VALIDATION.md",
+        "test/"
+      ]
+    },
+    {
+      "path": "test/t_v_stateful_set.ml",
+      "sha256": "cf99ca3b73a7fc2924d7f90fa0bf803c68df9d53dccd65b042eb159cc113f28a",
+      "lines": 134,
+      "status": "source-test-reference",
+      "targets": [
+        "VALIDATION.md",
+        "test/"
+      ]
+    },
+    {
+      "path": "test/t_v_stateful_set_reconciler.ml",
+      "sha256": "345b1c62b506f8566aa174420d84dd8ed70dd40a450219e57b70e20c035c8a27",
+      "lines": 361,
+      "status": "source-test-reference",
+      "targets": [
+        "VALIDATION.md",
+        "test/"
+      ]
+    },
+    {
+      "path": "test/t_vreplica_set.ml",
+      "sha256": "3fcaafed5562214b1bd58b7db0778d3927108b2cc2f2c855937d1b4d862f4198",
+      "lines": 126,
+      "status": "source-test-reference",
+      "targets": [
+        "VALIDATION.md",
+        "test/"
+      ]
+    },
+    {
+      "path": "test/t_vreplica_set_driver.ml",
+      "sha256": "38da40622eee551e7702f6f984e5e3017b2449fc590f3da2e2d03ebd92c451c3",
+      "lines": 170,
+      "status": "source-test-reference",
+      "targets": [
+        "VALIDATION.md",
+        "test/"
+      ]
+    },
+    {
+      "path": "test/t_vreplica_set_reconciler.ml",
+      "sha256": "b21de886d23161fa206fcb6c84cd47f1c399f08194b47e26f4b87ec57f3c4644",
+      "lines": 415,
+      "status": "source-test-reference",
+      "targets": [
+        "VALIDATION.md",
+        "test/"
+      ]
+    }
+  ],
+  "mapping_note": "Area-level behavioral traceability. Source tests are references for the differential replacement suites, not individually translated test files. See PORTING.md for representation and interface changes."
+}

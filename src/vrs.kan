@@ -1,0 +1,92 @@
+-- Pure VReplicaSet reconciler, preserving the source's error-state branches.
+def Vrs : Type 0 := VreplicaSetT
+def VrsState : Type 0 := VreplicaSetReconcilerS
+def VrsStep : Type 0 := VreplicaSetReconcilerStep
+def VrsOutput : Type 0 := prod (VrsState, Option Request)
+def vrsInit : VrsState := vreplicaSetReconcilerSMake vreplicaSetReconcilerStepInit (none ListPodT)
+def vrsError : VrsState -> VrsOutput := fun (s : VrsState) => tuple (vreplicaSetReconcilerSSetReconcileStep vreplicaSetReconcilerStepError s, none Request)
+def vrsAt : VrsStep -> VrsState -> VrsState := fun (step : VrsStep) (s : VrsState) => vreplicaSetReconcilerSSetReconcileStep step s
+def vrsDone : VrsState -> Bool := fun (s : VrsState) => vreplicaSetReconcilerStepEqual (vreplicaSetReconcilerSReconcileStep s) vreplicaSetReconcilerStepDone
+def vrsFailed : VrsState -> Bool := fun (s : VrsState) => vreplicaSetReconcilerStepEqual (vreplicaSetReconcilerSReconcileStep s) vreplicaSetReconcilerStepError
+def rec objectsToPods : ListDynamicObjectT -> Option ListPodT := fun (xs : ListDynamicObjectT) =>
+  match xs as self in ListDynamicObjectT return Option ListPodT with
+  | listDynamicObjectTNil => some ListPodT listPodTNil
+  | listDynamicObjectTCons h t => optionBind PodT ListPodT (resultToOption PodT (podTUnmarshal h)) (fun (pod : PodT) =>
+      optionMap ListPodT ListPodT (fun (tail : ListPodT) => listPodTCons pod tail) (objectsToPods t))
+def vrsPodMatches : Vrs -> OwnerReferenceT -> PodT -> Bool := fun (cr : Vrs) (owner : OwnerReferenceT) (pod : PodT) =>
+  let pm : ObjectMetaT := podTMetadata pod in
+  boolAnd (objectMetaOwnersContain pm owner)
+  (boolAnd (selectorMatches (vreplicaSetVrsSpecSelector (vreplicaSetTSpec cr)) (optionValue StringMap stringMapEmpty (objectMetaTLabels pm)))
+  (boolAnd (boolNot (optionIsSome Bytes (objectMetaTDeletionTimestamp pm)))
+  (optionFold Bytes Bool false (fun (s : Bytes) => bytesStartsWith b"vreplicaset-" s) (objectMetaTName pm))))
+def vrsMakePod : Vrs -> Option PodT := fun (cr : Vrs) =>
+  optionBind PodTemplateSpecT PodT (vreplicaSetVrsSpecTemplate (vreplicaSetTSpec cr)) (fun (tmpl : PodTemplateSpecT) =>
+  optionBind ObjectMetaT PodT (podTemplateSpecTMetadata tmpl) (fun (tm : ObjectMetaT) =>
+  optionBind Bytes PodT (objectMetaTName (vreplicaSetTMetadata cr)) (fun (name : Bytes) =>
+  optionMap OwnerReferenceT PodT (fun (owner : OwnerReferenceT) =>
+    let md : ObjectMetaT := objectMetaTSetLabels (objectMetaTLabels tm) objectMetaDefault in
+    let md : ObjectMetaT := objectMetaTSetAnnotations (objectMetaTAnnotations tm) md in
+    let md : ObjectMetaT := objectMetaTSetFinalizers (objectMetaTFinalizers tm) md in
+    let md : ObjectMetaT := objectMetaTSetGenerateName (some Bytes (bytesAppend b"vreplicaset-" (bytesAppend name b"-"))) md in
+    let md : ObjectMetaT := objectMetaTSetOwnerReferences (some ListOwnerReferenceT (listOwnerReferenceTCons owner listOwnerReferenceTNil)) md in
+    podTMake md (podTemplateSpecTSpec tmpl) (none Ghost)) (vreplicaSetTControllerOwner cr))))
+def vrsReplicas : Vrs -> Int := fun (cr : Vrs) => optionValue Int (nonnegative 1) (vreplicaSetVrsSpecReplicas (vreplicaSetTSpec cr))
+def vrsUpdateStatus : VrsState -> Vrs -> VrsOutput := fun (s : VrsState) (cr : Vrs) =>
+  let md : ObjectMetaT := vreplicaSetTMetadata cr in
+  optionFold ListOwnerReferenceT VrsOutput (vrsError s) (fun (owners : ListOwnerReferenceT) =>
+    let controllers : ListOwnerReferenceT := listOwnerReferenceTFilter owners ownerIsController in
+    case (natEq (listOwnerReferenceTLength controllers) 1) with
+    | 0 (u : Unit) => vrsError s
+    | 1 (u : Unit) => optionFold OwnerReferenceT VrsOutput (vrsError s) (fun (owner : OwnerReferenceT) =>
+      optionFold Bytes VrsOutput (vrsError s) (fun (name : Bytes) =>
+      optionFold Bytes VrsOutput (vrsError s) (fun (ns : Bytes) =>
+        let updated : Vrs := vreplicaSetTSetStatus (some VreplicaSetVrsStatus (vreplicaSetVrsStatusMake (vrsReplicas cr))) cr in
+        tuple (vrsAt vreplicaSetReconcilerStepAfterUpdateVrsStatus s,
+          some Request (requestGetThenUpdateStatus ns name owner (vreplicaSetTMarshal updated)))) (objectMetaTNamespace md)) (objectMetaTName md))
+      (listOwnerReferenceTNth controllers 0)) (objectMetaTOwnerReferences md)
+def vrsCreate : VrsState -> Vrs -> Int -> VrsOutput := fun (s : VrsState) (cr : Vrs) (diff : Int) =>
+  optionFold Bytes VrsOutput (vrsError s) (fun (ns : Bytes) =>
+  optionFold PodT VrsOutput (vrsError s) (fun (pod : PodT) =>
+    tuple (vrsAt (vreplicaSetReconcilerStepAfterCreatePod (intSub diff (nonnegative 1))) s,
+      some Request (requestCreate ns (podTMarshal pod)))) (vrsMakePod cr)) (objectMetaTNamespace (vreplicaSetTMetadata cr))
+def vrsDelete : VrsState -> Vrs -> ListPodT -> Int -> VrsOutput := fun (s : VrsState) (cr : Vrs) (pods : ListPodT) (diff : Int) =>
+  optionFold Nat VrsOutput (vrsError s) (fun (index : Nat) =>
+  optionFold PodT VrsOutput (vrsError s) (fun (victim : PodT) =>
+  optionFold Bytes VrsOutput (vrsError s) (fun (ns : Bytes) =>
+  optionFold Bytes VrsOutput (vrsError s) (fun (name : Bytes) =>
+  optionFold OwnerReferenceT VrsOutput (vrsError s) (fun (owner : OwnerReferenceT) =>
+    tuple (vrsAt (vreplicaSetReconcilerStepAfterDeletePod (intSub diff (nonnegative 1))) s,
+      some Request (requestGetThenDelete (commonObjectRefMake commonKindPod name ns) owner))) (vreplicaSetTControllerOwner cr))
+    (objectMetaTName (podTMetadata victim))) (objectMetaTNamespace (vreplicaSetTMetadata cr)))
+    (listPodTNth pods index)) (intToNat (intSub diff (nonnegative 1)))
+def vrsAfterList : VrsState -> Vrs -> ListDynamicObjectT -> VrsOutput := fun (s : VrsState) (cr : Vrs) (objects : ListDynamicObjectT) =>
+  optionFold ListPodT VrsOutput (vrsError s) (fun (pods : ListPodT) =>
+  optionFold Bytes VrsOutput (vrsError s) (fun (ns : Bytes) =>
+  optionFold OwnerReferenceT VrsOutput (vrsError s) (fun (owner : OwnerReferenceT) =>
+  optionFold Nat VrsOutput (vrsError s) (fun (desired : Nat) =>
+    let filtered : ListPodT := listPodTFilter pods (vrsPodMatches cr owner) in
+    let n : Nat := listPodTLength filtered in
+    case (natEq n desired) with
+    | 1 (u : Unit) => vrsUpdateStatus s cr
+    | 0 (u : Unit) => (case (natLt n desired) with
+      | 1 (u : Unit) => vrsCreate s cr (nonnegative (natSub desired n))
+      | 0 (u : Unit) => vrsDelete (vreplicaSetReconcilerSSetFilteredPods (some ListPodT filtered) s) cr filtered (nonnegative (natSub n desired))))
+    (intToNat (vrsReplicas cr))) (vreplicaSetTControllerOwner cr)) (objectMetaTNamespace (vreplicaSetTMetadata cr))) (objectsToPods objects)
+def vrsCore : Vrs -> Option Response -> VrsState -> VrsOutput := fun (cr : Vrs) (response : Option Response) (s : VrsState) =>
+  match (vreplicaSetReconcilerSReconcileStep s) as self in VreplicaSetReconcilerStep return VrsOutput with
+  | vreplicaSetReconcilerStepInit =>
+    (case (optionIsSome Bytes (objectMetaTDeletionTimestamp (vreplicaSetTMetadata cr))) with
+    | 1 (u : Unit) => tuple (vrsAt vreplicaSetReconcilerStepDone s, none Request)
+    | 0 (u : Unit) => optionFold Bytes VrsOutput (vrsError s) (fun (ns : Bytes) =>
+        tuple (vrsAt vreplicaSetReconcilerStepAfterListPods s, some Request (requestList commonKindPod ns))) (objectMetaTNamespace (vreplicaSetTMetadata cr)))
+  | vreplicaSetReconcilerStepAfterListPods => optionFold ListDynamicObjectT VrsOutput (vrsError s) (vrsAfterList s cr) (apiResponseOk ListDynamicObjectT (responseList response))
+  | vreplicaSetReconcilerStepAfterCreatePod diff => optionFold DynamicObjectT VrsOutput (vrsError s) (fun (ignored : DynamicObjectT) =>
+      select VrsOutput (intEqual diff (nonnegative 0)) (vrsUpdateStatus s cr) (vrsCreate s cr diff)) (apiResponseOk DynamicObjectT (responseCreate response))
+  | vreplicaSetReconcilerStepAfterDeletePod diff => optionFold Ghost VrsOutput (vrsError s) (fun (ignored : Ghost) =>
+      case (intEqual diff (nonnegative 0)) with | 1 (u : Unit) => vrsUpdateStatus s cr
+      | 0 (u : Unit) => optionFold ListPodT VrsOutput (vrsError s) (fun (pods : ListPodT) => vrsDelete s cr pods diff)
+        (vreplicaSetReconcilerSFilteredPods s)) (apiResponseOk Ghost (responseGetThenDelete response))
+  | vreplicaSetReconcilerStepAfterUpdateVrsStatus => optionFold DynamicObjectT VrsOutput (vrsError s) (fun (ignored : DynamicObjectT) =>
+      tuple (vrsAt vreplicaSetReconcilerStepDone s, none Request)) (apiResponseOk DynamicObjectT (responseGetThenUpdateStatus response))
+  | vreplicaSetReconcilerStepDone => tuple (s, none Request)
+  | vreplicaSetReconcilerStepError => tuple (s, none Request)

@@ -1,0 +1,118 @@
+-- Twelve cluster actions, including explicit faults and external systems.
+def clusterSetActors : ActorMap -> ClusterState -> ClusterState := fun (actors : ActorMap) (s : ClusterState) => tuple (s.0, actors, s.2, s.3, s.4, s.5)
+def clusterSetNetwork : MessagePool -> ClusterState -> ClusterState := fun (pool : MessagePool) (s : ClusterState) => tuple (s.0, s.1, pool, s.3, s.4, s.5)
+def clusterSetActor : Int -> Actor -> ClusterState -> ClusterState := fun (id : Int) (actor : Actor) (s : ClusterState) => clusterSetActors (actorMapSet id actor s.1) s
+def clusterInit : ClusterConfig -> ClusterState -> Bool := fun (config : ClusterConfig) (s : ClusterState) =>
+  boolAnd (apiStateInit s.0) (boolAnd (natEq (messagePoolSize s.2) 0) (boolAnd s.4 (boolAnd s.5
+    (modelMapFold Bool config.1 true (fun (id : Int) (bundle : ControllerBundle) (good : Bool) => boolAnd good
+      (optionFold Actor Bool false (fun (actor : Actor) => boolAnd (controllerStateEqual actor.0 controllerInit) (boolAnd actor.2
+        (optionFold ExternalProgram Bool true (fun (ep : ExternalProgram) => optionFold Value Bool false (valueEqual ep.0) actor.1) bundle.1))) (actorMapGet id s.1)))))))
+def clusterApi : ClusterConfig -> Option Message -> ClusterState -> Option ClusterState := fun (config : ClusterConfig) (recv : Option Message) (s : ClusterState) =>
+  optionBind Message ClusterState recv (fun (msg : Message) =>
+    case (boolAnd (hostEqual msg.1 hostApi) (boolAnd (optionIsSome Request (contentGetRequest msg.3)) (messagePoolContains msg s.2))) with
+    | 0 (u : Unit) => none ClusterState
+    | 1 (u : Unit) =>
+      let result : prod (ApiState, Message) := apiMessageTransition config.0 msg s.0 in
+      some ClusterState (tuple (result.0, s.1, networkTransition recv (messagePoolCons result.1 messagePoolNil) s.2, s.3, s.4, s.5)))
+def gcOwnerGone : ResourceStore -> Bytes -> OwnerReferenceT -> Bool := fun (store : ResourceStore) (ns : Bytes) (owner : OwnerReferenceT) =>
+  optionFold DynamicObjectT Bool true (fun (obj : DynamicObjectT) =>
+    boolNot (optionFold Int Bool false (intEqual (ownerReferenceTUid owner)) (objectMetaTUid (dynamicObjectTMetadata obj)))) (resourceStoreGet (ownerToRef owner ns) store)
+def gcOrphaned : ResourceStore -> CommonObjectRef -> Bool := fun (store : ResourceStore) (key : CommonObjectRef) =>
+  optionFold DynamicObjectT Bool false (fun (obj : DynamicObjectT) =>
+    optionFold ListOwnerReferenceT Bool false (fun (owners : ListOwnerReferenceT) =>
+      boolAnd (natLt 0 (listOwnerReferenceTLength owners)) (listOwnerReferenceTEvery owners (gcOwnerGone store (commonObjectRefNamespace key))))
+      (objectMetaTOwnerReferences (dynamicObjectTMetadata obj))) (resourceStoreGet key store)
+def clusterGc : CommonObjectRef -> ClusterState -> Option ClusterState := fun (key : CommonObjectRef) (s : ClusterState) =>
+  case (gcOrphaned s.0.0 key) with | 0 (u : Unit) => none ClusterState
+  | 1 (u : Unit) =>
+    let uid : Option Int := optionBind DynamicObjectT Int (resourceStoreGet key s.0.0) (fun (obj : DynamicObjectT) => objectMetaTUid (dynamicObjectTMetadata obj)) in
+    let req : Request := requestDelete key (some ApiMethodPreconditions (apiMethodPreconditionsMake uid (none Int))) in
+    let msg : Message := tuple (hostBuiltin, hostApi, s.3, contentRequest req) in
+    some ClusterState (tuple (s.0, s.1, messagePoolAppend s.2 (messagePoolCons msg messagePoolNil), intAdd s.3 (nonnegative 1), s.4, s.5))
+def clusterController : ClusterConfig -> Int -> Option Message -> Option CommonObjectRef -> ClusterState -> Option ClusterState :=
+  fun (config : ClusterConfig) (id : Int) (recv : Option Message) (key : Option CommonObjectRef) (s : ClusterState) =>
+  optionBind ControllerBundle ClusterState (modelMapGet id config.1) (fun (bundle : ControllerBundle) =>
+  optionBind CommonObjectRef ClusterState key (fun (key : CommonObjectRef) =>
+  optionBind Actor ClusterState (actorMapGet id s.1) (fun (actor : Actor) =>
+    case (boolAnd (messageDestinedFor recv (hostController id key)) (networkEnabled recv s.2)) with
+    | 0 (u : Unit) => none ClusterState
+    | 1 (u : Unit) => optionMap ControllerOutput ClusterState (fun (result : ControllerOutput) =>
+      tuple (s.0, actorMapSet id (tuple (result.0, actor.1, actor.2)) s.1, networkTransition recv result.1 s.2, result.2, s.4, s.5))
+      (controllerChoose bundle.0 id (tuple (recv, some CommonObjectRef key, s.3)) actor.0))))
+def clusterSchedule : ClusterConfig -> Int -> CommonObjectRef -> ClusterState -> Option ClusterState := fun (config : ClusterConfig) (id : Int) (key : CommonObjectRef) (s : ClusterState) =>
+  optionBind ControllerBundle ClusterState (modelMapGet id config.1) (fun (bundle : ControllerBundle) =>
+  optionBind DynamicObjectT ClusterState (resourceStoreGet key s.0.0) (fun (obj : DynamicObjectT) =>
+    case (commonKindEqual (commonObjectRefKind key) bundle.0.0) with | 0 (u : Unit) => none ClusterState
+    | 1 (u : Unit) => some ClusterState (optionFold Actor ClusterState s (fun (actor : Actor) =>
+      let controller : ControllerState := tuple (actor.0.0, resourceStoreSet key obj actor.0.1, actor.0.2) in
+      clusterSetActor id (tuple (controller, actor.1, actor.2)) s) (actorMapGet id s.1))))
+def clusterRestart : ClusterConfig -> Int -> ClusterState -> Option ClusterState := fun (config : ClusterConfig) (id : Int) (s : ClusterState) =>
+  optionBind ControllerBundle ClusterState (modelMapGet id config.1) (fun (bundle : ControllerBundle) =>
+  optionBind Actor ClusterState (actorMapGet id s.1) (fun (actor : Actor) =>
+    select (Option ClusterState) actor.2 (some ClusterState (clusterSetActor id (tuple (tuple (ongoingMapNil, resourceStoreNil, actor.0.2), actor.1, actor.2)) s)) (none ClusterState)))
+def clusterDisableCrash : ClusterConfig -> Int -> ClusterState -> Option ClusterState := fun (config : ClusterConfig) (id : Int) (s : ClusterState) =>
+  optionMap ControllerBundle ClusterState (fun (bundle : ControllerBundle) =>
+    optionFold Actor ClusterState s (fun (actor : Actor) => clusterSetActor id (tuple (actor.0, actor.1, false)) s) (actorMapGet id s.1)) (modelMapGet id config.1)
+def apiErrorResponse : Request -> ApiError -> Response := fun (req : Request) (e : ApiError) =>
+  match req as self in ApiMethodApiRequest return Response with
+  | apiMethodApiRequestGetRequest r => makeResponseGet (apiError DynamicObjectT e)
+  | apiMethodApiRequestListRequest r => makeResponseList (apiError ListDynamicObjectT e)
+  | apiMethodApiRequestCreateRequest r => makeResponseCreate (apiError DynamicObjectT e)
+  | apiMethodApiRequestDeleteRequest r => makeResponseDelete (apiError Ghost e)
+  | apiMethodApiRequestUpdateRequest r => makeResponseUpdate (apiError DynamicObjectT e)
+  | apiMethodApiRequestUpdateStatusRequest r => makeResponseUpdateStatus (apiError DynamicObjectT e)
+  | apiMethodApiRequestGetThenDeleteRequest r => makeResponseGetThenDelete (apiError Ghost e)
+  | apiMethodApiRequestGetThenUpdateRequest r => makeResponseGetThenUpdate (apiError DynamicObjectT e)
+  | apiMethodApiRequestGetThenUpdateStatusRequest r => makeResponseGetThenUpdateStatus (apiError DynamicObjectT e)
+def clusterDrop : Message -> ApiError -> ClusterState -> Option ClusterState := fun (msg : Message) (error : ApiError) (s : ClusterState) =>
+  optionBind Request ClusterState (contentGetRequest msg.3) (fun (req : Request) =>
+    case (boolAnd s.4 (boolAnd (hostEqual msg.1 hostApi) (messagePoolContains msg s.2))) with | 0 (u : Unit) => none ClusterState
+    | 1 (u : Unit) => some ClusterState (clusterSetNetwork
+      (networkTransition (some Message msg) (messagePoolCons (messageFormResponse msg (apiErrorResponse req error)) messagePoolNil) s.2) s))
+def monkeyRequest : MonkeyStep -> PodT -> Request := fun (step : MonkeyStep) (pod : PodT) =>
+  let ns : Bytes := optionValue Bytes b"" (objectMetaTNamespace (podTMetadata pod)) in
+  let name : Bytes := optionValue Bytes b"" (objectMetaTName (podTMetadata pod)) in
+  match step as self in MonkeyStep return Request with
+  | monkeyCreate => requestCreate ns (podTMarshal pod)
+  | monkeyUpdate => requestUpdate ns name (podTMarshal pod)
+  | monkeyUpdateStatus => requestUpdateStatus ns name (podTMarshal pod)
+  | monkeyDelete => requestDelete (commonObjectRefMake commonKindPod name ns) (none ApiMethodPreconditions)
+def clusterMonkey : MonkeyStep -> PodT -> ClusterState -> Option ClusterState := fun (step : MonkeyStep) (pod : PodT) (s : ClusterState) =>
+  case s.5 with | 0 (u : Unit) => none ClusterState
+  | 1 (u : Unit) =>
+    let msg : Message := tuple (hostMonkey, hostApi, s.3, contentRequest (monkeyRequest step pod)) in
+    some ClusterState (tuple (s.0, s.1, messagePoolAppend s.2 (messagePoolCons msg messagePoolNil), intAdd s.3 (nonnegative 1), s.4, s.5))
+def externalTransition : ExternalProgram -> Message -> ResourceStore -> Value -> prod (Value, Message) := fun (program : ExternalProgram) (msg : Message) (resources : ResourceStore) (s : Value) =>
+  optionFold Value (prod (Value, Message)) (tuple (s, msg)) (fun (request : Value) =>
+    let result : prod (Value, Value) := program.1 request s resources in
+    tuple (result.0, tuple (msg.1, msg.0, msg.2, contentExternalResponse result.1))) (contentGetExternalRequest msg.3)
+def clusterExternal : ClusterConfig -> Int -> Option Message -> ClusterState -> Option ClusterState := fun (config : ClusterConfig) (id : Int) (recv : Option Message) (s : ClusterState) =>
+  optionBind ControllerBundle ClusterState (modelMapGet id config.1) (fun (bundle : ControllerBundle) =>
+  optionBind ExternalProgram ClusterState bundle.1 (fun (program : ExternalProgram) =>
+  optionBind Actor ClusterState (actorMapGet id s.1) (fun (actor : Actor) =>
+  optionBind Value ClusterState actor.1 (fun (external : Value) =>
+  optionBind Message ClusterState recv (fun (msg : Message) =>
+    case (boolAnd (hostEqual msg.1 (hostExternal id)) (boolAnd (optionIsSome Value (contentGetExternalRequest msg.3)) (messagePoolContains msg s.2))) with
+    | 0 (u : Unit) => none ClusterState
+    | 1 (u : Unit) =>
+      let result : prod (Value, Message) := externalTransition program msg s.0.0 external in
+      some ClusterState (tuple (s.0, actorMapSet id (tuple (actor.0, some Value result.0, actor.2)) s.1,
+        networkTransition recv (messagePoolCons result.1 messagePoolNil) s.2, s.3, s.4, s.5)))))))
+def clusterNextStates : ClusterConfig -> ClusterState -> ClusterStep -> ClusterStates := fun (config : ClusterConfig) (s : ClusterState) (step : ClusterStep) =>
+  match step as self in ClusterStep return ClusterStates with
+  | stepApi recv => clusterStatesOption (clusterApi config recv s)
+  | stepBuiltin key => clusterStatesOption (clusterGc key s)
+  | stepController id recv key => clusterStatesOption (clusterController config id recv key s)
+  | stepSchedule id key => clusterStatesOption (clusterSchedule config id key s)
+  | stepRestart id => clusterStatesOption (clusterRestart config id s)
+  | stepDisableCrash id => clusterStatesOption (clusterDisableCrash config id s)
+  | stepDrop msg error => clusterStatesOption (clusterDrop msg error s)
+  | stepDisableDrop => clusterStatesCons (tuple (s.0, s.1, s.2, s.3, false, s.5)) clusterStatesNil
+  | stepMonkey pod => clusterStatesAppend (clusterStatesOption (clusterMonkey monkeyCreate pod s))
+      (clusterStatesAppend (clusterStatesOption (clusterMonkey monkeyUpdate pod s))
+      (clusterStatesAppend (clusterStatesOption (clusterMonkey monkeyUpdateStatus pod s)) (clusterStatesOption (clusterMonkey monkeyDelete pod s))))
+  | stepDisableMonkey => clusterStatesCons (tuple (s.0, s.1, s.2, s.3, s.4, false)) clusterStatesNil
+  | stepExternal id recv => clusterStatesOption (clusterExternal config id recv s)
+  | stepStutter => clusterStatesCons s clusterStatesNil
+def clusterNext : ClusterConfig -> ClusterState -> ClusterStep -> ClusterState -> Bool := fun (config : ClusterConfig) (s : ClusterState) (step : ClusterStep) (next : ClusterState) =>
+  clusterStatesContains next (clusterNextStates config s step)

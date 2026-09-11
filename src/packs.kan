@@ -1,0 +1,216 @@
+-- Complete controller-state codecs. Child resources use their marshal contract.
+
+def podTResourceEncode : PodT -> Value := fun (x : PodT) => dynamicObjectTEncode (podTMarshal x)
+
+def podTResourceDecode : Value -> Result PodT := fun (j : Value) => resultBind DynamicObjectT PodT (dynamicObjectTDecode j) podTUnmarshal
+
+def vreplicaSetTResourceEncode : VreplicaSetT -> Value := fun (x : VreplicaSetT) => dynamicObjectTEncode (vreplicaSetTMarshal x)
+
+def vreplicaSetTResourceDecode : Value -> Result VreplicaSetT := fun (j : Value) => resultBind DynamicObjectT VreplicaSetT (dynamicObjectTDecode j) vreplicaSetTUnmarshal
+
+def persistentVolumeClaimTResourceEncode : PersistentVolumeClaimT -> Value := fun (x : PersistentVolumeClaimT) => dynamicObjectTEncode (persistentVolumeClaimTMarshal x)
+
+def persistentVolumeClaimTResourceDecode : Value -> Result PersistentVolumeClaimT := fun (j : Value) => resultBind DynamicObjectT PersistentVolumeClaimT (dynamicObjectTDecode j) persistentVolumeClaimTUnmarshal
+
+def neededPodDecode : Value -> Result (Option PodT) := fun (j : Value) =>
+  case (jsonIsNull j) with | 1 (u : Unit) => ok (Option PodT) (none PodT)
+  | 0 (u : Unit) => resultMap PodT (Option PodT) (some PodT) (decodeResourceObject PodT b"v_stateful_set_pack.needed" b"expected object or null" podTResourceDecode j)
+
+def rec listPodTResourceItems : ListPodT -> Values := fun (xs : ListPodT) =>
+  match xs as self in ListPodT return Values with | listPodTNil => jsonArrayNil
+  | listPodTCons h t => jsonArrayCons (podTResourceEncode h) (listPodTResourceItems t)
+
+def listPodTResourceEncode : ListPodT -> Value := fun (xs : ListPodT) => jsonArray (listPodTResourceItems xs)
+
+def rec listPodTResourceDecodeItems : Values -> Result ListPodT := fun (xs : Values) =>
+  match xs as self in JsonTree sort return Result ListPodT with
+  | jsonNull => err ListPodT (decodeError b"list" b"expected a JSON array")
+  | jsonBool x => err ListPodT (decodeError b"list" b"expected a JSON array")
+  | jsonInt x => err ListPodT (decodeError b"list" b"expected a JSON array")
+  | jsonIntLiteral x => err ListPodT (decodeError b"list" b"expected a JSON array")
+  | jsonFloat x => err ListPodT (decodeError b"list" b"expected a JSON array")
+  | jsonString x => err ListPodT (decodeError b"list" b"expected a JSON array")
+  | jsonArray x => err ListPodT (decodeError b"list" b"expected a JSON array")
+  | jsonObject x => err ListPodT (decodeError b"list" b"expected a JSON array")
+  | jsonArrayNil => ok ListPodT listPodTNil
+  | jsonArrayCons h t => resultBind (PodT) ListPodT (podTResourceDecode h) (fun (v : PodT) => resultMap ListPodT ListPodT (fun (tail : ListPodT) => listPodTCons v tail) (listPodTResourceDecodeItems t))
+  | jsonObjectNil => err ListPodT (decodeError b"list" b"expected a JSON array")
+  | jsonObjectCons k v t => err ListPodT (decodeError b"list" b"expected a JSON array")
+
+def listPodTResourceDecode : Value -> Result ListPodT := fun (j : Value) => resultBind Values ListPodT (jsonGetArray j) listPodTResourceDecodeItems
+
+def rec listVreplicaSetTResourceItems : ListVreplicaSetT -> Values := fun (xs : ListVreplicaSetT) =>
+  match xs as self in ListVreplicaSetT return Values with | listVreplicaSetTNil => jsonArrayNil
+  | listVreplicaSetTCons h t => jsonArrayCons (vreplicaSetTResourceEncode h) (listVreplicaSetTResourceItems t)
+
+def listVreplicaSetTResourceEncode : ListVreplicaSetT -> Value := fun (xs : ListVreplicaSetT) => jsonArray (listVreplicaSetTResourceItems xs)
+
+def rec listVreplicaSetTResourceDecodeItems : Values -> Result ListVreplicaSetT := fun (xs : Values) =>
+  match xs as self in JsonTree sort return Result ListVreplicaSetT with
+  | jsonNull => err ListVreplicaSetT (decodeError b"list" b"expected a JSON array")
+  | jsonBool x => err ListVreplicaSetT (decodeError b"list" b"expected a JSON array")
+  | jsonInt x => err ListVreplicaSetT (decodeError b"list" b"expected a JSON array")
+  | jsonIntLiteral x => err ListVreplicaSetT (decodeError b"list" b"expected a JSON array")
+  | jsonFloat x => err ListVreplicaSetT (decodeError b"list" b"expected a JSON array")
+  | jsonString x => err ListVreplicaSetT (decodeError b"list" b"expected a JSON array")
+  | jsonArray x => err ListVreplicaSetT (decodeError b"list" b"expected a JSON array")
+  | jsonObject x => err ListVreplicaSetT (decodeError b"list" b"expected a JSON array")
+  | jsonArrayNil => ok ListVreplicaSetT listVreplicaSetTNil
+  | jsonArrayCons h t => resultBind (VreplicaSetT) ListVreplicaSetT (vreplicaSetTResourceDecode h) (fun (v : VreplicaSetT) => resultMap ListVreplicaSetT ListVreplicaSetT (fun (tail : ListVreplicaSetT) => listVreplicaSetTCons v tail) (listVreplicaSetTResourceDecodeItems t))
+  | jsonObjectNil => err ListVreplicaSetT (decodeError b"list" b"expected a JSON array")
+  | jsonObjectCons k v t => err ListVreplicaSetT (decodeError b"list" b"expected a JSON array")
+
+def listVreplicaSetTResourceDecode : Value -> Result ListVreplicaSetT := fun (j : Value) => resultBind Values ListVreplicaSetT (jsonGetArray j) listVreplicaSetTResourceDecodeItems
+
+def rec listPersistentVolumeClaimTResourceItems : ListPersistentVolumeClaimT -> Values := fun (xs : ListPersistentVolumeClaimT) =>
+  match xs as self in ListPersistentVolumeClaimT return Values with | listPersistentVolumeClaimTNil => jsonArrayNil
+  | listPersistentVolumeClaimTCons h t => jsonArrayCons (persistentVolumeClaimTResourceEncode h) (listPersistentVolumeClaimTResourceItems t)
+
+def listPersistentVolumeClaimTResourceEncode : ListPersistentVolumeClaimT -> Value := fun (xs : ListPersistentVolumeClaimT) => jsonArray (listPersistentVolumeClaimTResourceItems xs)
+
+def rec listPersistentVolumeClaimTResourceDecodeItems : Values -> Result ListPersistentVolumeClaimT := fun (xs : Values) =>
+  match xs as self in JsonTree sort return Result ListPersistentVolumeClaimT with
+  | jsonNull => err ListPersistentVolumeClaimT (decodeError b"list" b"expected a JSON array")
+  | jsonBool x => err ListPersistentVolumeClaimT (decodeError b"list" b"expected a JSON array")
+  | jsonInt x => err ListPersistentVolumeClaimT (decodeError b"list" b"expected a JSON array")
+  | jsonIntLiteral x => err ListPersistentVolumeClaimT (decodeError b"list" b"expected a JSON array")
+  | jsonFloat x => err ListPersistentVolumeClaimT (decodeError b"list" b"expected a JSON array")
+  | jsonString x => err ListPersistentVolumeClaimT (decodeError b"list" b"expected a JSON array")
+  | jsonArray x => err ListPersistentVolumeClaimT (decodeError b"list" b"expected a JSON array")
+  | jsonObject x => err ListPersistentVolumeClaimT (decodeError b"list" b"expected a JSON array")
+  | jsonArrayNil => ok ListPersistentVolumeClaimT listPersistentVolumeClaimTNil
+  | jsonArrayCons h t => resultBind (PersistentVolumeClaimT) ListPersistentVolumeClaimT (persistentVolumeClaimTResourceDecode h) (fun (v : PersistentVolumeClaimT) => resultMap ListPersistentVolumeClaimT ListPersistentVolumeClaimT (fun (tail : ListPersistentVolumeClaimT) => listPersistentVolumeClaimTCons v tail) (listPersistentVolumeClaimTResourceDecodeItems t))
+  | jsonObjectNil => err ListPersistentVolumeClaimT (decodeError b"list" b"expected a JSON array")
+  | jsonObjectCons k v t => err ListPersistentVolumeClaimT (decodeError b"list" b"expected a JSON array")
+
+def listPersistentVolumeClaimTResourceDecode : Value -> Result ListPersistentVolumeClaimT := fun (j : Value) => resultBind Values ListPersistentVolumeClaimT (jsonGetArray j) listPersistentVolumeClaimTResourceDecodeItems
+
+def rec listOptionPodTResourceItems : ListOptionPodT -> Values := fun (xs : ListOptionPodT) =>
+  match xs as self in ListOptionPodT return Values with | listOptionPodTNil => jsonArrayNil
+  | listOptionPodTCons h t => jsonArrayCons (jsonEncodeOption PodT podTResourceEncode h) (listOptionPodTResourceItems t)
+
+def listOptionPodTResourceEncode : ListOptionPodT -> Value := fun (xs : ListOptionPodT) => jsonArray (listOptionPodTResourceItems xs)
+
+def rec listOptionPodTResourceDecodeItems : Values -> Result ListOptionPodT := fun (xs : Values) =>
+  match xs as self in JsonTree sort return Result ListOptionPodT with
+  | jsonNull => err ListOptionPodT (decodeError b"list" b"expected a JSON array")
+  | jsonBool x => err ListOptionPodT (decodeError b"list" b"expected a JSON array")
+  | jsonInt x => err ListOptionPodT (decodeError b"list" b"expected a JSON array")
+  | jsonIntLiteral x => err ListOptionPodT (decodeError b"list" b"expected a JSON array")
+  | jsonFloat x => err ListOptionPodT (decodeError b"list" b"expected a JSON array")
+  | jsonString x => err ListOptionPodT (decodeError b"list" b"expected a JSON array")
+  | jsonArray x => err ListOptionPodT (decodeError b"list" b"expected a JSON array")
+  | jsonObject x => err ListOptionPodT (decodeError b"list" b"expected a JSON array")
+  | jsonArrayNil => ok ListOptionPodT listOptionPodTNil
+  | jsonArrayCons h t => resultBind (Option PodT) ListOptionPodT (neededPodDecode h) (fun (v : Option PodT) => resultMap ListOptionPodT ListOptionPodT (fun (tail : ListOptionPodT) => listOptionPodTCons v tail) (listOptionPodTResourceDecodeItems t))
+  | jsonObjectNil => err ListOptionPodT (decodeError b"list" b"expected a JSON array")
+  | jsonObjectCons k v t => err ListOptionPodT (decodeError b"list" b"expected a JSON array")
+
+def listOptionPodTResourceDecode : Value -> Result ListOptionPodT := fun (j : Value) => resultBind Values ListOptionPodT (jsonGetArray j) listOptionPodTResourceDecodeItems
+
+def vrsStepEncode : VreplicaSetReconcilerStep -> Value := fun (step : VreplicaSetReconcilerStep) =>
+  match step as self in VreplicaSetReconcilerStep return Value with
+  | vreplicaSetReconcilerStepInit => jsonObject (jsonObjectCons b"step" (jsonString b"init") (jsonObjectNil))
+  | vreplicaSetReconcilerStepAfterListPods => jsonObject (jsonObjectCons b"step" (jsonString b"afterListPods") (jsonObjectNil))
+  | vreplicaSetReconcilerStepAfterCreatePod d => jsonObject (jsonObjectCons b"step" (jsonString b"afterCreatePod") (jsonObjectCons b"diff" (jsonInt d) (jsonObjectNil)))
+  | vreplicaSetReconcilerStepAfterDeletePod d => jsonObject (jsonObjectCons b"step" (jsonString b"afterDeletePod") (jsonObjectCons b"diff" (jsonInt d) (jsonObjectNil)))
+  | vreplicaSetReconcilerStepAfterUpdateVrsStatus => jsonObject (jsonObjectCons b"step" (jsonString b"afterUpdateVrsStatus") (jsonObjectNil))
+  | vreplicaSetReconcilerStepDone => jsonObject (jsonObjectCons b"step" (jsonString b"done") (jsonObjectNil))
+  | vreplicaSetReconcilerStepError => jsonObject (jsonObjectCons b"step" (jsonString b"error") (jsonObjectNil))
+
+def vrsStepDecode : Value -> Result VreplicaSetReconcilerStep := fun (j : Value) => resultBind Bytes VreplicaSetReconcilerStep (jsonField Bytes j b"step" jsonGetString) (fun (tag : Bytes) => (case (bytesEqual tag b"init") with | 1 (u : Unit) => ok VreplicaSetReconcilerStep vreplicaSetReconcilerStepInit | 0 (u : Unit) => (case (bytesEqual tag b"afterListPods") with | 1 (u : Unit) => ok VreplicaSetReconcilerStep vreplicaSetReconcilerStepAfterListPods | 0 (u : Unit) => (case (bytesEqual tag b"afterCreatePod") with | 1 (u : Unit) => resultMap Int VreplicaSetReconcilerStep (fun (d : Int) => vreplicaSetReconcilerStepAfterCreatePod d) (jsonField Int j b"diff" jsonGetInt) | 0 (u : Unit) => (case (bytesEqual tag b"afterDeletePod") with | 1 (u : Unit) => resultMap Int VreplicaSetReconcilerStep (fun (d : Int) => vreplicaSetReconcilerStepAfterDeletePod d) (jsonField Int j b"diff" jsonGetInt) | 0 (u : Unit) => (case (bytesEqual tag b"afterUpdateVrsStatus") with | 1 (u : Unit) => ok VreplicaSetReconcilerStep vreplicaSetReconcilerStepAfterUpdateVrsStatus | 0 (u : Unit) => (case (bytesEqual tag b"done") with | 1 (u : Unit) => ok VreplicaSetReconcilerStep vreplicaSetReconcilerStepDone | 0 (u : Unit) => (case (bytesEqual tag b"error") with | 1 (u : Unit) => ok VreplicaSetReconcilerStep vreplicaSetReconcilerStepError | 0 (u : Unit) => err VreplicaSetReconcilerStep (decodeError b"vreplica_set_reconciler.step" tag)))))))))
+
+def vrsStateEncode : VreplicaSetReconcilerS -> Value := fun (s : VreplicaSetReconcilerS) => jsonObject (jsonObjectCons b"step" (vrsStepEncode (vreplicaSetReconcilerSReconcileStep s)) (jsonOptionalMember ListPodT b"filteredPods" (listPodTResourceEncode) (vreplicaSetReconcilerSFilteredPods s) (jsonObjectNil)))
+
+def vrsStateDecode : Value -> Result VreplicaSetReconcilerS := fun (j : Value) => decodeResourceObject VreplicaSetReconcilerS b"vreplica_set_pack.state" b"expected object" (fun (j : Value) => resultBind VreplicaSetReconcilerStep VreplicaSetReconcilerS (jsonField VreplicaSetReconcilerStep j b"step" vrsStepDecode) (fun (step : VreplicaSetReconcilerStep) => resultBind (Option ListPodT) VreplicaSetReconcilerS (jsonOptionalField ListPodT j b"filteredPods" (listPodTResourceDecode)) (fun (f0 : Option ListPodT) => ok VreplicaSetReconcilerS (vreplicaSetReconcilerSMake step f0)))) j
+
+def vrsStateDecodeRender : Value -> Bytes := fun (j : Value) => case (vrsStateDecode j) with
+  | 0 (e : Error) => bytesAppend b"error: " (errorText e) | 1 (s : VreplicaSetReconcilerS) => valueRender (vrsStateEncode s)
+
+def vrsInvoke : Value -> Value -> Value -> Result Value := fun (cr : Value) (response : Value) (s : Value) =>
+  resultBind DynamicObjectT Value (dynamicObjectTDecode cr) (fun (obj : DynamicObjectT) =>
+  resultBind VreplicaSetT Value (vreplicaSetTUnmarshal obj) (fun (resource : VreplicaSetT) =>
+  resultBind (Option Response) Value (jsonOptional Response apiMethodApiResponseDecode response) (fun (resp : Option Response) =>
+  resultMap VreplicaSetReconcilerS Value (fun (state : VreplicaSetReconcilerS) =>
+    let next : VrsOutput := vrsCore resource resp state in
+    jsonObject (jsonObjectCons b"state" (vrsStateEncode next.0) (jsonObjectCons b"request" (jsonEncodeOption Request apiMethodApiRequestEncode next.1) (jsonObjectNil)))) (vrsStateDecode s))))
+
+def vrsInvokeRender : Value -> Value -> Value -> Bytes := fun (cr : Value) (response : Value) (s : Value) =>
+  case (vrsInvoke cr response s) with | 0 (e : Error) => bytesAppend b"error: " (errorText e) | 1 (v : Value) => valueRender v
+
+def vrsInitJson : Value := vrsStateEncode vrsInit
+
+def deploymentStepEncode : VDeploymentReconcilerStep -> Value := fun (step : VDeploymentReconcilerStep) =>
+  match step as self in VDeploymentReconcilerStep return Value with
+  | vDeploymentReconcilerStepInit => jsonObject (jsonObjectCons b"step" (jsonString b"init") (jsonObjectNil))
+  | vDeploymentReconcilerStepAfterListVrs => jsonObject (jsonObjectCons b"step" (jsonString b"afterListVrs") (jsonObjectNil))
+  | vDeploymentReconcilerStepAfterCreateNewVrs => jsonObject (jsonObjectCons b"step" (jsonString b"afterCreateNewVrs") (jsonObjectNil))
+  | vDeploymentReconcilerStepAfterScaleNewVrs => jsonObject (jsonObjectCons b"step" (jsonString b"afterScaleNewVrs") (jsonObjectNil))
+  | vDeploymentReconcilerStepAfterEnsureNewVrs => jsonObject (jsonObjectCons b"step" (jsonString b"afterEnsureNewVrs") (jsonObjectNil))
+  | vDeploymentReconcilerStepAfterScaleDownOldVrs => jsonObject (jsonObjectCons b"step" (jsonString b"afterScaleDownOldVrs") (jsonObjectNil))
+  | vDeploymentReconcilerStepDone => jsonObject (jsonObjectCons b"step" (jsonString b"done") (jsonObjectNil))
+  | vDeploymentReconcilerStepError => jsonObject (jsonObjectCons b"step" (jsonString b"error") (jsonObjectNil))
+
+def deploymentStepDecode : Value -> Result VDeploymentReconcilerStep := fun (j : Value) => resultBind Bytes VDeploymentReconcilerStep (jsonField Bytes j b"step" jsonGetString) (fun (tag : Bytes) => (case (bytesEqual tag b"init") with | 1 (u : Unit) => ok VDeploymentReconcilerStep vDeploymentReconcilerStepInit | 0 (u : Unit) => (case (bytesEqual tag b"afterListVrs") with | 1 (u : Unit) => ok VDeploymentReconcilerStep vDeploymentReconcilerStepAfterListVrs | 0 (u : Unit) => (case (bytesEqual tag b"afterCreateNewVrs") with | 1 (u : Unit) => ok VDeploymentReconcilerStep vDeploymentReconcilerStepAfterCreateNewVrs | 0 (u : Unit) => (case (bytesEqual tag b"afterScaleNewVrs") with | 1 (u : Unit) => ok VDeploymentReconcilerStep vDeploymentReconcilerStepAfterScaleNewVrs | 0 (u : Unit) => (case (bytesEqual tag b"afterEnsureNewVrs") with | 1 (u : Unit) => ok VDeploymentReconcilerStep vDeploymentReconcilerStepAfterEnsureNewVrs | 0 (u : Unit) => (case (bytesEqual tag b"afterScaleDownOldVrs") with | 1 (u : Unit) => ok VDeploymentReconcilerStep vDeploymentReconcilerStepAfterScaleDownOldVrs | 0 (u : Unit) => (case (bytesEqual tag b"done") with | 1 (u : Unit) => ok VDeploymentReconcilerStep vDeploymentReconcilerStepDone | 0 (u : Unit) => (case (bytesEqual tag b"error") with | 1 (u : Unit) => ok VDeploymentReconcilerStep vDeploymentReconcilerStepError | 0 (u : Unit) => err VDeploymentReconcilerStep (decodeError b"v_deployment_reconciler.step" tag))))))))))
+
+def deploymentStateEncode : VDeploymentReconcilerS -> Value := fun (s : VDeploymentReconcilerS) => jsonObject (jsonObjectCons b"step" (deploymentStepEncode (vDeploymentReconcilerSReconcileStep s)) (jsonOptionalMember VreplicaSetT b"newVrs" (vreplicaSetTResourceEncode) (vDeploymentReconcilerSNewVrs s) (jsonObjectCons b"oldVrsList" (listVreplicaSetTResourceEncode (vDeploymentReconcilerSOldVrsList s)) (jsonObjectCons b"oldVrsIndex" (jsonEncodeInt (vDeploymentReconcilerSOldVrsIndex s)) (jsonObjectNil)))))
+
+def deploymentStateDecode : Value -> Result VDeploymentReconcilerS := fun (j : Value) => decodeResourceObject VDeploymentReconcilerS b"v_deployment_pack.state" b"expected object" (fun (j : Value) => resultBind VDeploymentReconcilerStep VDeploymentReconcilerS (jsonField VDeploymentReconcilerStep j b"step" deploymentStepDecode) (fun (step : VDeploymentReconcilerStep) => resultBind (Option VreplicaSetT) VDeploymentReconcilerS (jsonOptionalField VreplicaSetT j b"newVrs" (vreplicaSetTResourceDecode)) (fun (f0 : Option VreplicaSetT) => resultBind (ListVreplicaSetT) VDeploymentReconcilerS (resultMap (Option ListVreplicaSetT) ListVreplicaSetT (optionValue ListVreplicaSetT (listVreplicaSetTNil)) (jsonOptionalField ListVreplicaSetT j b"oldVrsList" (listVreplicaSetTResourceDecode))) (fun (f1 : ListVreplicaSetT) => resultBind (Int) VDeploymentReconcilerS (resultMap (Option Int) Int (optionValue Int (nonnegative 0)) (jsonOptionalField Int j b"oldVrsIndex" (jsonGetInt))) (fun (f2 : Int) => ok VDeploymentReconcilerS (vDeploymentReconcilerSMake step f0 f1 f2)))))) j
+
+def deploymentStateDecodeRender : Value -> Bytes := fun (j : Value) => case (deploymentStateDecode j) with
+  | 0 (e : Error) => bytesAppend b"error: " (errorText e) | 1 (s : VDeploymentReconcilerS) => valueRender (deploymentStateEncode s)
+
+def deploymentInvoke : Value -> Value -> Value -> Result Value := fun (cr : Value) (response : Value) (s : Value) =>
+  resultBind DynamicObjectT Value (dynamicObjectTDecode cr) (fun (obj : DynamicObjectT) =>
+  resultBind VDeploymentT Value (vDeploymentTUnmarshal obj) (fun (resource : VDeploymentT) =>
+  resultBind (Option Response) Value (jsonOptional Response apiMethodApiResponseDecode response) (fun (resp : Option Response) =>
+  resultMap VDeploymentReconcilerS Value (fun (state : VDeploymentReconcilerS) =>
+    let next : DeploymentOutput := deploymentCore resource resp state in
+    jsonObject (jsonObjectCons b"state" (deploymentStateEncode next.0) (jsonObjectCons b"request" (jsonEncodeOption Request apiMethodApiRequestEncode next.1) (jsonObjectNil)))) (deploymentStateDecode s))))
+
+def deploymentInvokeRender : Value -> Value -> Value -> Bytes := fun (cr : Value) (response : Value) (s : Value) =>
+  case (deploymentInvoke cr response s) with | 0 (e : Error) => bytesAppend b"error: " (errorText e) | 1 (v : Value) => valueRender v
+
+def deploymentInitJson : Value := deploymentStateEncode deploymentInit
+
+def statefulStepEncode : VStatefulSetReconcilerStep -> Value := fun (step : VStatefulSetReconcilerStep) =>
+  match step as self in VStatefulSetReconcilerStep return Value with
+  | vStatefulSetReconcilerStepInit => jsonObject (jsonObjectCons b"step" (jsonString b"init") (jsonObjectNil))
+  | vStatefulSetReconcilerStepAfterListPod => jsonObject (jsonObjectCons b"step" (jsonString b"afterListPod") (jsonObjectNil))
+  | vStatefulSetReconcilerStepGetPvc => jsonObject (jsonObjectCons b"step" (jsonString b"getPvc") (jsonObjectNil))
+  | vStatefulSetReconcilerStepAfterGetPvc => jsonObject (jsonObjectCons b"step" (jsonString b"afterGetPvc") (jsonObjectNil))
+  | vStatefulSetReconcilerStepCreatePvc => jsonObject (jsonObjectCons b"step" (jsonString b"createPvc") (jsonObjectNil))
+  | vStatefulSetReconcilerStepAfterCreatePvc => jsonObject (jsonObjectCons b"step" (jsonString b"afterCreatePvc") (jsonObjectNil))
+  | vStatefulSetReconcilerStepSkipPvc => jsonObject (jsonObjectCons b"step" (jsonString b"skipPvc") (jsonObjectNil))
+  | vStatefulSetReconcilerStepCreateNeeded => jsonObject (jsonObjectCons b"step" (jsonString b"createNeeded") (jsonObjectNil))
+  | vStatefulSetReconcilerStepAfterCreateNeeded => jsonObject (jsonObjectCons b"step" (jsonString b"afterCreateNeeded") (jsonObjectNil))
+  | vStatefulSetReconcilerStepUpdateNeeded => jsonObject (jsonObjectCons b"step" (jsonString b"updateNeeded") (jsonObjectNil))
+  | vStatefulSetReconcilerStepAfterUpdateNeeded => jsonObject (jsonObjectCons b"step" (jsonString b"afterUpdateNeeded") (jsonObjectNil))
+  | vStatefulSetReconcilerStepDeleteCondemned => jsonObject (jsonObjectCons b"step" (jsonString b"deleteCondemned") (jsonObjectNil))
+  | vStatefulSetReconcilerStepAfterDeleteCondemned => jsonObject (jsonObjectCons b"step" (jsonString b"afterDeleteCondemned") (jsonObjectNil))
+  | vStatefulSetReconcilerStepDeleteOutdated => jsonObject (jsonObjectCons b"step" (jsonString b"deleteOutdated") (jsonObjectNil))
+  | vStatefulSetReconcilerStepAfterDeleteOutdated => jsonObject (jsonObjectCons b"step" (jsonString b"afterDeleteOutdated") (jsonObjectNil))
+  | vStatefulSetReconcilerStepDone => jsonObject (jsonObjectCons b"step" (jsonString b"done") (jsonObjectNil))
+  | vStatefulSetReconcilerStepError => jsonObject (jsonObjectCons b"step" (jsonString b"error") (jsonObjectNil))
+
+def statefulStepDecode : Value -> Result VStatefulSetReconcilerStep := fun (j : Value) => resultBind Bytes VStatefulSetReconcilerStep (jsonField Bytes j b"step" jsonGetString) (fun (tag : Bytes) => (case (bytesEqual tag b"init") with | 1 (u : Unit) => ok VStatefulSetReconcilerStep vStatefulSetReconcilerStepInit | 0 (u : Unit) => (case (bytesEqual tag b"afterListPod") with | 1 (u : Unit) => ok VStatefulSetReconcilerStep vStatefulSetReconcilerStepAfterListPod | 0 (u : Unit) => (case (bytesEqual tag b"getPvc") with | 1 (u : Unit) => ok VStatefulSetReconcilerStep vStatefulSetReconcilerStepGetPvc | 0 (u : Unit) => (case (bytesEqual tag b"afterGetPvc") with | 1 (u : Unit) => ok VStatefulSetReconcilerStep vStatefulSetReconcilerStepAfterGetPvc | 0 (u : Unit) => (case (bytesEqual tag b"createPvc") with | 1 (u : Unit) => ok VStatefulSetReconcilerStep vStatefulSetReconcilerStepCreatePvc | 0 (u : Unit) => (case (bytesEqual tag b"afterCreatePvc") with | 1 (u : Unit) => ok VStatefulSetReconcilerStep vStatefulSetReconcilerStepAfterCreatePvc | 0 (u : Unit) => (case (bytesEqual tag b"skipPvc") with | 1 (u : Unit) => ok VStatefulSetReconcilerStep vStatefulSetReconcilerStepSkipPvc | 0 (u : Unit) => (case (bytesEqual tag b"createNeeded") with | 1 (u : Unit) => ok VStatefulSetReconcilerStep vStatefulSetReconcilerStepCreateNeeded | 0 (u : Unit) => (case (bytesEqual tag b"afterCreateNeeded") with | 1 (u : Unit) => ok VStatefulSetReconcilerStep vStatefulSetReconcilerStepAfterCreateNeeded | 0 (u : Unit) => (case (bytesEqual tag b"updateNeeded") with | 1 (u : Unit) => ok VStatefulSetReconcilerStep vStatefulSetReconcilerStepUpdateNeeded | 0 (u : Unit) => (case (bytesEqual tag b"afterUpdateNeeded") with | 1 (u : Unit) => ok VStatefulSetReconcilerStep vStatefulSetReconcilerStepAfterUpdateNeeded | 0 (u : Unit) => (case (bytesEqual tag b"deleteCondemned") with | 1 (u : Unit) => ok VStatefulSetReconcilerStep vStatefulSetReconcilerStepDeleteCondemned | 0 (u : Unit) => (case (bytesEqual tag b"afterDeleteCondemned") with | 1 (u : Unit) => ok VStatefulSetReconcilerStep vStatefulSetReconcilerStepAfterDeleteCondemned | 0 (u : Unit) => (case (bytesEqual tag b"deleteOutdated") with | 1 (u : Unit) => ok VStatefulSetReconcilerStep vStatefulSetReconcilerStepDeleteOutdated | 0 (u : Unit) => (case (bytesEqual tag b"afterDeleteOutdated") with | 1 (u : Unit) => ok VStatefulSetReconcilerStep vStatefulSetReconcilerStepAfterDeleteOutdated | 0 (u : Unit) => (case (bytesEqual tag b"done") with | 1 (u : Unit) => ok VStatefulSetReconcilerStep vStatefulSetReconcilerStepDone | 0 (u : Unit) => (case (bytesEqual tag b"error") with | 1 (u : Unit) => ok VStatefulSetReconcilerStep vStatefulSetReconcilerStepError | 0 (u : Unit) => err VStatefulSetReconcilerStep (decodeError b"v_stateful_set_reconciler.step" tag)))))))))))))))))))
+
+def statefulStateEncode : VStatefulSetReconcilerS -> Value := fun (s : VStatefulSetReconcilerS) => jsonObject (jsonObjectCons b"step" (statefulStepEncode (vStatefulSetReconcilerSReconcileStep s)) (jsonObjectCons b"needed" (listOptionPodTResourceEncode (vStatefulSetReconcilerSNeeded s)) (jsonObjectCons b"neededIndex" (jsonEncodeInt (vStatefulSetReconcilerSNeededIndex s)) (jsonObjectCons b"condemned" (listPodTResourceEncode (vStatefulSetReconcilerSCondemned s)) (jsonObjectCons b"condemnedIndex" (jsonEncodeInt (vStatefulSetReconcilerSCondemnedIndex s)) (jsonObjectCons b"pvcs" (listPersistentVolumeClaimTResourceEncode (vStatefulSetReconcilerSPvcs s)) (jsonObjectCons b"pvcIndex" (jsonEncodeInt (vStatefulSetReconcilerSPvcIndex s)) (jsonObjectNil))))))))
+
+def statefulStateDecode : Value -> Result VStatefulSetReconcilerS := fun (j : Value) => decodeResourceObject VStatefulSetReconcilerS b"v_stateful_set_pack.state" b"expected object" (fun (j : Value) => resultBind VStatefulSetReconcilerStep VStatefulSetReconcilerS (jsonField VStatefulSetReconcilerStep j b"step" statefulStepDecode) (fun (step : VStatefulSetReconcilerStep) => resultBind (ListOptionPodT) VStatefulSetReconcilerS (resultMap (Option ListOptionPodT) ListOptionPodT (optionValue ListOptionPodT (listOptionPodTNil)) (jsonOptionalField ListOptionPodT j b"needed" (listOptionPodTResourceDecode))) (fun (f0 : ListOptionPodT) => resultBind (Int) VStatefulSetReconcilerS (resultMap (Option Int) Int (optionValue Int (nonnegative 0)) (jsonOptionalField Int j b"neededIndex" (jsonGetInt))) (fun (f1 : Int) => resultBind (ListPodT) VStatefulSetReconcilerS (resultMap (Option ListPodT) ListPodT (optionValue ListPodT (listPodTNil)) (jsonOptionalField ListPodT j b"condemned" (listPodTResourceDecode))) (fun (f2 : ListPodT) => resultBind (Int) VStatefulSetReconcilerS (resultMap (Option Int) Int (optionValue Int (nonnegative 0)) (jsonOptionalField Int j b"condemnedIndex" (jsonGetInt))) (fun (f3 : Int) => resultBind (ListPersistentVolumeClaimT) VStatefulSetReconcilerS (resultMap (Option ListPersistentVolumeClaimT) ListPersistentVolumeClaimT (optionValue ListPersistentVolumeClaimT (listPersistentVolumeClaimTNil)) (jsonOptionalField ListPersistentVolumeClaimT j b"pvcs" (listPersistentVolumeClaimTResourceDecode))) (fun (f4 : ListPersistentVolumeClaimT) => resultBind (Int) VStatefulSetReconcilerS (resultMap (Option Int) Int (optionValue Int (nonnegative 0)) (jsonOptionalField Int j b"pvcIndex" (jsonGetInt))) (fun (f5 : Int) => ok VStatefulSetReconcilerS (vStatefulSetReconcilerSMake step f0 f1 f2 f3 f4 f5))))))))) j
+
+def statefulStateDecodeRender : Value -> Bytes := fun (j : Value) => case (statefulStateDecode j) with
+  | 0 (e : Error) => bytesAppend b"error: " (errorText e) | 1 (s : VStatefulSetReconcilerS) => valueRender (statefulStateEncode s)
+
+def statefulInvoke : Value -> Value -> Value -> Result Value := fun (cr : Value) (response : Value) (s : Value) =>
+  resultBind DynamicObjectT Value (dynamicObjectTDecode cr) (fun (obj : DynamicObjectT) =>
+  resultBind VStatefulSetT Value (vStatefulSetTUnmarshal obj) (fun (resource : VStatefulSetT) =>
+  resultBind (Option Response) Value (jsonOptional Response apiMethodApiResponseDecode response) (fun (resp : Option Response) =>
+  resultMap VStatefulSetReconcilerS Value (fun (state : VStatefulSetReconcilerS) =>
+    let next : StatefulOutput := statefulCore resource resp state in
+    jsonObject (jsonObjectCons b"state" (statefulStateEncode next.0) (jsonObjectCons b"request" (jsonEncodeOption Request apiMethodApiRequestEncode next.1) (jsonObjectNil)))) (statefulStateDecode s))))
+
+def statefulInvokeRender : Value -> Value -> Value -> Bytes := fun (cr : Value) (response : Value) (s : Value) =>
+  case (statefulInvoke cr response s) with | 0 (e : Error) => bytesAppend b"error: " (errorText e) | 1 (v : Value) => valueRender v
+
+def statefulInitJson : Value := statefulStateEncode statefulInit

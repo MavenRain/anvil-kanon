@@ -1,0 +1,1399 @@
+[
+  {
+    "source": "lib/k8s_objects/api_method.ml",
+    "module": "api_method",
+    "type": "preconditions",
+    "fields": [
+      {
+        "name": "uid",
+        "ocaml_type": "Common.Uid.t option"
+      },
+      {
+        "name": "resource_version",
+        "ocaml_type": "Common.Resource_version.t option"
+      }
+    ]
+  },
+  {
+    "source": "lib/k8s_objects/api_method.ml",
+    "module": "api_method",
+    "type": "api_resource",
+    "fields": [
+      {
+        "name": "kind",
+        "ocaml_type": "Common.kind"
+      }
+    ]
+  },
+  {
+    "source": "lib/k8s_objects/api_method.ml",
+    "module": "api_method",
+    "type": "get_request",
+    "fields": [
+      {
+        "name": "key",
+        "ocaml_type": "Common.object_ref"
+      }
+    ]
+  },
+  {
+    "source": "lib/k8s_objects/api_method.ml",
+    "module": "api_method",
+    "type": "list_request",
+    "fields": [
+      {
+        "name": "kind",
+        "ocaml_type": "Common.kind"
+      },
+      {
+        "name": "namespace",
+        "ocaml_type": "string"
+      }
+    ]
+  },
+  {
+    "source": "lib/k8s_objects/api_method.ml",
+    "module": "api_method",
+    "type": "create_request",
+    "fields": [
+      {
+        "name": "namespace",
+        "ocaml_type": "string"
+      },
+      {
+        "name": "obj",
+        "ocaml_type": "Dynamic_object.t"
+      }
+    ]
+  },
+  {
+    "source": "lib/k8s_objects/api_method.ml",
+    "module": "api_method",
+    "type": "delete_request",
+    "fields": [
+      {
+        "name": "key",
+        "ocaml_type": "Common.object_ref"
+      },
+      {
+        "name": "preconditions",
+        "ocaml_type": "preconditions option"
+      }
+    ]
+  },
+  {
+    "source": "lib/k8s_objects/api_method.ml",
+    "module": "api_method",
+    "type": "update_request",
+    "fields": [
+      {
+        "name": "namespace",
+        "ocaml_type": "string"
+      },
+      {
+        "name": "name",
+        "ocaml_type": "string"
+      },
+      {
+        "name": "obj",
+        "ocaml_type": "Dynamic_object.t"
+      }
+    ]
+  },
+  {
+    "source": "lib/k8s_objects/api_method.ml",
+    "module": "api_method",
+    "type": "update_status_request",
+    "fields": [
+      {
+        "name": "namespace",
+        "ocaml_type": "string"
+      },
+      {
+        "name": "name",
+        "ocaml_type": "string"
+      },
+      {
+        "name": "obj",
+        "ocaml_type": "Dynamic_object.t"
+      }
+    ]
+  },
+  {
+    "source": "lib/k8s_objects/api_method.ml",
+    "module": "api_method",
+    "type": "get_then_delete_request",
+    "fields": [
+      {
+        "name": "key",
+        "ocaml_type": "Common.object_ref"
+      },
+      {
+        "name": "owner_ref",
+        "ocaml_type": "Owner_reference.t"
+      }
+    ]
+  },
+  {
+    "source": "lib/k8s_objects/api_method.ml",
+    "module": "api_method",
+    "type": "get_then_update_request",
+    "fields": [
+      {
+        "name": "namespace",
+        "ocaml_type": "string"
+      },
+      {
+        "name": "name",
+        "ocaml_type": "string"
+      },
+      {
+        "name": "owner_ref",
+        "ocaml_type": "Owner_reference.t"
+      },
+      {
+        "name": "obj",
+        "ocaml_type": "Dynamic_object.t"
+      }
+    ]
+  },
+  {
+    "source": "lib/k8s_objects/api_method.ml",
+    "module": "api_method",
+    "type": "get_then_update_status_request",
+    "fields": [
+      {
+        "name": "namespace",
+        "ocaml_type": "string"
+      },
+      {
+        "name": "name",
+        "ocaml_type": "string"
+      },
+      {
+        "name": "owner_ref",
+        "ocaml_type": "Owner_reference.t"
+      },
+      {
+        "name": "obj",
+        "ocaml_type": "Dynamic_object.t"
+      }
+    ]
+  },
+  {
+    "source": "lib/k8s_objects/api_method.ml",
+    "module": "api_method",
+    "type": "get_response",
+    "fields": [
+      {
+        "name": "res",
+        "ocaml_type": "(Dynamic_object.t, api_error) result"
+      }
+    ]
+  },
+  {
+    "source": "lib/k8s_objects/api_method.ml",
+    "module": "api_method",
+    "type": "list_response",
+    "fields": [
+      {
+        "name": "res",
+        "ocaml_type": "(Dynamic_object.t list, api_error) result"
+      }
+    ]
+  },
+  {
+    "source": "lib/k8s_objects/api_method.ml",
+    "module": "api_method",
+    "type": "create_response",
+    "fields": [
+      {
+        "name": "res",
+        "ocaml_type": "(Dynamic_object.t, api_error) result"
+      }
+    ]
+  },
+  {
+    "source": "lib/k8s_objects/api_method.ml",
+    "module": "api_method",
+    "type": "delete_response",
+    "fields": [
+      {
+        "name": "res",
+        "ocaml_type": "(unit, api_error) result"
+      }
+    ]
+  },
+  {
+    "source": "lib/k8s_objects/api_method.ml",
+    "module": "api_method",
+    "type": "update_response",
+    "fields": [
+      {
+        "name": "res",
+        "ocaml_type": "(Dynamic_object.t, api_error) result"
+      }
+    ]
+  },
+  {
+    "source": "lib/k8s_objects/api_method.ml",
+    "module": "api_method",
+    "type": "update_status_response",
+    "fields": [
+      {
+        "name": "res",
+        "ocaml_type": "(Dynamic_object.t, api_error) result"
+      }
+    ]
+  },
+  {
+    "source": "lib/k8s_objects/api_method.ml",
+    "module": "api_method",
+    "type": "get_then_delete_response",
+    "fields": [
+      {
+        "name": "res",
+        "ocaml_type": "(unit, api_error) result"
+      }
+    ]
+  },
+  {
+    "source": "lib/k8s_objects/api_method.ml",
+    "module": "api_method",
+    "type": "get_then_update_response",
+    "fields": [
+      {
+        "name": "res",
+        "ocaml_type": "(Dynamic_object.t, api_error) result"
+      }
+    ]
+  },
+  {
+    "source": "lib/k8s_objects/api_method.ml",
+    "module": "api_method",
+    "type": "get_then_update_status_response",
+    "fields": [
+      {
+        "name": "res",
+        "ocaml_type": "(Dynamic_object.t, api_error) result"
+      }
+    ]
+  },
+  {
+    "source": "lib/k8s_objects/common.ml",
+    "module": "common",
+    "type": "object_ref",
+    "fields": [
+      {
+        "name": "kind",
+        "ocaml_type": "kind"
+      },
+      {
+        "name": "name",
+        "ocaml_type": "string"
+      },
+      {
+        "name": "namespace",
+        "ocaml_type": "string"
+      }
+    ]
+  },
+  {
+    "source": "lib/k8s_objects/container.ml",
+    "module": "container",
+    "type": "exec_action",
+    "fields": [
+      {
+        "name": "command",
+        "ocaml_type": "string list option"
+      }
+    ]
+  },
+  {
+    "source": "lib/k8s_objects/container.ml",
+    "module": "container",
+    "type": "tcp_socket_action",
+    "fields": [
+      {
+        "name": "host",
+        "ocaml_type": "string option"
+      },
+      {
+        "name": "port",
+        "ocaml_type": "int"
+      }
+    ]
+  },
+  {
+    "source": "lib/k8s_objects/container.ml",
+    "module": "container",
+    "type": "lifecycle_handler",
+    "fields": [
+      {
+        "name": "exec_",
+        "ocaml_type": "exec_action option"
+      }
+    ]
+  },
+  {
+    "source": "lib/k8s_objects/container.ml",
+    "module": "container",
+    "type": "lifecycle",
+    "fields": [
+      {
+        "name": "pre_stop",
+        "ocaml_type": "lifecycle_handler option"
+      }
+    ]
+  },
+  {
+    "source": "lib/k8s_objects/container.ml",
+    "module": "container",
+    "type": "container_port",
+    "fields": [
+      {
+        "name": "container_port",
+        "ocaml_type": "int"
+      },
+      {
+        "name": "name",
+        "ocaml_type": "string option"
+      },
+      {
+        "name": "protocol",
+        "ocaml_type": "string option"
+      }
+    ]
+  },
+  {
+    "source": "lib/k8s_objects/container.ml",
+    "module": "container",
+    "type": "volume_mount",
+    "fields": [
+      {
+        "name": "mount_path",
+        "ocaml_type": "string"
+      },
+      {
+        "name": "name",
+        "ocaml_type": "string"
+      },
+      {
+        "name": "read_only",
+        "ocaml_type": "bool option"
+      },
+      {
+        "name": "sub_path",
+        "ocaml_type": "string option"
+      },
+      {
+        "name": "mount_propagation",
+        "ocaml_type": "string option"
+      }
+    ]
+  },
+  {
+    "source": "lib/k8s_objects/container.ml",
+    "module": "container",
+    "type": "env_var_source",
+    "fields": [
+      {
+        "name": "field_ref",
+        "ocaml_type": "Object_field_selector.t option"
+      }
+    ]
+  },
+  {
+    "source": "lib/k8s_objects/container.ml",
+    "module": "container",
+    "type": "env_var",
+    "fields": [
+      {
+        "name": "name",
+        "ocaml_type": "string"
+      },
+      {
+        "name": "value",
+        "ocaml_type": "string option"
+      },
+      {
+        "name": "value_from",
+        "ocaml_type": "env_var_source option"
+      }
+    ]
+  },
+  {
+    "source": "lib/k8s_objects/container.ml",
+    "module": "container",
+    "type": "probe",
+    "fields": [
+      {
+        "name": "exec_",
+        "ocaml_type": "exec_action option"
+      },
+      {
+        "name": "failure_threshold",
+        "ocaml_type": "int option"
+      },
+      {
+        "name": "initial_delay_seconds",
+        "ocaml_type": "int option"
+      },
+      {
+        "name": "period_seconds",
+        "ocaml_type": "int option"
+      },
+      {
+        "name": "success_threshold",
+        "ocaml_type": "int option"
+      },
+      {
+        "name": "tcp_socket",
+        "ocaml_type": "tcp_socket_action option"
+      },
+      {
+        "name": "timeout_seconds",
+        "ocaml_type": "int option"
+      }
+    ]
+  },
+  {
+    "source": "lib/k8s_objects/container.ml",
+    "module": "container",
+    "type": "t",
+    "fields": [
+      {
+        "name": "env",
+        "ocaml_type": "env_var list option"
+      },
+      {
+        "name": "image",
+        "ocaml_type": "string option"
+      },
+      {
+        "name": "name",
+        "ocaml_type": "string"
+      },
+      {
+        "name": "ports",
+        "ocaml_type": "container_port list option"
+      },
+      {
+        "name": "volume_mounts",
+        "ocaml_type": "volume_mount list option"
+      },
+      {
+        "name": "lifecycle",
+        "ocaml_type": "lifecycle option"
+      },
+      {
+        "name": "resources",
+        "ocaml_type": "Resource_requirements.t option"
+      },
+      {
+        "name": "readiness_probe",
+        "ocaml_type": "probe option"
+      },
+      {
+        "name": "liveness_probe",
+        "ocaml_type": "probe option"
+      },
+      {
+        "name": "command",
+        "ocaml_type": "string list option"
+      },
+      {
+        "name": "image_pull_policy",
+        "ocaml_type": "string option"
+      },
+      {
+        "name": "args",
+        "ocaml_type": "string list option"
+      },
+      {
+        "name": "security_context",
+        "ocaml_type": "security_context option"
+      }
+    ]
+  },
+  {
+    "source": "lib/k8s_objects/deployment_strategy.ml",
+    "module": "deployment_strategy",
+    "type": "rolling_update",
+    "fields": [
+      {
+        "name": "max_surge",
+        "ocaml_type": "int option"
+      },
+      {
+        "name": "max_unavailable",
+        "ocaml_type": "int option"
+      }
+    ]
+  },
+  {
+    "source": "lib/k8s_objects/deployment_strategy.ml",
+    "module": "deployment_strategy",
+    "type": "t",
+    "fields": [
+      {
+        "name": "type_",
+        "ocaml_type": "strategy_type option"
+      },
+      {
+        "name": "rolling_update",
+        "ocaml_type": "rolling_update option"
+      }
+    ]
+  },
+  {
+    "source": "lib/k8s_objects/dynamic_object.ml",
+    "module": "dynamic_object",
+    "type": "t",
+    "fields": [
+      {
+        "name": "kind",
+        "ocaml_type": "Common.kind"
+      },
+      {
+        "name": "metadata",
+        "ocaml_type": "Object_meta.t"
+      },
+      {
+        "name": "spec",
+        "ocaml_type": "Value.t"
+      },
+      {
+        "name": "status",
+        "ocaml_type": "Value.t"
+      }
+    ]
+  },
+  {
+    "source": "lib/k8s_objects/label_selector.ml",
+    "module": "label_selector",
+    "type": "t",
+    "fields": [
+      {
+        "name": "match_labels",
+        "ocaml_type": "string Smap.t option"
+      }
+    ]
+  },
+  {
+    "source": "lib/k8s_objects/object_field_selector.ml",
+    "module": "object_field_selector",
+    "type": "t",
+    "fields": [
+      {
+        "name": "field_path",
+        "ocaml_type": "string"
+      },
+      {
+        "name": "api_version",
+        "ocaml_type": "string option"
+      }
+    ]
+  },
+  {
+    "source": "lib/k8s_objects/object_meta.ml",
+    "module": "object_meta",
+    "type": "t",
+    "fields": [
+      {
+        "name": "name",
+        "ocaml_type": "string option"
+      },
+      {
+        "name": "generate_name",
+        "ocaml_type": "string option"
+      },
+      {
+        "name": "namespace",
+        "ocaml_type": "string option"
+      },
+      {
+        "name": "resource_version",
+        "ocaml_type": "Common.Resource_version.t option"
+      },
+      {
+        "name": "uid",
+        "ocaml_type": "Common.Uid.t option"
+      },
+      {
+        "name": "labels",
+        "ocaml_type": "string Smap.t option"
+      },
+      {
+        "name": "annotations",
+        "ocaml_type": "string Smap.t option"
+      },
+      {
+        "name": "owner_references",
+        "ocaml_type": "Owner_reference.t list option"
+      },
+      {
+        "name": "finalizers",
+        "ocaml_type": "string list option"
+      },
+      {
+        "name": "deletion_timestamp",
+        "ocaml_type": "string option"
+      }
+    ]
+  },
+  {
+    "source": "lib/k8s_objects/owner_reference.ml",
+    "module": "owner_reference",
+    "type": "t",
+    "fields": [
+      {
+        "name": "block_owner_deletion",
+        "ocaml_type": "bool option"
+      },
+      {
+        "name": "controller",
+        "ocaml_type": "bool option"
+      },
+      {
+        "name": "kind",
+        "ocaml_type": "Common.kind"
+      },
+      {
+        "name": "name",
+        "ocaml_type": "string"
+      },
+      {
+        "name": "uid",
+        "ocaml_type": "Common.Uid.t"
+      }
+    ]
+  },
+  {
+    "source": "lib/k8s_objects/persistent_volume_claim.ml",
+    "module": "persistent_volume_claim",
+    "type": "spec",
+    "fields": [
+      {
+        "name": "storage_class_name",
+        "ocaml_type": "string option"
+      },
+      {
+        "name": "access_modes",
+        "ocaml_type": "string list option"
+      },
+      {
+        "name": "resources",
+        "ocaml_type": "Volume_resource_requirements.t option"
+      }
+    ]
+  },
+  {
+    "source": "lib/k8s_objects/persistent_volume_claim.ml",
+    "module": "persistent_volume_claim",
+    "type": "t",
+    "fields": [
+      {
+        "name": "metadata",
+        "ocaml_type": "Object_meta.t"
+      },
+      {
+        "name": "spec",
+        "ocaml_type": "spec option"
+      },
+      {
+        "name": "status",
+        "ocaml_type": "status option"
+      }
+    ]
+  },
+  {
+    "source": "lib/k8s_objects/pod_spec.ml",
+    "module": "pod_spec",
+    "type": "t",
+    "fields": [
+      {
+        "name": "affinity",
+        "ocaml_type": "Affinity.t option"
+      },
+      {
+        "name": "containers",
+        "ocaml_type": "Container.t list"
+      },
+      {
+        "name": "volumes",
+        "ocaml_type": "Volume.t list option"
+      },
+      {
+        "name": "init_containers",
+        "ocaml_type": "Container.t list option"
+      },
+      {
+        "name": "service_account_name",
+        "ocaml_type": "string option"
+      },
+      {
+        "name": "tolerations",
+        "ocaml_type": "Toleration.t list option"
+      },
+      {
+        "name": "node_selector",
+        "ocaml_type": "string Smap.t option"
+      },
+      {
+        "name": "runtime_class_name",
+        "ocaml_type": "string option"
+      },
+      {
+        "name": "dns_policy",
+        "ocaml_type": "string option"
+      },
+      {
+        "name": "priority_class_name",
+        "ocaml_type": "string option"
+      },
+      {
+        "name": "scheduler_name",
+        "ocaml_type": "string option"
+      },
+      {
+        "name": "security_context",
+        "ocaml_type": "Pod_security_context.t option"
+      },
+      {
+        "name": "host_network",
+        "ocaml_type": "bool option"
+      },
+      {
+        "name": "termination_grace_period_seconds",
+        "ocaml_type": "int option"
+      },
+      {
+        "name": "image_pull_secrets",
+        "ocaml_type": "Local_object_reference.t list option"
+      },
+      {
+        "name": "hostname",
+        "ocaml_type": "string option"
+      },
+      {
+        "name": "subdomain",
+        "ocaml_type": "string option"
+      }
+    ]
+  },
+  {
+    "source": "lib/k8s_objects/pod_template_spec.ml",
+    "module": "pod_template_spec",
+    "type": "t",
+    "fields": [
+      {
+        "name": "metadata",
+        "ocaml_type": "Object_meta.t option"
+      },
+      {
+        "name": "spec",
+        "ocaml_type": "Pod_spec.t option"
+      }
+    ]
+  },
+  {
+    "source": "lib/k8s_objects/resource_requirements.ml",
+    "module": "resource_requirements",
+    "type": "t",
+    "fields": [
+      {
+        "name": "limits",
+        "ocaml_type": "string Smap.t option"
+      },
+      {
+        "name": "requests",
+        "ocaml_type": "string Smap.t option"
+      }
+    ]
+  },
+  {
+    "source": "lib/k8s_objects/views/config_map.ml",
+    "module": "config_map",
+    "type": "t",
+    "fields": [
+      {
+        "name": "metadata",
+        "ocaml_type": "Object_meta.t"
+      },
+      {
+        "name": "data",
+        "ocaml_type": "string Smap.t option"
+      }
+    ]
+  },
+  {
+    "source": "lib/k8s_objects/views/pod.ml",
+    "module": "pod",
+    "type": "t",
+    "fields": [
+      {
+        "name": "metadata",
+        "ocaml_type": "Object_meta.t"
+      },
+      {
+        "name": "spec",
+        "ocaml_type": "Pod_spec.t option"
+      },
+      {
+        "name": "status",
+        "ocaml_type": "unit option"
+      }
+    ]
+  },
+  {
+    "source": "lib/k8s_objects/views/stateful_set.ml",
+    "module": "stateful_set",
+    "type": "ordinals",
+    "fields": [
+      {
+        "name": "start",
+        "ocaml_type": "int option"
+      }
+    ]
+  },
+  {
+    "source": "lib/k8s_objects/views/stateful_set.ml",
+    "module": "stateful_set",
+    "type": "rolling_update",
+    "fields": [
+      {
+        "name": "partition",
+        "ocaml_type": "int option"
+      },
+      {
+        "name": "max_unavailable",
+        "ocaml_type": "int option"
+      }
+    ]
+  },
+  {
+    "source": "lib/k8s_objects/views/stateful_set.ml",
+    "module": "stateful_set",
+    "type": "update_strategy",
+    "fields": [
+      {
+        "name": "type_",
+        "ocaml_type": "string option"
+      },
+      {
+        "name": "rolling_update",
+        "ocaml_type": "rolling_update option"
+      }
+    ]
+  },
+  {
+    "source": "lib/k8s_objects/views/stateful_set.ml",
+    "module": "stateful_set",
+    "type": "retention_policy",
+    "fields": [
+      {
+        "name": "when_deleted",
+        "ocaml_type": "string option"
+      },
+      {
+        "name": "when_scaled",
+        "ocaml_type": "string option"
+      }
+    ]
+  },
+  {
+    "source": "lib/k8s_objects/views/stateful_set.ml",
+    "module": "stateful_set",
+    "type": "ss_spec",
+    "fields": [
+      {
+        "name": "min_ready_seconds",
+        "ocaml_type": "int option"
+      },
+      {
+        "name": "ordinals",
+        "ocaml_type": "ordinals option"
+      },
+      {
+        "name": "persistent_volume_claim_retention_policy",
+        "ocaml_type": "retention_policy option"
+      },
+      {
+        "name": "pod_management_policy",
+        "ocaml_type": "string option"
+      },
+      {
+        "name": "replicas",
+        "ocaml_type": "int option"
+      },
+      {
+        "name": "revision_history_limit",
+        "ocaml_type": "int option"
+      },
+      {
+        "name": "selector",
+        "ocaml_type": "Label_selector.t"
+      },
+      {
+        "name": "service_name",
+        "ocaml_type": "string"
+      },
+      {
+        "name": "template",
+        "ocaml_type": "Pod_template_spec.t"
+      },
+      {
+        "name": "update_strategy",
+        "ocaml_type": "update_strategy option"
+      },
+      {
+        "name": "volume_claim_templates",
+        "ocaml_type": "Persistent_volume_claim.t list option"
+      }
+    ]
+  },
+  {
+    "source": "lib/k8s_objects/views/stateful_set.ml",
+    "module": "stateful_set",
+    "type": "ss_status",
+    "fields": [
+      {
+        "name": "ready_replicas",
+        "ocaml_type": "int option"
+      }
+    ]
+  },
+  {
+    "source": "lib/k8s_objects/views/stateful_set.ml",
+    "module": "stateful_set",
+    "type": "t",
+    "fields": [
+      {
+        "name": "metadata",
+        "ocaml_type": "Object_meta.t"
+      },
+      {
+        "name": "spec",
+        "ocaml_type": "ss_spec option"
+      },
+      {
+        "name": "status",
+        "ocaml_type": "ss_status option"
+      }
+    ]
+  },
+  {
+    "source": "lib/k8s_objects/volume.ml",
+    "module": "volume",
+    "type": "key_to_path",
+    "fields": [
+      {
+        "name": "key",
+        "ocaml_type": "string"
+      },
+      {
+        "name": "path",
+        "ocaml_type": "string"
+      }
+    ]
+  },
+  {
+    "source": "lib/k8s_objects/volume.ml",
+    "module": "volume",
+    "type": "config_map_projection",
+    "fields": [
+      {
+        "name": "items",
+        "ocaml_type": "key_to_path list option"
+      },
+      {
+        "name": "name",
+        "ocaml_type": "string option"
+      }
+    ]
+  },
+  {
+    "source": "lib/k8s_objects/volume.ml",
+    "module": "volume",
+    "type": "secret_projection",
+    "fields": [
+      {
+        "name": "items",
+        "ocaml_type": "key_to_path list option"
+      },
+      {
+        "name": "name",
+        "ocaml_type": "string option"
+      }
+    ]
+  },
+  {
+    "source": "lib/k8s_objects/volume.ml",
+    "module": "volume",
+    "type": "volume_projection",
+    "fields": [
+      {
+        "name": "config_map",
+        "ocaml_type": "config_map_projection option"
+      },
+      {
+        "name": "secret",
+        "ocaml_type": "secret_projection option"
+      }
+    ]
+  },
+  {
+    "source": "lib/k8s_objects/volume.ml",
+    "module": "volume",
+    "type": "projected_volume_source",
+    "fields": [
+      {
+        "name": "sources",
+        "ocaml_type": "volume_projection list option"
+      }
+    ]
+  },
+  {
+    "source": "lib/k8s_objects/volume.ml",
+    "module": "volume",
+    "type": "downward_api_volume_file",
+    "fields": [
+      {
+        "name": "field_ref",
+        "ocaml_type": "Object_field_selector.t option"
+      },
+      {
+        "name": "path",
+        "ocaml_type": "string"
+      }
+    ]
+  },
+  {
+    "source": "lib/k8s_objects/volume.ml",
+    "module": "volume",
+    "type": "downward_api_volume_source",
+    "fields": [
+      {
+        "name": "items",
+        "ocaml_type": "downward_api_volume_file list option"
+      }
+    ]
+  },
+  {
+    "source": "lib/k8s_objects/volume.ml",
+    "module": "volume",
+    "type": "host_path_volume_source",
+    "fields": [
+      {
+        "name": "path",
+        "ocaml_type": "string"
+      }
+    ]
+  },
+  {
+    "source": "lib/k8s_objects/volume.ml",
+    "module": "volume",
+    "type": "config_map_volume_source",
+    "fields": [
+      {
+        "name": "name",
+        "ocaml_type": "string option"
+      }
+    ]
+  },
+  {
+    "source": "lib/k8s_objects/volume.ml",
+    "module": "volume",
+    "type": "secret_volume_source",
+    "fields": [
+      {
+        "name": "secret_name",
+        "ocaml_type": "string option"
+      }
+    ]
+  },
+  {
+    "source": "lib/k8s_objects/volume.ml",
+    "module": "volume",
+    "type": "empty_dir_volume_source",
+    "fields": [
+      {
+        "name": "medium",
+        "ocaml_type": "string option"
+      },
+      {
+        "name": "size_limit",
+        "ocaml_type": "string option"
+      }
+    ]
+  },
+  {
+    "source": "lib/k8s_objects/volume.ml",
+    "module": "volume",
+    "type": "persistent_volume_claim_volume_source",
+    "fields": [
+      {
+        "name": "claim_name",
+        "ocaml_type": "string"
+      },
+      {
+        "name": "read_only",
+        "ocaml_type": "bool option"
+      }
+    ]
+  },
+  {
+    "source": "lib/k8s_objects/volume.ml",
+    "module": "volume",
+    "type": "t",
+    "fields": [
+      {
+        "name": "host_path",
+        "ocaml_type": "host_path_volume_source option"
+      },
+      {
+        "name": "config_map",
+        "ocaml_type": "config_map_volume_source option"
+      },
+      {
+        "name": "name",
+        "ocaml_type": "string"
+      },
+      {
+        "name": "projected",
+        "ocaml_type": "projected_volume_source option"
+      },
+      {
+        "name": "secret",
+        "ocaml_type": "secret_volume_source option"
+      },
+      {
+        "name": "downward_api",
+        "ocaml_type": "downward_api_volume_source option"
+      },
+      {
+        "name": "empty_dir",
+        "ocaml_type": "empty_dir_volume_source option"
+      },
+      {
+        "name": "persistent_volume_claim",
+        "ocaml_type": "persistent_volume_claim_volume_source option"
+      }
+    ]
+  },
+  {
+    "source": "lib/k8s_objects/volume_resource_requirements.ml",
+    "module": "volume_resource_requirements",
+    "type": "t",
+    "fields": [
+      {
+        "name": "limits",
+        "ocaml_type": "string Smap.t option"
+      },
+      {
+        "name": "requests",
+        "ocaml_type": "string Smap.t option"
+      }
+    ]
+  },
+  {
+    "source": "lib/controllers/v_deployment.ml",
+    "module": "v_deployment",
+    "type": "vd_spec",
+    "fields": [
+      {
+        "name": "replicas",
+        "ocaml_type": "int option"
+      },
+      {
+        "name": "selector",
+        "ocaml_type": "Label_selector.t"
+      },
+      {
+        "name": "template",
+        "ocaml_type": "Pod_template_spec.t"
+      },
+      {
+        "name": "min_ready_seconds",
+        "ocaml_type": "int option"
+      },
+      {
+        "name": "progress_deadline_seconds",
+        "ocaml_type": "int option"
+      },
+      {
+        "name": "strategy",
+        "ocaml_type": "Deployment_strategy.t option"
+      },
+      {
+        "name": "revision_history_limit",
+        "ocaml_type": "int option"
+      },
+      {
+        "name": "paused",
+        "ocaml_type": "bool option"
+      }
+    ]
+  },
+  {
+    "source": "lib/controllers/v_deployment.ml",
+    "module": "v_deployment",
+    "type": "t",
+    "fields": [
+      {
+        "name": "metadata",
+        "ocaml_type": "Object_meta.t"
+      },
+      {
+        "name": "spec",
+        "ocaml_type": "vd_spec"
+      },
+      {
+        "name": "status",
+        "ocaml_type": "status"
+      }
+    ]
+  },
+  {
+    "source": "lib/controllers/v_deployment_reconciler.ml",
+    "module": "v_deployment_reconciler",
+    "type": "s",
+    "fields": [
+      {
+        "name": "reconcile_step",
+        "ocaml_type": "step"
+      },
+      {
+        "name": "new_vrs",
+        "ocaml_type": "Vreplica_set.t option"
+      },
+      {
+        "name": "old_vrs_list",
+        "ocaml_type": "Vreplica_set.t list"
+      },
+      {
+        "name": "old_vrs_index",
+        "ocaml_type": "int"
+      }
+    ]
+  },
+  {
+    "source": "lib/controllers/v_stateful_set.ml",
+    "module": "v_stateful_set",
+    "type": "t",
+    "fields": [
+      {
+        "name": "metadata",
+        "ocaml_type": "Object_meta.t"
+      },
+      {
+        "name": "spec",
+        "ocaml_type": "Stateful_set.ss_spec"
+      },
+      {
+        "name": "status",
+        "ocaml_type": "Stateful_set.ss_status option"
+      }
+    ]
+  },
+  {
+    "source": "lib/controllers/v_stateful_set_reconciler.ml",
+    "module": "v_stateful_set_reconciler",
+    "type": "s",
+    "fields": [
+      {
+        "name": "reconcile_step",
+        "ocaml_type": "step"
+      },
+      {
+        "name": "needed",
+        "ocaml_type": "Pod.t option list"
+      },
+      {
+        "name": "needed_index",
+        "ocaml_type": "int"
+      },
+      {
+        "name": "condemned",
+        "ocaml_type": "Pod.t list"
+      },
+      {
+        "name": "condemned_index",
+        "ocaml_type": "int"
+      },
+      {
+        "name": "pvcs",
+        "ocaml_type": "Persistent_volume_claim.t list"
+      },
+      {
+        "name": "pvc_index",
+        "ocaml_type": "int"
+      }
+    ]
+  },
+  {
+    "source": "lib/controllers/vreplica_set.ml",
+    "module": "vreplica_set",
+    "type": "vrs_spec",
+    "fields": [
+      {
+        "name": "replicas",
+        "ocaml_type": "int option"
+      },
+      {
+        "name": "selector",
+        "ocaml_type": "Label_selector.t"
+      },
+      {
+        "name": "template",
+        "ocaml_type": "Pod_template_spec.t option"
+      }
+    ]
+  },
+  {
+    "source": "lib/controllers/vreplica_set.ml",
+    "module": "vreplica_set",
+    "type": "vrs_status",
+    "fields": [
+      {
+        "name": "replicas",
+        "ocaml_type": "int"
+      }
+    ]
+  },
+  {
+    "source": "lib/controllers/vreplica_set.ml",
+    "module": "vreplica_set",
+    "type": "t",
+    "fields": [
+      {
+        "name": "metadata",
+        "ocaml_type": "Object_meta.t"
+      },
+      {
+        "name": "spec",
+        "ocaml_type": "vrs_spec"
+      },
+      {
+        "name": "status",
+        "ocaml_type": "vrs_status option"
+      }
+    ]
+  },
+  {
+    "source": "lib/controllers/vreplica_set_reconciler.ml",
+    "module": "vreplica_set_reconciler",
+    "type": "s",
+    "fields": [
+      {
+        "name": "reconcile_step",
+        "ocaml_type": "step"
+      },
+      {
+        "name": "filtered_pods",
+        "ocaml_type": "Pod.t list option"
+      }
+    ]
+  }
+]

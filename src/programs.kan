@@ -1,0 +1,33 @@
+-- Programs expose the source erasure behavior at every cluster boundary.
+def ProgramOutput : Type 0 := prod (Value, Option RequestView)
+def ControllerProgram : Type 0 := prod (CommonKind, Value, (DynamicObjectT -> Option ResponseView -> Value -> ProgramOutput), (Value -> Bool), (Value -> Bool))
+
+def vrsProgramTransition : DynamicObjectT -> Option ResponseView -> Value -> ProgramOutput := fun (obj : DynamicObjectT) (resp : Option ResponseView) (s : Value) =>
+  optionFold VreplicaSetT ProgramOutput (tuple (s, none RequestView)) (fun (cr : VreplicaSetT) =>
+  optionFold VreplicaSetReconcilerS ProgramOutput (tuple (s, none RequestView)) (fun (state : VreplicaSetReconcilerS) =>
+    let result : VrsOutput := vrsCore cr (optionBind ResponseView Response resp responseViewKube) state in
+    tuple (vrsStateEncode result.0, optionMap Request RequestView (fun (req : Request) => kubeRequest req) result.1))
+    (resultToOption VreplicaSetReconcilerS (vrsStateDecode s))) (resultToOption VreplicaSetT (vreplicaSetTUnmarshal obj))
+def vrsProgramDone : Value -> Bool := fun (s : Value) => optionFold VreplicaSetReconcilerS Bool false vrsDone (resultToOption VreplicaSetReconcilerS (vrsStateDecode s))
+def vrsProgramFailed : Value -> Bool := fun (s : Value) => optionFold VreplicaSetReconcilerS Bool false vrsFailed (resultToOption VreplicaSetReconcilerS (vrsStateDecode s))
+def vrsProgram : ControllerProgram := tuple (vreplicaSetTKind, vrsInitJson, vrsProgramTransition, vrsProgramDone, vrsProgramFailed)
+
+def deploymentProgramTransition : DynamicObjectT -> Option ResponseView -> Value -> ProgramOutput := fun (obj : DynamicObjectT) (resp : Option ResponseView) (s : Value) =>
+  optionFold VDeploymentT ProgramOutput (tuple (s, none RequestView)) (fun (cr : VDeploymentT) =>
+  optionFold VDeploymentReconcilerS ProgramOutput (tuple (s, none RequestView)) (fun (state : VDeploymentReconcilerS) =>
+    let result : DeploymentOutput := deploymentCore cr (optionBind ResponseView Response resp responseViewKube) state in
+    tuple (deploymentStateEncode result.0, optionMap Request RequestView (fun (req : Request) => kubeRequest req) result.1))
+    (resultToOption VDeploymentReconcilerS (deploymentStateDecode s))) (resultToOption VDeploymentT (vDeploymentTUnmarshal obj))
+def deploymentProgramDone : Value -> Bool := fun (s : Value) => optionFold VDeploymentReconcilerS Bool false deploymentDone (resultToOption VDeploymentReconcilerS (deploymentStateDecode s))
+def deploymentProgramFailed : Value -> Bool := fun (s : Value) => optionFold VDeploymentReconcilerS Bool false deploymentFailed (resultToOption VDeploymentReconcilerS (deploymentStateDecode s))
+def deploymentProgram : ControllerProgram := tuple (vDeploymentTKind, deploymentInitJson, deploymentProgramTransition, deploymentProgramDone, deploymentProgramFailed)
+
+def statefulProgramTransition : DynamicObjectT -> Option ResponseView -> Value -> ProgramOutput := fun (obj : DynamicObjectT) (resp : Option ResponseView) (s : Value) =>
+  optionFold VStatefulSetT ProgramOutput (tuple (s, none RequestView)) (fun (cr : VStatefulSetT) =>
+  optionFold VStatefulSetReconcilerS ProgramOutput (tuple (s, none RequestView)) (fun (state : VStatefulSetReconcilerS) =>
+    let result : StatefulOutput := statefulCore cr (optionBind ResponseView Response resp responseViewKube) state in
+    tuple (statefulStateEncode result.0, optionMap Request RequestView (fun (req : Request) => kubeRequest req) result.1))
+    (resultToOption VStatefulSetReconcilerS (statefulStateDecode s))) (resultToOption VStatefulSetT (vStatefulSetTUnmarshal obj))
+def statefulProgramDone : Value -> Bool := fun (s : Value) => optionFold VStatefulSetReconcilerS Bool false statefulDone (resultToOption VStatefulSetReconcilerS (statefulStateDecode s))
+def statefulProgramFailed : Value -> Bool := fun (s : Value) => optionFold VStatefulSetReconcilerS Bool false statefulFailed (resultToOption VStatefulSetReconcilerS (statefulStateDecode s))
+def statefulProgram : ControllerProgram := tuple (vStatefulSetTKind, statefulInitJson, statefulProgramTransition, statefulProgramDone, statefulProgramFailed)

@@ -1,0 +1,9 @@
+def oracleInvoke : Value -> Result Value := fun (input : Value) =>
+  resultBind InstalledTypes Value (jsonField InstalledTypes input b"policy" apiFixturePolicy) (fun (it : InstalledTypes) =>
+  resultBind ApiState Value (jsonField ApiState input b"state" apiStateDecode) (fun (s : ApiState) =>
+  resultMap Request Value (fun (req : Request) =>
+    let output : ApiOutput := oracleHandle it req s in
+    jsonObject (jsonObjectCons b"state" (apiStateEncode output.0) (jsonObjectCons b"response" (apiMethodApiResponseEncode output.1) jsonObjectNil)))
+    (jsonField Request input b"request" apiMethodApiRequestDecode)))
+def oracleInvokeRender : Value -> Bytes := fun (input : Value) => case (oracleInvoke input) with
+  | 0 (e : Error) => bytesAppend b"error: " (errorText e) | 1 (v : Value) => valueRender v

@@ -1,0 +1,31 @@
+-- Generic finite sequences use length plus a total optional lookup.
+-- This avoids the compiler's parameterized-constructor limitation.
+def Sequence : (0 A : Type 0) -> Type 0 := fun (0 A : Type 0) => prod (Nat, (Nat -> Option A))
+def sequenceEmpty : (0 A : Type 0) -> Sequence A := fun (0 A : Type 0) => tuple (0, (fun (i : Nat) => none A))
+def sequenceSingleton : (0 A : Type 0) -> A -> Sequence A := fun (0 A : Type 0) (a : A) => tuple (1, (fun (i : Nat) => select (Option A) (natEq i 0) (some A a) (none A)))
+def sequencePush : (0 A : Type 0) -> Sequence A -> A -> Sequence A := fun (0 A : Type 0) (xs : Sequence A) (a : A) =>
+  tuple (natAdd xs.0 1, (fun (i : Nat) => case (natEq i xs.0) with | 1 (u : Unit) => some A a | 0 (u : Unit) => xs.1 i))
+def sequencePrepend : (0 A : Type 0) -> A -> Sequence A -> Sequence A := fun (0 A : Type 0) (a : A) (xs : Sequence A) =>
+  tuple (natAdd xs.0 1, (fun (i : Nat) => case (natEq i 0) with | 1 (u : Unit) => some A a | 0 (u : Unit) => xs.1 (natSub i 1)))
+def sequenceAppend : (0 A : Type 0) -> Sequence A -> Sequence A -> Sequence A := fun (0 A : Type 0) (a : Sequence A) (b : Sequence A) =>
+  tuple (natAdd a.0 b.0, (fun (i : Nat) => case (natLt i a.0) with | 1 (u : Unit) => a.1 i | 0 (u : Unit) => b.1 (natSub i a.0)))
+def sequenceSlice : (0 A : Type 0) -> Sequence A -> Nat -> Nat -> Sequence A := fun (0 A : Type 0) (xs : Sequence A) (start : Nat) (count : Nat) =>
+  let available : Nat := natSub xs.0 start in
+  let length : Nat := chooseNat (natLt count available) count available in
+  tuple (length, (fun (i : Nat) => select (Option A) (natLt i length) (xs.1 (natAdd start i)) (none A)))
+def sequenceReverse : (0 A : Type 0) -> Sequence A -> Sequence A := fun (0 A : Type 0) (xs : Sequence A) =>
+  tuple (xs.0, (fun (i : Nat) => select (Option A) (natLt i xs.0) (xs.1 (natSub (natSub xs.0 1) i)) (none A)))
+def sequenceMap : (0 A : Type 0) -> (0 B : Type 0) -> (A -> B) -> Sequence A -> Sequence B := fun (0 A : Type 0) (0 B : Type 0) (f : A -> B) (xs : Sequence A) =>
+  tuple (xs.0, (fun (i : Nat) => optionMap A B f (xs.1 i)))
+def rec countFold : (0 A : Type 0) -> Count -> Nat -> A -> (Nat -> A -> A) -> A := fun (0 A : Type 0) (count : Count) (index : Nat) (acc : A) (f : Nat -> A -> A) =>
+  match count as self in Count return A with | countZero => acc | countSucc tail => countFold A tail (natAdd index 1) (f index acc) f
+def sequenceFold : (0 A : Type 0) -> (0 B : Type 0) -> Sequence A -> B -> (B -> A -> B) -> B := fun (0 A : Type 0) (0 B : Type 0) (xs : Sequence A) (acc : B) (f : B -> A -> B) =>
+  countFold B (natCount xs.0) 0 acc (fun (i : Nat) (b : B) => optionFold A B b (f b) (xs.1 i))
+def sequenceFindIndex : (0 A : Type 0) -> Sequence A -> (A -> Bool) -> Option Nat := fun (0 A : Type 0) (xs : Sequence A) (p : A -> Bool) =>
+  countFold (Option Nat) (natCount xs.0) 0 (none Nat) (fun (i : Nat) (found : Option Nat) =>
+    optionFold Nat (Option Nat) (optionFold A (Option Nat) (none Nat) (fun (a : A) => select (Option Nat) (p a) (some Nat i) (none Nat)) (xs.1 i)) (some Nat) found)
+def sequenceFind : (0 A : Type 0) -> Sequence A -> (A -> Bool) -> Option A := fun (0 A : Type 0) (xs : Sequence A) (p : A -> Bool) => optionBind Nat A (sequenceFindIndex A xs p) xs.1
+def sequenceAny : (0 A : Type 0) -> Sequence A -> (A -> Bool) -> Bool := fun (0 A : Type 0) (xs : Sequence A) (p : A -> Bool) => optionIsSome Nat (sequenceFindIndex A xs p)
+def sequenceEvery : (0 A : Type 0) -> Sequence A -> (A -> Bool) -> Bool := fun (0 A : Type 0) (xs : Sequence A) (p : A -> Bool) => boolNot (sequenceAny A xs (fun (a : A) => boolNot (p a)))
+def sequenceFilter : (0 A : Type 0) -> Sequence A -> (A -> Bool) -> Sequence A := fun (0 A : Type 0) (xs : Sequence A) (p : A -> Bool) =>
+  sequenceFold A (Sequence A) xs (sequenceEmpty A) (fun (acc : Sequence A) (a : A) => select (Sequence A) (p a) (sequencePush A acc a) acc)

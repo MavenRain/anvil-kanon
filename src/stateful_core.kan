@@ -1,0 +1,112 @@
+-- VStatefulSet's PVC, needed-pod, scale-down, and stale-pod protocol.
+def statefulNeededStep : StatefulState -> StatefulStep := fun (s : StatefulState) =>
+  optionFold Nat StatefulStep vStatefulSetReconcilerStepError (fun (i : Nat) =>
+    optionFold (Option PodT) StatefulStep vStatefulSetReconcilerStepError
+      (optionFold PodT StatefulStep vStatefulSetReconcilerStepCreateNeeded (fun (p : PodT) => vStatefulSetReconcilerStepUpdateNeeded))
+      (listOptionPodTNth (vStatefulSetReconcilerSNeeded s) i)) (intToNat (vStatefulSetReconcilerSNeededIndex s))
+def statefulHasNeeded : StatefulState -> Bool := fun (s : StatefulState) => intLess (vStatefulSetReconcilerSNeededIndex s) (nonnegative (listOptionPodTLength (vStatefulSetReconcilerSNeeded s)))
+def statefulHasCondemned : StatefulState -> Bool := fun (s : StatefulState) => intLess (vStatefulSetReconcilerSCondemnedIndex s) (nonnegative (listPodTLength (vStatefulSetReconcilerSCondemned s)))
+def statefulHasPvc : StatefulState -> Bool := fun (s : StatefulState) => intLess (vStatefulSetReconcilerSPvcIndex s) (nonnegative (listPersistentVolumeClaimTLength (vStatefulSetReconcilerSPvcs s)))
+def statefulDispatch : StatefulState -> StatefulOutput := fun (s : StatefulState) =>
+  case (statefulHasNeeded s) with
+  | 1 (u : Unit) => statefulQuiet (select StatefulStep (natLt 0 (listPersistentVolumeClaimTLength (vStatefulSetReconcilerSPvcs s))) vStatefulSetReconcilerStepGetPvc (statefulNeededStep s)) s
+  | 0 (u : Unit) => statefulQuiet (select StatefulStep (statefulHasCondemned s) vStatefulSetReconcilerStepDeleteCondemned vStatefulSetReconcilerStepDeleteOutdated)
+      (vStatefulSetReconcilerSSetPvcIndex (nonnegative (listPersistentVolumeClaimTLength (vStatefulSetReconcilerSPvcs s))) s)
+def statefulAfterPvc : StatefulState -> StatefulOutput := fun (s : StatefulState) =>
+  statefulQuiet (select StatefulStep (statefulHasPvc s) vStatefulSetReconcilerStepGetPvc
+    (select StatefulStep (statefulHasNeeded s) (statefulNeededStep s) vStatefulSetReconcilerStepError)) s
+def statefulAfterNeeded : Stateful -> StatefulState -> StatefulOutput := fun (cr : Stateful) (s : StatefulState) =>
+  case (statefulHasNeeded s) with
+  | 1 (u : Unit) =>
+    let pvcs : ListPersistentVolumeClaimT := statefulMakePvcs cr (vStatefulSetReconcilerSNeededIndex s) in
+    (case (natLt 0 (listPersistentVolumeClaimTLength pvcs)) with
+    | 1 (u : Unit) => statefulQuiet vStatefulSetReconcilerStepGetPvc (vStatefulSetReconcilerSSetPvcIndex (nonnegative 0) (vStatefulSetReconcilerSSetPvcs pvcs s))
+    | 0 (u : Unit) => statefulQuiet (statefulNeededStep s) s)
+  | 0 (u : Unit) => statefulQuiet (select StatefulStep (statefulHasCondemned s) vStatefulSetReconcilerStepDeleteCondemned vStatefulSetReconcilerStepDeleteOutdated) s
+def statefulWithAccepted : (0 A : Type 0) -> StatefulState -> Option (ApiResult A) -> Option ApiError -> StatefulOutput -> StatefulOutput :=
+  fun (0 A : Type 0) (s : StatefulState) (response : Option (ApiResult A)) (accepted : Option ApiError) (next : StatefulOutput) =>
+  optionFold (ApiResult A) StatefulOutput (statefulError s) (fun (r : ApiResult A) =>
+    case r with | 1 (x : A) => next
+    | 0 (e : ApiError) => select StatefulOutput (optionFold ApiError Bool false (apiMethodApiErrorEqual e) accepted) next (statefulError s)) response
+def statefulAfterList : Stateful -> StatefulState -> ListDynamicObjectT -> StatefulOutput := fun (cr : Stateful) (s : StatefulState) (objects : ListDynamicObjectT) =>
+  optionFold ListPodT StatefulOutput (statefulError s) (fun (pods : ListPodT) =>
+  optionFold Bytes StatefulOutput (statefulError s) (fun (parent : Bytes) =>
+  optionFold Nat StatefulOutput (statefulError s) (fun (replicas : Nat) =>
+    let filtered : ListPodT := listPodTFilter pods (statefulPodFilter cr) in
+    let next : StatefulState := vStatefulSetReconcilerSMake (vStatefulSetReconcilerSReconcileStep s)
+      (statefulNeeded parent filtered 0 (natCount replicas)) (nonnegative 0)
+      (statefulCondemned parent (nonnegative replicas) filtered) (nonnegative 0) (statefulMakePvcs cr (nonnegative 0)) (nonnegative 0) in
+    statefulDispatch next) (intToNat (optionValue Int (nonnegative 1) (statefulSetSsSpecReplicas (vStatefulSetTSpec cr)))))
+    (objectMetaTName (vStatefulSetTMetadata cr))) (objectsToPods objects)
+def statefulCurrentPvc : StatefulState -> Option PersistentVolumeClaimT := fun (s : StatefulState) =>
+  optionBind Nat PersistentVolumeClaimT (intToNat (vStatefulSetReconcilerSPvcIndex s)) (fun (i : Nat) => listPersistentVolumeClaimTNth (vStatefulSetReconcilerSPvcs s) i)
+def statefulGetPvc : Stateful -> StatefulState -> StatefulOutput := fun (cr : Stateful) (s : StatefulState) =>
+  optionFold Bytes StatefulOutput (statefulError s) (fun (ns : Bytes) =>
+  optionFold PersistentVolumeClaimT StatefulOutput (statefulError s) (fun (pvc : PersistentVolumeClaimT) =>
+  optionFold Bytes StatefulOutput (statefulError s) (fun (name : Bytes) =>
+    tuple (statefulAt vStatefulSetReconcilerStepAfterGetPvc s, some Request (requestGet (commonObjectRefMake commonKindPersistentVolumeClaim name ns))))
+    (objectMetaTName (persistentVolumeClaimTMetadata pvc))) (statefulCurrentPvc s)) (objectMetaTNamespace (vStatefulSetTMetadata cr))
+def statefulCreatePvc : Stateful -> StatefulState -> StatefulOutput := fun (cr : Stateful) (s : StatefulState) =>
+  optionFold Bytes StatefulOutput (statefulError s) (fun (ns : Bytes) =>
+  optionFold PersistentVolumeClaimT StatefulOutput (statefulError s) (fun (pvc : PersistentVolumeClaimT) =>
+    tuple (statefulAt vStatefulSetReconcilerStepAfterCreatePvc (vStatefulSetReconcilerSSetPvcIndex (intAdd (vStatefulSetReconcilerSPvcIndex s) (nonnegative 1)) s),
+      some Request (requestCreate ns (persistentVolumeClaimTMarshal pvc)))) (statefulCurrentPvc s)) (objectMetaTNamespace (vStatefulSetTMetadata cr))
+def statefulCreateNeeded : Stateful -> StatefulState -> StatefulOutput := fun (cr : Stateful) (s : StatefulState) =>
+  optionFold Bytes StatefulOutput (statefulError s) (fun (ns : Bytes) =>
+    case (statefulHasNeeded s) with | 0 (u : Unit) => statefulError s
+    | 1 (u : Unit) => tuple (statefulAt vStatefulSetReconcilerStepAfterCreateNeeded
+        (vStatefulSetReconcilerSSetNeededIndex (intAdd (vStatefulSetReconcilerSNeededIndex s) (nonnegative 1)) s),
+        some Request (requestCreate ns (podTMarshal (statefulMakePod cr (vStatefulSetReconcilerSNeededIndex s)))))) (objectMetaTNamespace (vStatefulSetTMetadata cr))
+def statefulUpdateNeeded : Stateful -> StatefulState -> StatefulOutput := fun (cr : Stateful) (s : StatefulState) =>
+  optionFold Bytes StatefulOutput (statefulError s) (fun (ns : Bytes) =>
+  optionFold Nat StatefulOutput (statefulError s) (fun (i : Nat) =>
+  optionFold (Option PodT) StatefulOutput (statefulError s) (fun (elt : Option PodT) =>
+  optionFold PodT StatefulOutput (statefulError s) (fun (old : PodT) =>
+  optionFold Bytes StatefulOutput (statefulError s) (fun (name : Bytes) =>
+  optionFold OwnerReferenceT StatefulOutput (statefulError s) (fun (owner : OwnerReferenceT) =>
+    let ordinal : Int := vStatefulSetReconcilerSNeededIndex s in
+    let updated : PodT := statefulStorage cr (statefulIdentity cr old ordinal) ordinal in
+    tuple (statefulAt vStatefulSetReconcilerStepAfterUpdateNeeded (vStatefulSetReconcilerSSetNeededIndex (intAdd ordinal (nonnegative 1)) s),
+      some Request (requestGetThenUpdate ns name owner (podTMarshal updated)))) (vStatefulSetTControllerOwner cr))
+      (objectMetaTName (podTMetadata old))) elt) (listOptionPodTNth (vStatefulSetReconcilerSNeeded s) i))
+      (intToNat (vStatefulSetReconcilerSNeededIndex s))) (objectMetaTNamespace (vStatefulSetTMetadata cr))
+def statefulDeletePod : Stateful -> StatefulState -> StatefulState -> PodT -> StatefulOutput := fun (cr : Stateful) (original : StatefulState) (next : StatefulState) (pod : PodT) =>
+  optionFold Bytes StatefulOutput (statefulError original) (fun (ns : Bytes) =>
+  optionFold Bytes StatefulOutput (statefulError original) (fun (name : Bytes) =>
+  optionFold OwnerReferenceT StatefulOutput (statefulError original) (fun (owner : OwnerReferenceT) =>
+    tuple (next, some Request (requestGetThenDelete (commonObjectRefMake commonKindPod name ns) owner))) (vStatefulSetTControllerOwner cr))
+    (objectMetaTName (podTMetadata pod))) (objectMetaTNamespace (vStatefulSetTMetadata cr))
+def statefulDeleteCondemned : Stateful -> StatefulState -> StatefulOutput := fun (cr : Stateful) (s : StatefulState) =>
+  optionFold Nat StatefulOutput (statefulError s) (fun (i : Nat) =>
+  optionFold PodT StatefulOutput (statefulError s) (fun (pod : PodT) =>
+    statefulDeletePod cr s (statefulAt vStatefulSetReconcilerStepAfterDeleteCondemned
+      (vStatefulSetReconcilerSSetCondemnedIndex (intAdd (vStatefulSetReconcilerSCondemnedIndex s) (nonnegative 1)) s)) pod)
+      (listPodTNth (vStatefulSetReconcilerSCondemned s) i)) (intToNat (vStatefulSetReconcilerSCondemnedIndex s))
+def statefulCore : Stateful -> Option Response -> StatefulState -> StatefulOutput := fun (cr : Stateful) (response : Option Response) (s : StatefulState) =>
+  match (vStatefulSetReconcilerSReconcileStep s) as self in VStatefulSetReconcilerStep return StatefulOutput with
+  | vStatefulSetReconcilerStepInit =>
+    (case (optionIsSome Bytes (objectMetaTDeletionTimestamp (vStatefulSetTMetadata cr))) with
+    | 1 (u : Unit) => statefulQuiet vStatefulSetReconcilerStepDone s
+    | 0 (u : Unit) => optionFold Bytes StatefulOutput (statefulError s) (fun (ns : Bytes) =>
+      tuple (statefulAt vStatefulSetReconcilerStepAfterListPod s, some Request (requestList commonKindPod ns))) (objectMetaTNamespace (vStatefulSetTMetadata cr)))
+  | vStatefulSetReconcilerStepAfterListPod => optionFold ListDynamicObjectT StatefulOutput (statefulError s) (statefulAfterList cr s) (apiResponseOk ListDynamicObjectT (responseList response))
+  | vStatefulSetReconcilerStepGetPvc => statefulGetPvc cr s
+  | vStatefulSetReconcilerStepAfterGetPvc => optionFold (ApiResult DynamicObjectT) StatefulOutput (statefulError s) (fun (r : ApiResult DynamicObjectT) =>
+      case r with | 1 (obj : DynamicObjectT) => statefulQuiet vStatefulSetReconcilerStepSkipPvc s
+      | 0 (e : ApiError) => statefulQuiet (select StatefulStep (apiMethodApiErrorEqual e apiMethodApiErrorObjectNotFound) vStatefulSetReconcilerStepCreatePvc vStatefulSetReconcilerStepError) s) (responseGet response)
+  | vStatefulSetReconcilerStepCreatePvc => statefulCreatePvc cr s
+  | vStatefulSetReconcilerStepAfterCreatePvc => statefulWithAccepted DynamicObjectT s (responseCreate response) (some ApiError apiMethodApiErrorObjectAlreadyExists) (statefulAfterPvc s)
+  | vStatefulSetReconcilerStepSkipPvc => select StatefulOutput (statefulHasPvc s)
+      (statefulAfterPvc (vStatefulSetReconcilerSSetPvcIndex (intAdd (vStatefulSetReconcilerSPvcIndex s) (nonnegative 1)) s)) (statefulError s)
+  | vStatefulSetReconcilerStepCreateNeeded => statefulCreateNeeded cr s
+  | vStatefulSetReconcilerStepAfterCreateNeeded => statefulWithAccepted DynamicObjectT s (responseCreate response) (some ApiError apiMethodApiErrorObjectAlreadyExists) (statefulAfterNeeded cr s)
+  | vStatefulSetReconcilerStepUpdateNeeded => statefulUpdateNeeded cr s
+  | vStatefulSetReconcilerStepAfterUpdateNeeded => statefulWithAccepted DynamicObjectT s (responseGetThenUpdate response) (none ApiError) (statefulAfterNeeded cr s)
+  | vStatefulSetReconcilerStepDeleteCondemned => statefulDeleteCondemned cr s
+  | vStatefulSetReconcilerStepAfterDeleteCondemned => statefulWithAccepted Ghost s (responseGetThenDelete response) (some ApiError apiMethodApiErrorObjectNotFound)
+      (statefulQuiet (select StatefulStep (statefulHasCondemned s) vStatefulSetReconcilerStepDeleteCondemned vStatefulSetReconcilerStepDeleteOutdated) s)
+  | vStatefulSetReconcilerStepDeleteOutdated => optionFold PodT StatefulOutput (statefulQuiet vStatefulSetReconcilerStepDone s)
+      (statefulDeletePod cr s (statefulAt vStatefulSetReconcilerStepAfterDeleteOutdated s)) (statefulLargestUnmatched cr (vStatefulSetReconcilerSNeeded s))
+  | vStatefulSetReconcilerStepAfterDeleteOutdated => statefulWithAccepted Ghost s (responseGetThenDelete response) (some ApiError apiMethodApiErrorObjectNotFound) (statefulQuiet vStatefulSetReconcilerStepDone s)
+  | vStatefulSetReconcilerStepDone => tuple (s, none Request)
+  | vStatefulSetReconcilerStepError => tuple (s, none Request)

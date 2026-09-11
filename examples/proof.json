@@ -1,0 +1,14 @@
+{
+  "stateful": true,
+  "desired": 1,
+  "bound": {
+    "maxInFlight": 2,
+    "maxObjectsPerKind": 2,
+    "maxControllers": 1,
+    "uidCeiling": 4,
+    "rvCeiling": 5,
+    "reconcileCeiling": 1,
+    "maxReconcileDepth": 8,
+    "monkeyForge": []
+  }
+}

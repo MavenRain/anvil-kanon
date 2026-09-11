@@ -1,0 +1,113 @@
+-- VStatefulSet identity, storage, and ordinal helpers.
+def Stateful : Type 0 := VStatefulSetT
+def StatefulState : Type 0 := VStatefulSetReconcilerS
+def StatefulStep : Type 0 := VStatefulSetReconcilerStep
+def StatefulOutput : Type 0 := prod (StatefulState, Option Request)
+def statefulInit : StatefulState := vStatefulSetReconcilerSMake vStatefulSetReconcilerStepInit listOptionPodTNil (nonnegative 0) listPodTNil (nonnegative 0) listPersistentVolumeClaimTNil (nonnegative 0)
+def statefulAt : StatefulStep -> StatefulState -> StatefulState := vStatefulSetReconcilerSSetReconcileStep
+def statefulQuiet : StatefulStep -> StatefulState -> StatefulOutput := fun (step : StatefulStep) (s : StatefulState) => tuple (statefulAt step s, none Request)
+def statefulError : StatefulState -> StatefulOutput := statefulQuiet vStatefulSetReconcilerStepError
+def statefulDone : StatefulState -> Bool := fun (s : StatefulState) => vStatefulSetReconcilerStepEqual (vStatefulSetReconcilerSReconcileStep s) vStatefulSetReconcilerStepDone
+def statefulFailed : StatefulState -> Bool := fun (s : StatefulState) => vStatefulSetReconcilerStepEqual (vStatefulSetReconcilerSReconcileStep s) vStatefulSetReconcilerStepError
+def statefulBareName : Bytes -> Int -> Bytes := fun (parent : Bytes) (ord : Int) => bytesAppend parent (bytesCons 45 (intText ord))
+def statefulPodName : Bytes -> Int -> Bytes := fun (parent : Bytes) (ord : Int) => bytesAppend b"vstatefulset-" (statefulBareName parent ord)
+def statefulPvcName : Bytes -> Bytes -> Int -> Bytes := fun (tmpl : Bytes) (parent : Bytes) (ord : Int) => bytesAppend b"vstatefulset-" (bytesAppend tmpl (bytesCons 45 (statefulBareName parent ord)))
+def rec bytesStripPrefix : Bytes -> Bytes -> Option Bytes := fun (prefix : Bytes) (s : Bytes) =>
+  match prefix as self in Bytes return Option Bytes with
+  | bytesNil => some Bytes s
+  | bytesCons h t => (match s as self in Bytes return Option Bytes with
+    | bytesNil => none Bytes
+    | bytesCons x xs => (case (natEq h x) with | 0 (u : Unit) => none Bytes | 1 (u : Unit) => bytesStripPrefix t xs))
+def statefulOrdinal : Bytes -> Bytes -> Option Int := fun (parent : Bytes) (name : Bytes) =>
+  optionBind Bytes Int (bytesStripPrefix (bytesAppend b"vstatefulset-" (bytesAppend parent b"-")) name) (fun (suffix : Bytes) =>
+    optionBind Int Int (resultToOption Int (parseInteger suffix)) (fun (ord : Int) =>
+      select (Option Int) (boolAnd (intIsNonnegative ord) (bytesEqual (statefulPodName parent ord) name)) (some Int ord) (none Int)))
+def statefulOwners : Stateful -> ListOwnerReferenceT := fun (cr : Stateful) => optionFold OwnerReferenceT ListOwnerReferenceT listOwnerReferenceTNil
+  (fun (owner : OwnerReferenceT) => listOwnerReferenceTCons owner listOwnerReferenceTNil) (vStatefulSetTControllerOwner cr)
+def statefulTemplate : Stateful -> PodTemplateSpecT := fun (cr : Stateful) => statefulSetSsSpecTemplate (vStatefulSetTSpec cr)
+def statefulTemplateLabels : Stateful -> Option StringMap := fun (cr : Stateful) => optionBind ObjectMetaT StringMap (podTemplateSpecTMetadata (statefulTemplate cr)) objectMetaTLabels
+def statefulTemplateAnnotations : Stateful -> Option StringMap := fun (cr : Stateful) => optionBind ObjectMetaT StringMap (podTemplateSpecTMetadata (statefulTemplate cr)) objectMetaTAnnotations
+def statefulIdentity : Stateful -> PodT -> Int -> PodT := fun (cr : Stateful) (pod : PodT) (ord : Int) =>
+  let md : ObjectMetaT := podTMetadata pod in
+  let labels : StringMap := stringMapSet b"apps.kubernetes.io/pod-index" (intText ord)
+    (stringMapSet b"statefulset.kubernetes.io/pod-name" (optionValue Bytes b"" (objectMetaTName md)) (optionValue StringMap stringMapEmpty (statefulTemplateLabels cr))) in
+  let md : ObjectMetaT := objectMetaTSetLabels (some StringMap labels) md in
+  let md : ObjectMetaT := objectMetaTSetOwnerReferences (some ListOwnerReferenceT (statefulOwners cr)) md in
+  let md : ObjectMetaT := objectMetaTSetAnnotations (statefulTemplateAnnotations cr) md in
+  let md : ObjectMetaT := objectMetaTSetFinalizers (none ListBytes) md in
+  podTSetMetadata (objectMetaTSetDeletionTimestamp (none Bytes) md) pod
+def rec stringMapUnionRight : StringMap -> StringMap -> StringMap := fun (left : StringMap) (right : StringMap) =>
+  match right as self in StringMap return StringMap with
+  | stringMapNil => left
+  | stringMapCons k v t => stringMapUnionRight (stringMapSet k v left) t
+def statefulPvcTemplates : Stateful -> ListPersistentVolumeClaimT := fun (cr : Stateful) => optionValue ListPersistentVolumeClaimT listPersistentVolumeClaimTNil (statefulSetSsSpecVolumeClaimTemplates (vStatefulSetTSpec cr))
+def statefulSpecializePvc : Stateful -> Int -> PersistentVolumeClaimT -> PersistentVolumeClaimT := fun (cr : Stateful) (ord : Int) (tmpl : PersistentVolumeClaimT) =>
+  let tm : ObjectMetaT := persistentVolumeClaimTMetadata tmpl in
+  let cm : ObjectMetaT := vStatefulSetTMetadata cr in
+  let name : Bytes := statefulPvcName (optionValue Bytes b"" (objectMetaTName tm)) (optionValue Bytes b"" (objectMetaTName cm)) ord in
+  let labels : StringMap := stringMapUnionRight (optionValue StringMap stringMapEmpty (objectMetaTLabels tm))
+    (optionValue StringMap stringMapEmpty (labelSelectorTMatchLabels (statefulSetSsSpecSelector (vStatefulSetTSpec cr)))) in
+  let md : ObjectMetaT := objectMetaTSetName (some Bytes name) objectMetaDefault in
+  let md : ObjectMetaT := objectMetaTSetNamespace (objectMetaTNamespace cm) md in
+  persistentVolumeClaimTMake (objectMetaTSetLabels (some StringMap labels) md) (persistentVolumeClaimTSpec tmpl) (none PersistentVolumeClaimStatus)
+def statefulMakePvcs : Stateful -> Int -> ListPersistentVolumeClaimT := fun (cr : Stateful) (ord : Int) => listPersistentVolumeClaimTMap (statefulPvcTemplates cr) (statefulSpecializePvc cr ord)
+def statefulMakePvc : Stateful -> Int -> Int -> Option PersistentVolumeClaimT := fun (cr : Stateful) (ord : Int) (i : Int) =>
+  optionBind Nat PersistentVolumeClaimT (intToNat i) (fun (n : Nat) => optionMap PersistentVolumeClaimT PersistentVolumeClaimT (statefulSpecializePvc cr ord) (listPersistentVolumeClaimTNth (statefulPvcTemplates cr) n))
+def statefulPvcVolume : Stateful -> Int -> PersistentVolumeClaimT -> VolumeT := fun (cr : Stateful) (ord : Int) (tmpl : PersistentVolumeClaimT) =>
+  let pvc : PersistentVolumeClaimT := statefulSpecializePvc cr ord tmpl in
+  volumeTMake (none VolumeHostPathVolumeSource) (none VolumeConfigMapVolumeSource) (optionValue Bytes b"" (objectMetaTName (persistentVolumeClaimTMetadata tmpl)))
+    (none VolumeProjectedVolumeSource) (none VolumeSecretVolumeSource) (none VolumeDownwardApiVolumeSource) (none VolumeEmptyDirVolumeSource)
+    (some VolumePersistentVolumeClaimVolumeSource (volumePersistentVolumeClaimVolumeSourceMake (optionValue Bytes b"" (objectMetaTName (persistentVolumeClaimTMetadata pvc))) (some Bool false)))
+def rec statefulVolumes : Stateful -> Int -> ListPersistentVolumeClaimT -> ListVolumeT := fun (cr : Stateful) (ord : Int) (tmpls : ListPersistentVolumeClaimT) =>
+  match tmpls as self in ListPersistentVolumeClaimT return ListVolumeT with
+  | listPersistentVolumeClaimTNil => listVolumeTNil
+  | listPersistentVolumeClaimTCons h t => listVolumeTCons (statefulPvcVolume cr ord h) (statefulVolumes cr ord t)
+def statefulStorage : Stateful -> PodT -> Int -> PodT := fun (cr : Stateful) (pod : PodT) (ord : Int) =>
+  optionFold PodSpecT PodT pod (fun (ps : PodSpecT) =>
+    let tmpls : ListPersistentVolumeClaimT := statefulPvcTemplates cr in
+    let retained : ListVolumeT := listVolumeTFilter (optionValue ListVolumeT listVolumeTNil (podSpecTVolumes ps)) (fun (v : VolumeT) =>
+      boolNot (optionIsSome PersistentVolumeClaimT (listPersistentVolumeClaimTFind tmpls (fun (t : PersistentVolumeClaimT) => bytesEqual (volumeTName v) (optionValue Bytes b"" (objectMetaTName (persistentVolumeClaimTMetadata t))))))) in
+    podTSetSpec (some PodSpecT (podSpecTSetVolumes (some ListVolumeT (listVolumeTAppend (statefulVolumes cr ord tmpls) retained)) ps)) pod) (podTSpec pod)
+def podSpecDefault : PodSpecT := podSpecTMake (none AffinityT) listContainerTNil (none ListVolumeT) (none ListContainerT) (none Bytes) (none ListTolerationT) (none StringMap) (none Bytes) (none Bytes) (none Bytes) (none Bytes) (none PodSecurityContextT) (none Bool) (none Int) (none ListLocalObjectReferenceT) (none Bytes) (none Bytes)
+def statefulInitIdentity : Stateful -> PodT -> Int -> PodT := fun (cr : Stateful) (pod : PodT) (ord : Int) =>
+  let u : PodT := statefulIdentity cr pod ord in
+  let ps : PodSpecT := optionValue PodSpecT podSpecDefault (podTSpec u) in
+  let ps : PodSpecT := podSpecTSetHostname (objectMetaTName (podTMetadata u)) ps in
+  podTSetSpec (some PodSpecT (podSpecTSetSubdomain (some Bytes (statefulSetSsSpecServiceName (vStatefulSetTSpec cr))) ps)) u
+def statefulMakePod : Stateful -> Int -> PodT := fun (cr : Stateful) (ord : Int) =>
+  let md : ObjectMetaT := objectMetaTSetName (some Bytes (statefulPodName (optionValue Bytes b"" (objectMetaTName (vStatefulSetTMetadata cr))) ord)) objectMetaDefault in
+  let md : ObjectMetaT := objectMetaTSetLabels (statefulTemplateLabels cr) md in
+  let md : ObjectMetaT := objectMetaTSetAnnotations (statefulTemplateAnnotations cr) md in
+  let md : ObjectMetaT := objectMetaTSetOwnerReferences (some ListOwnerReferenceT (statefulOwners cr)) md in
+  statefulStorage cr (statefulInitIdentity cr (podTMake md (podTemplateSpecTSpec (statefulTemplate cr)) (none Ghost)) ord) ord
+def statefulPodOrdinal : Bytes -> PodT -> Option Int := fun (parent : Bytes) (pod : PodT) => optionBind Bytes Int (objectMetaTName (podTMetadata pod)) (statefulOrdinal parent)
+def statefulPodWithOrdinal : Bytes -> ListPodT -> Int -> Option PodT := fun (parent : Bytes) (pods : ListPodT) (ord : Int) =>
+  listPodTFind pods (fun (pod : PodT) => optionFold Int Bool false (intEqual ord) (statefulPodOrdinal parent pod))
+def rec statefulNeeded : Bytes -> ListPodT -> Nat -> Count -> ListOptionPodT := fun (parent : Bytes) (pods : ListPodT) (start : Nat) (count : Count) =>
+  match count as self in Count return ListOptionPodT with | countZero => listOptionPodTNil
+  | countSucc tail => listOptionPodTCons (statefulPodWithOrdinal parent pods (nonnegative start)) (statefulNeeded parent pods (natAdd start 1) tail)
+def rec statefulInsertDescending : Bytes -> PodT -> ListPodT -> ListPodT := fun (parent : Bytes) (pod : PodT) (xs : ListPodT) =>
+  match xs as self in ListPodT return ListPodT with
+  | listPodTNil => listPodTCons pod listPodTNil
+  | listPodTCons h t => (case (intLess (optionValue Int (nonnegative 0) (statefulPodOrdinal parent pod)) (optionValue Int (nonnegative 0) (statefulPodOrdinal parent h))) with
+    | 0 (u : Unit) => listPodTCons pod xs
+    | 1 (u : Unit) => listPodTCons h (statefulInsertDescending parent pod t))
+def rec statefulCondemned : Bytes -> Int -> ListPodT -> ListPodT := fun (parent : Bytes) (replicas : Int) (xs : ListPodT) =>
+  match xs as self in ListPodT return ListPodT with
+  | listPodTNil => listPodTNil
+  | listPodTCons h t =>
+    let rest : ListPodT := statefulCondemned parent replicas t in
+    optionFold Int ListPodT rest (fun (ord : Int) => select ListPodT (intLess ord replicas) rest (statefulInsertDescending parent h rest)) (statefulPodOrdinal parent h)
+def statefulPodFilter : Stateful -> PodT -> Bool := fun (cr : Stateful) (pod : PodT) =>
+  boolAnd (optionFold OwnerReferenceT Bool false (objectMetaOwnersContain (podTMetadata pod)) (vStatefulSetTControllerOwner cr))
+    (optionFold Bytes Bool false (fun (parent : Bytes) => optionIsSome Int (statefulPodOrdinal parent pod)) (objectMetaTName (vStatefulSetTMetadata cr)))
+def statefulNormalizeSpec : PodSpecT -> PodSpecT := fun (ps : PodSpecT) => podSpecTSetSubdomain (none Bytes) (podSpecTSetHostname (none Bytes) (podSpecTSetVolumes (none ListVolumeT) ps))
+def statefulPodSpecMatches : Stateful -> PodT -> Bool := fun (cr : Stateful) (pod : PodT) =>
+  optionFold PodSpecT Bool false (fun (ps : PodSpecT) => optionFold PodSpecT Bool false
+    (fun (ts : PodSpecT) => podSpecTEqual (statefulNormalizeSpec ps) (statefulNormalizeSpec ts)) (podTemplateSpecTSpec (statefulTemplate cr))) (podTSpec pod)
+def rec statefulLargestUnmatched : Stateful -> ListOptionPodT -> Option PodT := fun (cr : Stateful) (xs : ListOptionPodT) =>
+  match xs as self in ListOptionPodT return Option PodT with
+  | listOptionPodTNil => none PodT
+  | listOptionPodTCons h t => optionFold PodT (Option PodT)
+      (optionBind PodT PodT h (fun (pod : PodT) => select (Option PodT) (statefulPodSpecMatches cr pod) (none PodT) (some PodT pod)))
+      (some PodT) (statefulLargestUnmatched cr t)

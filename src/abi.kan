@@ -1,0 +1,33 @@
+-- Constructor wrappers and scalar flags for the opaque Wasm reference ABI.
+def bytesEqFlag : Bytes -> Bytes -> Nat := fun (a : Bytes) (b : Bytes) => boolNat (bytesEqual a b)
+def bytesLessFlag : Bytes -> Bytes -> Nat := fun (a : Bytes) (b : Bytes) => boolNat (bytesLess a b)
+def intPositive : Nat -> Int := fun (n : Nat) => nonnegative n
+def intNegative : Nat -> Int := fun (magnitudeMinusOne : Nat) => negative magnitudeMinusOne
+def intResultOk : Result Int -> Nat := fun (r : Result Int) =>
+  case r with | 0 (e : Error) => 0 | 1 (x : Int) => 1
+-- Callers check intResultOk before reading. The error branch is total.
+def intResultValue : Result Int -> Int := fun (r : Result Int) =>
+  case r with | 0 (e : Error) => nonnegative 0 | 1 (x : Int) => x
+def boolFalse : Bool := false
+def boolTrue : Bool := true
+def noneBytes : Option Bytes := none Bytes
+def someBytes : Bytes -> Option Bytes := fun (x : Bytes) => some Bytes x
+def noneInt : Option Int := none Int
+def someInt : Int -> Option Int := fun (x : Int) => some Int x
+def noneBool : Option Bool := none Bool
+def someBool : Bool -> Option Bool := fun (x : Bool) => some Bool x
+def jsonNullValue : Value := jsonNull
+def jsonBoolValue : Bool -> Value := fun (x : Bool) => jsonBool x
+def jsonIntValue : Int -> Value := fun (x : Int) => jsonInt x
+def jsonFloatValue : Bytes -> Value := fun (x : Bytes) => jsonFloat x
+def jsonStringValue : Bytes -> Value := fun (x : Bytes) => jsonString x
+def jsonArrayValue : Values -> Value := fun (x : Values) => jsonArray x
+def jsonObjectValue : Members -> Value := fun (x : Members) => jsonObject x
+def jsonArrayEmpty : Values := jsonArrayNil
+def jsonIntLiteralValue : Bytes -> Value := fun (x : Bytes) => jsonIntLiteral x
+def jsonArrayPush : Value -> Values -> Values := fun (x : Value) (xs : Values) => jsonArrayCons x xs
+def jsonObjectEmpty : Members := jsonObjectNil
+def jsonObjectPush : Bytes -> Value -> Members -> Members := fun (k : Bytes) (v : Value) (xs : Members) => jsonObjectCons k v xs
+def valueEqFlag : Value -> Value -> Nat := fun (a : Value) (b : Value) => boolNat (valueEqual a b)
+def stringMapEqFlag : StringMap -> StringMap -> Nat := fun (a : StringMap) (b : StringMap) => boolNat (stringMapEqual a b)
+def stringMapSubsetFlag : StringMap -> StringMap -> Nat := fun (a : StringMap) (b : StringMap) => boolNat (stringMapSubset a b)

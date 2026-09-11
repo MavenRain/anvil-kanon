@@ -1,0 +1,154 @@
+-- VReplicaSet's always and eventual invariant partitions.
+def vrsRef : Vrs -> CommonObjectRef := fun (cr : Vrs) => assuranceRef vreplicaSetTKind (vreplicaSetTMetadata cr)
+def vrsNamespace : Vrs -> Bytes := fun (cr : Vrs) => commonObjectRefNamespace (vrsRef cr)
+def vrsContainsOwner : Vrs -> ObjectMetaT -> Bool := fun (cr : Vrs) (md : ObjectMetaT) => optionFold OwnerReferenceT Bool false (objectMetaOwnersContain md) (vreplicaSetTControllerOwner cr)
+def vrsOwnedSelectorMatch : Vrs -> DynamicObjectT -> Bool := fun (cr : Vrs) (obj : DynamicObjectT) =>
+  let md : ObjectMetaT := dynamicObjectTMetadata obj in boolAnd (commonKindEqual (dynamicObjectTKind obj) commonKindPod)
+    (boolAnd (optionFold Bytes Bool false (bytesStartsWith b"vreplicaset-") (objectMetaTName md))
+    (boolAnd (optionIsSome Bytes (objectMetaTNamespace md))
+    (boolAnd (optionEqual Bytes bytesEqual (objectMetaTNamespace md) (objectMetaTNamespace (vreplicaSetTMetadata cr)))
+    (boolAnd (vrsContainsOwner cr md) (boolAnd (selectorMatches (vreplicaSetVrsSpecSelector (vreplicaSetTSpec cr)) (optionValue StringMap stringMapEmpty (objectMetaTLabels md)))
+      (boolNot (optionIsSome Bytes (objectMetaTDeletionTimestamp md))))))))
+def vrsMatchingPods : Vrs -> ClusterState -> ListDynamicObjectT := fun (cr : Vrs) (s : ClusterState) => listDynamicObjectTFilter (storeObjects s.0.0) (vrsOwnedSelectorMatch cr)
+def vrsCurrentStateMatches : Vrs -> ClusterState -> Bool := fun (cr : Vrs) (s : ClusterState) => optionFold DynamicObjectT Bool false
+  (fun (obj : DynamicObjectT) => optionFold Vrs Bool false (fun (stored : Vrs) => boolAnd
+    (intEqual (nonnegative (listDynamicObjectTLength (vrsMatchingPods cr s))) (vrsReplicas cr))
+    (optionFold VreplicaSetVrsStatus Bool false (fun (status : VreplicaSetVrsStatus) => intEqual (vreplicaSetVrsStatusReplicas status) (vrsReplicas stored)) (vreplicaSetTStatus stored)))
+    (resultToOption Vrs (vreplicaSetTUnmarshal obj))) (resourceStoreGet (vrsRef cr) s.0.0)
+def vrsDecodedOngoing : Vrs -> Int -> ClusterState -> Option (prod (Ongoing, VrsState)) := fun (cr : Vrs) (id : Int) (s : ClusterState) =>
+  optionBind Ongoing (prod (Ongoing, VrsState)) (ongoingMapGet (vrsRef cr) (assuranceOngoing id s)) (fun (o : Ongoing) =>
+    optionMap VrsState (prod (Ongoing, VrsState)) (fun (st : VrsState) => tuple (o, st)) (resultToOption VrsState (vrsStateDecode o.2)))
+def vrsAtReconcile : Vrs -> Int -> Bool -> (Ongoing -> VrsState -> ClusterState -> Bool) -> ClusterState -> Bool := fun (cr : Vrs) (id : Int) (absent : Bool) (p : Ongoing -> VrsState -> ClusterState -> Bool) (s : ClusterState) =>
+  optionFold (prod (Ongoing, VrsState)) Bool absent (fun (a : prod (Ongoing, VrsState)) => p a.0 a.1 s) (vrsDecodedOngoing cr id s)
+def vrsEtcdOwnedRv : Vrs -> ClusterState -> CommonObjectRef -> Option Int -> Bool := fun (cr : Vrs) (s : ClusterState) (key : CommonObjectRef) (rv : Option Int) =>
+  optionFold DynamicObjectT Bool false (fun (obj : DynamicObjectT) => let md : ObjectMetaT := dynamicObjectTMetadata obj in
+    boolAnd (optionEqual Bytes bytesEqual (objectMetaTNamespace md) (objectMetaTNamespace (vreplicaSetTMetadata cr)))
+      (boolAnd (optionIsSome Int (objectMetaTResourceVersion md)) (boolAnd (optionEqual Int intEqual (objectMetaTResourceVersion md) rv)
+        (boolAnd (optionIsSome ListOwnerReferenceT (objectMetaTOwnerReferences md)) (vrsContainsOwner cr md))))) (resourceStoreGet key s.0.0)
+def vrsDeleteUidSafe : Vrs -> ClusterState -> CommonObjectRef -> Int -> Bool := fun (cr : Vrs) (s : ClusterState) (key : CommonObjectRef) (uid : Int) =>
+  boolAnd (intLess uid s.0.1) (optionFold DynamicObjectT Bool true (fun (obj : DynamicObjectT) => let md : ObjectMetaT := dynamicObjectTMetadata obj in
+    boolOr (boolNot (boolAnd (vrsContainsOwner cr md) (boolAnd (commonKindEqual (dynamicObjectTKind obj) commonKindPod)
+      (optionEqual Bytes bytesEqual (objectMetaTNamespace md) (objectMetaTNamespace (vreplicaSetTMetadata cr))))))
+      (optionFold Int Bool false (intLess uid) (objectMetaTUid md))) (resourceStoreGet key s.0.0))
+def vrsGcRequest : Vrs -> ClusterState -> Request -> Bool := fun (cr : Vrs) (s : ClusterState) (req : Request) => match req as self in ApiMethodApiRequest return Bool with
+  | apiMethodApiRequestDeleteRequest r => optionFold ApiMethodPreconditions Bool false (fun (pc : ApiMethodPreconditions) =>
+      optionFold Int Bool false (vrsDeleteUidSafe cr s (apiMethodDeleteRequestKey r)) (apiMethodPreconditionsUid pc)) (apiMethodDeleteRequestPreconditions r)
+  | apiMethodApiRequestGetRequest r => false | apiMethodApiRequestListRequest r => false | apiMethodApiRequestCreateRequest r => false
+  | apiMethodApiRequestUpdateRequest r => false | apiMethodApiRequestUpdateStatusRequest r => false | apiMethodApiRequestGetThenDeleteRequest r => false
+  | apiMethodApiRequestGetThenUpdateRequest r => false | apiMethodApiRequestGetThenUpdateStatusRequest r => false
+def vrsPodInNamespace : Vrs -> CommonKind -> Bytes -> Bool := fun (cr : Vrs) (kind : CommonKind) (ns : Bytes) => boolAnd (commonKindEqual kind commonKindPod) (bytesEqual ns (vrsNamespace cr))
+def vrsForeignOwner : Vrs -> OwnerReferenceT -> Bool := fun (cr : Vrs) (o : OwnerReferenceT) => boolAnd (ownerIsController o)
+  (boolNot (optionFold OwnerReferenceT Bool false (ownerReferenceTEqual o) (vreplicaSetTControllerOwner cr)))
+def vrsOtherRequest : Vrs -> ClusterState -> Request -> Bool := fun (cr : Vrs) (s : ClusterState) (req : Request) => match req as self in ApiMethodApiRequest return Bool with
+  | apiMethodApiRequestGetRequest r => true | apiMethodApiRequestListRequest r => true
+  | apiMethodApiRequestCreateRequest r => implies (vrsPodInNamespace cr (dynamicObjectTKind (apiMethodCreateRequestObj r)) (apiMethodCreateRequestNamespace r))
+      (boolNot (vrsContainsOwner cr (dynamicObjectTMetadata (apiMethodCreateRequestObj r))))
+  | apiMethodApiRequestUpdateRequest r =>
+    let obj : DynamicObjectT := apiMethodUpdateRequestObj r in let md : ObjectMetaT := dynamicObjectTMetadata obj in
+    let key : CommonObjectRef := commonObjectRefMake (dynamicObjectTKind obj) (apiMethodUpdateRequestName r) (apiMethodUpdateRequestNamespace r) in
+    implies (vrsPodInNamespace cr (dynamicObjectTKind obj) (apiMethodUpdateRequestNamespace r))
+      (boolAnd (optionIsSome Int (objectMetaTResourceVersion md)) (boolAnd (boolNot (vrsEtcdOwnedRv cr s key (objectMetaTResourceVersion md))) (boolNot (vrsContainsOwner cr md))))
+  | apiMethodApiRequestUpdateStatusRequest r =>
+    let obj : DynamicObjectT := apiMethodUpdateStatusRequestObj r in let md : ObjectMetaT := dynamicObjectTMetadata obj in
+    let key : CommonObjectRef := commonObjectRefMake (dynamicObjectTKind obj) (apiMethodUpdateStatusRequestName r) (apiMethodUpdateStatusRequestNamespace r) in
+    boolAnd (implies (vrsPodInNamespace cr (dynamicObjectTKind obj) (apiMethodUpdateStatusRequestNamespace r))
+      (boolAnd (optionIsSome Int (objectMetaTResourceVersion md)) (boolNot (vrsEtcdOwnedRv cr s key (objectMetaTResourceVersion md)))))
+      (boolNot (boolAnd (commonKindEqual (dynamicObjectTKind obj) vreplicaSetTKind) (commonObjectRefEqual key (vrsRef cr))))
+  | apiMethodApiRequestDeleteRequest r =>
+    let key : CommonObjectRef := apiMethodDeleteRequestKey r in implies (vrsPodInNamespace cr (commonObjectRefKind key) (commonObjectRefNamespace key))
+      (optionFold ApiMethodPreconditions Bool false (fun (pc : ApiMethodPreconditions) => boolOr
+        (optionFold Int Bool false (fun (rv : Int) => boolNot (vrsEtcdOwnedRv cr s key (some Int rv))) (apiMethodPreconditionsResourceVersion pc))
+        (optionFold Int Bool false (vrsDeleteUidSafe cr s key) (apiMethodPreconditionsUid pc))) (apiMethodDeleteRequestPreconditions r))
+  | apiMethodApiRequestGetThenUpdateRequest r =>
+    let obj : DynamicObjectT := apiMethodGetThenUpdateRequestObj r in implies (commonKindEqual (dynamicObjectTKind obj) commonKindPod)
+      (boolAnd (boolOr (boolNot (bytesEqual (apiMethodGetThenUpdateRequestNamespace r) (vrsNamespace cr))) (vrsForeignOwner cr (apiMethodGetThenUpdateRequestOwnerRef r)))
+        (boolNot (vrsContainsOwner cr (dynamicObjectTMetadata obj))))
+  | apiMethodApiRequestGetThenDeleteRequest r => let key : CommonObjectRef := apiMethodGetThenDeleteRequestKey r in
+      implies (vrsPodInNamespace cr (commonObjectRefKind key) (commonObjectRefNamespace key)) (vrsForeignOwner cr (apiMethodGetThenDeleteRequestOwnerRef r))
+  | apiMethodApiRequestGetThenUpdateStatusRequest r =>
+    let obj : DynamicObjectT := apiMethodGetThenUpdateStatusRequestObj r in
+    let key : CommonObjectRef := commonObjectRefMake (dynamicObjectTKind obj) (apiMethodGetThenUpdateStatusRequestName r) (apiMethodGetThenUpdateStatusRequestNamespace r) in
+    boolAnd (boolNot (boolAnd (commonKindEqual (dynamicObjectTKind obj) commonKindPod) (commonKindEqual (ownerReferenceTKind (apiMethodGetThenUpdateStatusRequestOwnerRef r)) vreplicaSetTKind)))
+      (boolNot (boolAnd (commonKindEqual (dynamicObjectTKind obj) vreplicaSetTKind) (commonObjectRefEqual key (vrsRef cr))))
+def vrsControllerOwnerNamed : Vrs -> OwnerReferenceT -> Bool := fun (cr : Vrs) (o : OwnerReferenceT) => boolAnd (ownerIsController o)
+  (boolAnd (commonKindEqual (ownerReferenceTKind o) vreplicaSetTKind) (bytesEqual (ownerReferenceTName o) (commonObjectRefName (vrsRef cr))))
+def vrsSelfRequest : Vrs -> Request -> Bool := fun (cr : Vrs) (req : Request) => match req as self in ApiMethodApiRequest return Bool with
+  | apiMethodApiRequestListRequest r => true
+  | apiMethodApiRequestCreateRequest r => boolAnd (vrsPodInNamespace cr (dynamicObjectTKind (apiMethodCreateRequestObj r)) (apiMethodCreateRequestNamespace r))
+      (assuranceExactlyOwner (vrsControllerOwnerNamed cr) (dynamicObjectTMetadata (apiMethodCreateRequestObj r)))
+  | apiMethodApiRequestGetThenDeleteRequest r => let key : CommonObjectRef := apiMethodGetThenDeleteRequestKey r in
+      boolAnd (vrsPodInNamespace cr (commonObjectRefKind key) (commonObjectRefNamespace key)) (vrsControllerOwnerNamed cr (apiMethodGetThenDeleteRequestOwnerRef r))
+  | apiMethodApiRequestGetThenUpdateStatusRequest r => commonObjectRefEqual (vrsRef cr)
+      (commonObjectRefMake (dynamicObjectTKind (apiMethodGetThenUpdateStatusRequestObj r)) (apiMethodGetThenUpdateStatusRequestName r) (apiMethodGetThenUpdateStatusRequestNamespace r))
+  | apiMethodApiRequestGetRequest r => false | apiMethodApiRequestDeleteRequest r => false | apiMethodApiRequestUpdateRequest r => false
+  | apiMethodApiRequestUpdateStatusRequest r => false | apiMethodApiRequestGetThenUpdateRequest r => false
+def vrsPendingFromKey : Vrs -> Int -> ClusterState -> Bool := fun (cr : Vrs) (id : Int) (s : ClusterState) => messagePoolEvery s.2 (fun (m : Message) =>
+  implies (boolAnd (hostEqual m.0 (hostController id (vrsRef cr))) (boolAnd (hostEqual m.1 hostApi) (assuranceApiRequest m)))
+    (optionFold Ongoing Bool false (fun (o : Ongoing) => optionFold Message Bool false (messageEqual m) o.1) (ongoingMapGet (vrsRef cr) (assuranceOngoing id s))))
+def vrsPendingList : Bytes -> (ListDynamicObjectT -> Bool) -> Ongoing -> ClusterState -> Bool := fun (ns : Bytes) (p : ListDynamicObjectT -> Bool) (o : Ongoing) (s : ClusterState) => optionFold Message Bool false
+  (fun (m : Message) => boolAnd (hostEqual m.1 hostApi) (boolAnd (optionFold Request Bool false (assuranceListRequest ns) (contentGetRequest m.3)) (assuranceListResponseEvery s m p))) o.1
+def vrsResponse12 : Vrs -> ListDynamicObjectT -> Bool := fun (cr : Vrs) (xs : ListDynamicObjectT) => listDynamicObjectTEvery xs (fun (obj : DynamicObjectT) =>
+  let md : ObjectMetaT := dynamicObjectTMetadata obj in boolAnd (resultIsOk PodT (podTUnmarshal obj)) (boolAnd (optionIsSome Bytes (objectMetaTNamespace md))
+    (optionEqual Bytes bytesEqual (objectMetaTNamespace md) (objectMetaTNamespace (vreplicaSetTMetadata cr)))))
+def vrsStatusRequestShape : Vrs -> Request -> Bool := fun (cr : Vrs) (req : Request) => match req as self in ApiMethodApiRequest return Bool with
+  | apiMethodApiRequestGetThenUpdateStatusRequest r => boolAnd (vrsSelfRequest cr req) (optionFold Vrs Bool false
+      (fun (v : Vrs) => optionFold VreplicaSetVrsStatus Bool false (fun (status : VreplicaSetVrsStatus) => intEqual (vreplicaSetVrsStatusReplicas status) (vrsReplicas cr)) (vreplicaSetTStatus v))
+      (resultToOption Vrs (vreplicaSetTUnmarshal (apiMethodGetThenUpdateStatusRequestObj r))))
+  | apiMethodApiRequestGetRequest r => false | apiMethodApiRequestListRequest r => false | apiMethodApiRequestCreateRequest r => false
+  | apiMethodApiRequestDeleteRequest r => false | apiMethodApiRequestUpdateRequest r => false | apiMethodApiRequestUpdateStatusRequest r => false
+  | apiMethodApiRequestGetThenDeleteRequest r => false | apiMethodApiRequestGetThenUpdateRequest r => false
+def vrsInductiveShape : Vrs -> Int -> Ongoing -> VrsState -> ClusterState -> Bool := fun (cr : Vrs) (id : Int) (o : Ongoing) (st : VrsState) (s : ClusterState) =>
+  match (vreplicaSetReconcilerSReconcileStep st) as self in VreplicaSetReconcilerStep return Bool with
+  | vreplicaSetReconcilerStepInit => boolNot (optionIsSome Message o.1)
+  | vreplicaSetReconcilerStepDone => boolNot (optionIsSome Message o.1)
+  | vreplicaSetReconcilerStepError => boolNot (optionIsSome Message o.1)
+  | vreplicaSetReconcilerStepAfterCreatePod n => false | vreplicaSetReconcilerStepAfterDeletePod n => false
+  | vreplicaSetReconcilerStepAfterListPods => vrsPendingList (vrsNamespace cr) (vrsResponse12 cr) o s
+  | vreplicaSetReconcilerStepAfterUpdateVrsStatus => optionFold Message Bool false (fun (m : Message) => boolAnd (hostEqual m.0 (hostController id (vrsRef cr)))
+      (boolAnd (hostEqual m.1 hostApi) (optionFold Request Bool false (vrsStatusRequestShape cr) (contentGetRequest m.3)))) o.1
+def vrsSameSpecUid : Vrs -> DynamicObjectT -> Bool := fun (cr : Vrs) (obj : DynamicObjectT) => boolAnd
+  (optionEqual Int intEqual (objectMetaTUid (dynamicObjectTMetadata obj)) (objectMetaTUid (vreplicaSetTMetadata cr)))
+  (optionFold Vrs Bool false (fun (v : Vrs) => boolAnd (intEqual (vrsReplicas v) (vrsReplicas cr))
+    (vreplicaSetVrsSpecEqual (vreplicaSetVrsSpecSetReplicas (none Int) (vreplicaSetTSpec v)) (vreplicaSetVrsSpecSetReplicas (none Int) (vreplicaSetTSpec cr)))) (resultToOption Vrs (vreplicaSetTUnmarshal obj)))
+def vrsScheduledOngoingSpec : Vrs -> Int -> ClusterState -> Bool := fun (cr : Vrs) (id : Int) (s : ClusterState) => boolAnd
+  (optionFold DynamicObjectT Bool true (vrsSameSpecUid cr) (resourceStoreGet (vrsRef cr) (assuranceScheduled id s)))
+  (optionFold Ongoing Bool true (fun (o : Ongoing) => vrsSameSpecUid cr o.0) (ongoingMapGet (vrsRef cr) (assuranceOngoing id s)))
+def vrsNoMutatePod : Request -> Bool := fun (req : Request) => match req as self in ApiMethodApiRequest return Bool with
+  | apiMethodApiRequestGetRequest r => true | apiMethodApiRequestListRequest r => true | apiMethodApiRequestGetThenUpdateStatusRequest r => true
+  | apiMethodApiRequestCreateRequest r => boolNot (commonKindEqual (dynamicObjectTKind (apiMethodCreateRequestObj r)) commonKindPod)
+  | apiMethodApiRequestUpdateRequest r => boolNot (commonKindEqual (dynamicObjectTKind (apiMethodUpdateRequestObj r)) commonKindPod)
+  | apiMethodApiRequestUpdateStatusRequest r => boolNot (commonKindEqual (dynamicObjectTKind (apiMethodUpdateStatusRequestObj r)) commonKindPod)
+  | apiMethodApiRequestDeleteRequest r => boolNot (commonKindEqual (commonObjectRefKind (apiMethodDeleteRequestKey r)) commonKindPod)
+  | apiMethodApiRequestGetThenDeleteRequest r => boolNot (commonKindEqual (commonObjectRefKind (apiMethodGetThenDeleteRequestKey r)) commonKindPod)
+  | apiMethodApiRequestGetThenUpdateRequest r => boolNot (commonKindEqual (dynamicObjectTKind (apiMethodGetThenUpdateRequestObj r)) commonKindPod)
+def vrsNonControllerSource : Message -> Bool := fun (m : Message) => boolAnd (hostEqual m.1 hostApi)
+  (boolNot (boolOr (optionIsSome (prod (Int, CommonObjectRef)) (hostControllerData m.0)) (hostEqual m.0 hostBuiltin)))
+def vrsResponse15 : Vrs -> Vrs -> ClusterState -> ListDynamicObjectT -> Bool := fun (cr : Vrs) (trigger : Vrs) (s : ClusterState) (xs : ListDynamicObjectT) =>
+  listDynamicObjectTEvery xs (fun (obj : DynamicObjectT) => let md : ObjectMetaT := dynamicObjectTMetadata obj in
+    let key : CommonObjectRef := optionValue CommonObjectRef (vrsRef cr) (resultToOption CommonObjectRef (objectRef obj)) in
+    boolAnd (resultIsOk PodT (podTUnmarshal obj)) (boolAnd (optionIsSome Bytes (objectMetaTNamespace md))
+    (boolAnd (optionEqual Bytes bytesEqual (objectMetaTNamespace md) (objectMetaTNamespace (vreplicaSetTMetadata trigger)))
+    (boolAnd (optionFold Int Bool false (fun (rv : Int) => intLess rv s.0.2) (objectMetaTResourceVersion md))
+      (optionFold DynamicObjectT Bool true (fun (stored : DynamicObjectT) => let em : ObjectMetaT := dynamicObjectTMetadata stored in
+        implies (optionEqual Int intEqual (objectMetaTResourceVersion em) (objectMetaTResourceVersion md)) (objectMetaTEqual em md)) (resourceStoreGet key s.0.0))))))
+def vrsFilteredPod : Vrs -> Vrs -> ClusterState -> PodT -> Bool := fun (cr : Vrs) (trigger : Vrs) (s : ClusterState) (pod : PodT) =>
+  let md : ObjectMetaT := podTMetadata pod in let key : CommonObjectRef := optionValue CommonObjectRef (vrsRef cr) (resultToOption CommonObjectRef (objectRef (podTMarshal pod))) in
+  boolAnd (optionEqual Bytes bytesEqual (objectMetaTNamespace md) (objectMetaTNamespace (vreplicaSetTMetadata trigger)))
+    (boolAnd (optionFold Int Bool false (fun (rv : Int) => intLess rv s.0.2) (objectMetaTResourceVersion md))
+      (optionFold DynamicObjectT Bool true (fun (stored : DynamicObjectT) => let em : ObjectMetaT := dynamicObjectTMetadata stored in
+        implies (optionEqual Int intEqual (objectMetaTResourceVersion em) (objectMetaTResourceVersion md)) (vrsContainsOwner trigger em)) (resourceStoreGet key s.0.0)))
+def vrsFilteredMatrix : Vrs -> Ongoing -> VrsState -> ClusterState -> Bool := fun (cr : Vrs) (o : Ongoing) (st : VrsState) (s : ClusterState) => optionFold Vrs Bool false
+  (fun (trigger : Vrs) => boolAnd (commonObjectRefEqual (optionValue CommonObjectRef (vrsRef cr) (resultToOption CommonObjectRef (objectRef (vreplicaSetTMarshal trigger)))) (vrsRef cr))
+    (boolAnd (objectMetaWellFormed (vreplicaSetTMetadata trigger))
+    (boolAnd (optionFold ListPodT Bool true (fun (xs : ListPodT) => listPodTEvery xs (vrsFilteredPod cr trigger s)) (vreplicaSetReconcilerSFilteredPods st))
+      (implies (vreplicaSetReconcilerStepEqual (vreplicaSetReconcilerSReconcileStep st) vreplicaSetReconcilerStepAfterListPods)
+        (vrsPendingList (vrsNamespace trigger) (vrsResponse15 cr trigger s) o s))))) (resultToOption Vrs (vreplicaSetTUnmarshal o.0))
+def vrsResponse16 : Vrs -> ListDynamicObjectT -> Bool := fun (cr : Vrs) (xs : ListDynamicObjectT) => listDynamicObjectTEvery xs (fun (obj : DynamicObjectT) =>
+  let md : ObjectMetaT := dynamicObjectTMetadata obj in boolAnd (optionEqual Bytes bytesEqual (objectMetaTNamespace md) (some Bytes (vrsNamespace cr))) (assuranceOneOwner md))
+def vrsLocalPodBound : Vrs -> PodT -> Bool := fun (cr : Vrs) (pod : PodT) => let md : ObjectMetaT := podTMetadata pod in
+  boolAnd (optionFold Bytes Bool false (bytesStartsWith b"vreplicaset-") (objectMetaTName md))
+    (boolAnd (optionEqual Bytes bytesEqual (objectMetaTNamespace md) (some Bytes (vrsNamespace cr))) (optionFold ListOwnerReferenceT Bool false
+      (fun (xs : ListOwnerReferenceT) => boolNot (listOwnerReferenceTEvery xs (fun (o : OwnerReferenceT) => boolNot (vrsControllerOwnerNamed cr o)))) (objectMetaTOwnerReferences md)))
+def vrsLocalBound : Vrs -> Ongoing -> VrsState -> ClusterState -> Bool := fun (cr : Vrs) (o : Ongoing) (st : VrsState) (s : ClusterState) => boolAnd
+  (optionFold ListPodT Bool true (fun (xs : ListPodT) => listPodTEvery xs (vrsLocalPodBound cr)) (vreplicaSetReconcilerSFilteredPods st))
+  (implies (vreplicaSetReconcilerStepEqual (vreplicaSetReconcilerSReconcileStep st) vreplicaSetReconcilerStepAfterListPods) (vrsPendingList (vrsNamespace cr) (vrsResponse16 cr) o s))

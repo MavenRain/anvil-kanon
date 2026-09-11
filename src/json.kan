@@ -1,0 +1,91 @@
+-- Generated exhaustive JSON eliminators. Source: k8s_objects/json.ml.
+
+def jsonGetInt : Value -> Result Int := fun (j : Value) =>
+  match j as self in JsonTree sort return Result Int with
+  | jsonNull => err Int (decodeError b"int" b"expected a JSON integer")
+  | jsonBool x => err Int (decodeError b"int" b"expected a JSON integer")
+  | jsonInt x => ok Int x
+  | jsonIntLiteral x => err Int (decodeError b"int" b"expected a JSON integer")
+  | jsonFloat x => err Int (decodeError b"int" b"expected a JSON integer")
+  | jsonString x => err Int (decodeError b"int" b"expected a JSON integer")
+  | jsonArray x => err Int (decodeError b"int" b"expected a JSON integer")
+  | jsonObject x => err Int (decodeError b"int" b"expected a JSON integer")
+  | jsonArrayNil => err Int (decodeError b"int" b"expected a JSON integer")
+  | jsonArrayCons h t => err Int (decodeError b"int" b"expected a JSON integer")
+  | jsonObjectNil => err Int (decodeError b"int" b"expected a JSON integer")
+  | jsonObjectCons k v t => err Int (decodeError b"int" b"expected a JSON integer")
+
+def jsonGetBool : Value -> Result Bool := fun (j : Value) =>
+  match j as self in JsonTree sort return Result Bool with
+  | jsonNull => err Bool (decodeError b"bool" b"expected a JSON boolean")
+  | jsonBool x => ok Bool x
+  | jsonInt x => err Bool (decodeError b"bool" b"expected a JSON boolean")
+  | jsonIntLiteral x => err Bool (decodeError b"bool" b"expected a JSON boolean")
+  | jsonFloat x => err Bool (decodeError b"bool" b"expected a JSON boolean")
+  | jsonString x => err Bool (decodeError b"bool" b"expected a JSON boolean")
+  | jsonArray x => err Bool (decodeError b"bool" b"expected a JSON boolean")
+  | jsonObject x => err Bool (decodeError b"bool" b"expected a JSON boolean")
+  | jsonArrayNil => err Bool (decodeError b"bool" b"expected a JSON boolean")
+  | jsonArrayCons h t => err Bool (decodeError b"bool" b"expected a JSON boolean")
+  | jsonObjectNil => err Bool (decodeError b"bool" b"expected a JSON boolean")
+  | jsonObjectCons k v t => err Bool (decodeError b"bool" b"expected a JSON boolean")
+
+def jsonGetArray : Value -> Result Values := fun (j : Value) =>
+  match j as self in JsonTree sort return Result Values with
+  | jsonNull => err Values (decodeError b"list" b"expected a JSON array")
+  | jsonBool x => err Values (decodeError b"list" b"expected a JSON array")
+  | jsonInt x => err Values (decodeError b"list" b"expected a JSON array")
+  | jsonIntLiteral x => err Values (decodeError b"list" b"expected a JSON array")
+  | jsonFloat x => err Values (decodeError b"list" b"expected a JSON array")
+  | jsonString x => err Values (decodeError b"list" b"expected a JSON array")
+  | jsonArray x => ok Values x
+  | jsonObject x => err Values (decodeError b"list" b"expected a JSON array")
+  | jsonArrayNil => err Values (decodeError b"list" b"expected a JSON array")
+  | jsonArrayCons h t => err Values (decodeError b"list" b"expected a JSON array")
+  | jsonObjectNil => err Values (decodeError b"list" b"expected a JSON array")
+  | jsonObjectCons k v t => err Values (decodeError b"list" b"expected a JSON array")
+
+def jsonGetObject : Value -> Result Members := fun (j : Value) =>
+  match j as self in JsonTree sort return Result Members with
+  | jsonNull => err Members (decodeError b"object" b"expected a JSON object")
+  | jsonBool x => err Members (decodeError b"object" b"expected a JSON object")
+  | jsonInt x => err Members (decodeError b"object" b"expected a JSON object")
+  | jsonIntLiteral x => err Members (decodeError b"object" b"expected a JSON object")
+  | jsonFloat x => err Members (decodeError b"object" b"expected a JSON object")
+  | jsonString x => err Members (decodeError b"object" b"expected a JSON object")
+  | jsonArray x => err Members (decodeError b"object" b"expected a JSON object")
+  | jsonObject x => ok Members x
+  | jsonArrayNil => err Members (decodeError b"object" b"expected a JSON object")
+  | jsonArrayCons h t => err Members (decodeError b"object" b"expected a JSON object")
+  | jsonObjectNil => err Members (decodeError b"object" b"expected a JSON object")
+  | jsonObjectCons k v t => err Members (decodeError b"object" b"expected a JSON object")
+
+def jsonIsNull : Value -> Bool := fun (j : Value) =>
+  match j as self in JsonTree sort return Bool with
+  | jsonNull => true
+  | jsonBool x => false
+  | jsonInt x => false
+  | jsonIntLiteral x => false
+  | jsonFloat x => false
+  | jsonString x => false
+  | jsonArray x => false
+  | jsonObject x => false
+  | jsonArrayNil => false
+  | jsonArrayCons h t => false
+  | jsonObjectNil => false
+  | jsonObjectCons k v t => false
+
+def rec jsonMemberOption : Members -> Bytes -> Option Value := fun (members : Members) (key : Bytes) =>
+  match members as self in JsonTree sort return Option Value with
+  | jsonNull => none Value
+  | jsonBool x => none Value
+  | jsonInt x => none Value
+  | jsonIntLiteral x => none Value
+  | jsonFloat x => none Value
+  | jsonString x => none Value
+  | jsonArray x => none Value
+  | jsonObject x => none Value
+  | jsonArrayNil => none Value
+  | jsonArrayCons h t => none Value
+  | jsonObjectNil => none Value
+  | jsonObjectCons k v t => (case (bytesEqual key k) with | 1 (u : Unit) => some Value v | 0 (u : Unit) => jsonMemberOption t key)

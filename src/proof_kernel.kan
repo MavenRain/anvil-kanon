@@ -1,0 +1,341 @@
+-- Concrete cluster formulas retain leaf functions and structural atom names.
+mu ProofFormula : Type 0 :=
+| proofTt  : ProofFormula
+| proofFf  : ProofFormula
+| proofState (name : Bytes) (pred : ClusterState -> Bool) : ProofFormula
+| proofAction (name : Bytes) (act : ClusterState -> ClusterState -> Bool) : ProofFormula
+| proofConj (a : ProofFormula) (b : ProofFormula) : ProofFormula
+| proofDisj (a : ProofFormula) (b : ProofFormula) : ProofFormula
+| proofImpl (a : ProofFormula) (b : ProofFormula) : ProofFormula
+| proofNeg (a : ProofFormula) : ProofFormula
+| proofLater (a : ProofFormula) : ProofFormula
+| proofNext (a : ProofFormula) : ProofFormula
+| proofAlways (a : ProofFormula) : ProofFormula
+| proofEventually (a : ProofFormula) : ProofFormula
+def rec proofFormulaEqual : ProofFormula -> ProofFormula -> Bool := fun (xs : ProofFormula) (ys : ProofFormula) =>
+  match xs as self in ProofFormula return Bool with
+  | proofTt  => (match ys as other in ProofFormula return Bool with
+      | proofTt  => true
+      | proofFf  => false
+      | proofState name2 pred2 => false
+      | proofAction name2 act2 => false
+      | proofConj a2 b2 => false
+      | proofDisj a2 b2 => false
+      | proofImpl a2 b2 => false
+      | proofNeg a2 => false
+      | proofLater a2 => false
+      | proofNext a2 => false
+      | proofAlways a2 => false
+      | proofEventually a2 => false)
+  | proofFf  => (match ys as other in ProofFormula return Bool with
+      | proofTt  => false
+      | proofFf  => true
+      | proofState name2 pred2 => false
+      | proofAction name2 act2 => false
+      | proofConj a2 b2 => false
+      | proofDisj a2 b2 => false
+      | proofImpl a2 b2 => false
+      | proofNeg a2 => false
+      | proofLater a2 => false
+      | proofNext a2 => false
+      | proofAlways a2 => false
+      | proofEventually a2 => false)
+  | proofState name pred => (match ys as other in ProofFormula return Bool with
+      | proofTt  => false
+      | proofFf  => false
+      | proofState name2 pred2 => bytesEqual name name2
+      | proofAction name2 act2 => false
+      | proofConj a2 b2 => false
+      | proofDisj a2 b2 => false
+      | proofImpl a2 b2 => false
+      | proofNeg a2 => false
+      | proofLater a2 => false
+      | proofNext a2 => false
+      | proofAlways a2 => false
+      | proofEventually a2 => false)
+  | proofAction name act => (match ys as other in ProofFormula return Bool with
+      | proofTt  => false
+      | proofFf  => false
+      | proofState name2 pred2 => false
+      | proofAction name2 act2 => bytesEqual name name2
+      | proofConj a2 b2 => false
+      | proofDisj a2 b2 => false
+      | proofImpl a2 b2 => false
+      | proofNeg a2 => false
+      | proofLater a2 => false
+      | proofNext a2 => false
+      | proofAlways a2 => false
+      | proofEventually a2 => false)
+  | proofConj a b => (match ys as other in ProofFormula return Bool with
+      | proofTt  => false
+      | proofFf  => false
+      | proofState name2 pred2 => false
+      | proofAction name2 act2 => false
+      | proofConj a2 b2 => boolAnd (proofFormulaEqual a a2) (proofFormulaEqual b b2)
+      | proofDisj a2 b2 => false
+      | proofImpl a2 b2 => false
+      | proofNeg a2 => false
+      | proofLater a2 => false
+      | proofNext a2 => false
+      | proofAlways a2 => false
+      | proofEventually a2 => false)
+  | proofDisj a b => (match ys as other in ProofFormula return Bool with
+      | proofTt  => false
+      | proofFf  => false
+      | proofState name2 pred2 => false
+      | proofAction name2 act2 => false
+      | proofConj a2 b2 => false
+      | proofDisj a2 b2 => boolAnd (proofFormulaEqual a a2) (proofFormulaEqual b b2)
+      | proofImpl a2 b2 => false
+      | proofNeg a2 => false
+      | proofLater a2 => false
+      | proofNext a2 => false
+      | proofAlways a2 => false
+      | proofEventually a2 => false)
+  | proofImpl a b => (match ys as other in ProofFormula return Bool with
+      | proofTt  => false
+      | proofFf  => false
+      | proofState name2 pred2 => false
+      | proofAction name2 act2 => false
+      | proofConj a2 b2 => false
+      | proofDisj a2 b2 => false
+      | proofImpl a2 b2 => boolAnd (proofFormulaEqual a a2) (proofFormulaEqual b b2)
+      | proofNeg a2 => false
+      | proofLater a2 => false
+      | proofNext a2 => false
+      | proofAlways a2 => false
+      | proofEventually a2 => false)
+  | proofNeg a => (match ys as other in ProofFormula return Bool with
+      | proofTt  => false
+      | proofFf  => false
+      | proofState name2 pred2 => false
+      | proofAction name2 act2 => false
+      | proofConj a2 b2 => false
+      | proofDisj a2 b2 => false
+      | proofImpl a2 b2 => false
+      | proofNeg a2 => proofFormulaEqual a a2
+      | proofLater a2 => false
+      | proofNext a2 => false
+      | proofAlways a2 => false
+      | proofEventually a2 => false)
+  | proofLater a => (match ys as other in ProofFormula return Bool with
+      | proofTt  => false
+      | proofFf  => false
+      | proofState name2 pred2 => false
+      | proofAction name2 act2 => false
+      | proofConj a2 b2 => false
+      | proofDisj a2 b2 => false
+      | proofImpl a2 b2 => false
+      | proofNeg a2 => false
+      | proofLater a2 => proofFormulaEqual a a2
+      | proofNext a2 => false
+      | proofAlways a2 => false
+      | proofEventually a2 => false)
+  | proofNext a => (match ys as other in ProofFormula return Bool with
+      | proofTt  => false
+      | proofFf  => false
+      | proofState name2 pred2 => false
+      | proofAction name2 act2 => false
+      | proofConj a2 b2 => false
+      | proofDisj a2 b2 => false
+      | proofImpl a2 b2 => false
+      | proofNeg a2 => false
+      | proofLater a2 => false
+      | proofNext a2 => proofFormulaEqual a a2
+      | proofAlways a2 => false
+      | proofEventually a2 => false)
+  | proofAlways a => (match ys as other in ProofFormula return Bool with
+      | proofTt  => false
+      | proofFf  => false
+      | proofState name2 pred2 => false
+      | proofAction name2 act2 => false
+      | proofConj a2 b2 => false
+      | proofDisj a2 b2 => false
+      | proofImpl a2 b2 => false
+      | proofNeg a2 => false
+      | proofLater a2 => false
+      | proofNext a2 => false
+      | proofAlways a2 => proofFormulaEqual a a2
+      | proofEventually a2 => false)
+  | proofEventually a => (match ys as other in ProofFormula return Bool with
+      | proofTt  => false
+      | proofFf  => false
+      | proofState name2 pred2 => false
+      | proofAction name2 act2 => false
+      | proofConj a2 b2 => false
+      | proofDisj a2 b2 => false
+      | proofImpl a2 b2 => false
+      | proofNeg a2 => false
+      | proofLater a2 => false
+      | proofNext a2 => false
+      | proofAlways a2 => false
+      | proofEventually a2 => proofFormulaEqual a a2)
+def rec proofFormulaEval : ProofFormula -> Formula ClusterState := fun (p : ProofFormula) => match p as self in ProofFormula return Formula ClusterState with
+  | proofTt  => formulaTrue ClusterState
+  | proofFf  => formulaFalse ClusterState
+  | proofState name pred => formulaState ClusterState name pred
+  | proofAction name act => formulaAction ClusterState name act
+  | proofConj a b => formulaConj ClusterState (proofFormulaEval a) (proofFormulaEval b)
+  | proofDisj a b => formulaDisj ClusterState (proofFormulaEval a) (proofFormulaEval b)
+  | proofImpl a b => formulaImplies ClusterState (proofFormulaEval a) (proofFormulaEval b)
+  | proofNeg a => formulaNeg ClusterState (proofFormulaEval a)
+  | proofLater a => formulaLater ClusterState (proofFormulaEval a)
+  | proofNext a => formulaNext ClusterState (proofFormulaEval a)
+  | proofAlways a => formulaAlways ClusterState (proofFormulaEval a)
+  | proofEventually a => formulaEventually ClusterState (proofFormulaEval a)
+def proofLeadsTo : ProofFormula -> ProofFormula -> ProofFormula := fun (p : ProofFormula) (q : ProofFormula) => proofAlways (proofImpl p (proofEventually q))
+def ProofFact : Type 0 := prod (ProofFormula, ProofFormula)
+def proofAssume : ProofFormula -> ProofFormula -> ProofFact := fun (s : ProofFormula) (g : ProofFormula) => tuple (s, g)
+def proofSelf : ProofFormula -> ProofFormula -> ProofFact := fun (s : ProofFormula) (p : ProofFormula) => proofAssume s (proofLeadsTo p p)
+def proofRequire : Bytes -> Bytes -> Bool -> Result Bool := fun (fn : Bytes) (why : Bytes) (b : Bool) => case b with | 0 (u : Unit) => err Bool (decodeError fn why) | 1 (u : Unit) => ok Bool true
+def proofAsAlways : Bytes -> ProofFormula -> Result (ProofFormula) := fun (fn : Bytes) (p : ProofFormula) => match p as self in ProofFormula return Result (ProofFormula) with
+  | proofTt  => err (ProofFormula) (decodeError fn b"expected an always []j (an invariant)")
+  | proofFf  => err (ProofFormula) (decodeError fn b"expected an always []j (an invariant)")
+  | proofState name pred => err (ProofFormula) (decodeError fn b"expected an always []j (an invariant)")
+  | proofAction name act => err (ProofFormula) (decodeError fn b"expected an always []j (an invariant)")
+  | proofConj a b => err (ProofFormula) (decodeError fn b"expected an always []j (an invariant)")
+  | proofDisj a b => err (ProofFormula) (decodeError fn b"expected an always []j (an invariant)")
+  | proofImpl a b => err (ProofFormula) (decodeError fn b"expected an always []j (an invariant)")
+  | proofNeg a => err (ProofFormula) (decodeError fn b"expected an always []j (an invariant)")
+  | proofLater a => err (ProofFormula) (decodeError fn b"expected an always []j (an invariant)")
+  | proofNext a => err (ProofFormula) (decodeError fn b"expected an always []j (an invariant)")
+  | proofAlways a => ok (ProofFormula) (a)
+  | proofEventually a => err (ProofFormula) (decodeError fn b"expected an always []j (an invariant)")
+def proofAsImpl : Bytes -> ProofFormula -> Result (prod (ProofFormula, ProofFormula)) := fun (fn : Bytes) (p : ProofFormula) => match p as self in ProofFormula return Result (prod (ProofFormula, ProofFormula)) with
+  | proofTt  => err (prod (ProofFormula, ProofFormula)) (decodeError fn b"expected an always-implication [](a => b)")
+  | proofFf  => err (prod (ProofFormula, ProofFormula)) (decodeError fn b"expected an always-implication [](a => b)")
+  | proofState name pred => err (prod (ProofFormula, ProofFormula)) (decodeError fn b"expected an always-implication [](a => b)")
+  | proofAction name act => err (prod (ProofFormula, ProofFormula)) (decodeError fn b"expected an always-implication [](a => b)")
+  | proofConj a b => err (prod (ProofFormula, ProofFormula)) (decodeError fn b"expected an always-implication [](a => b)")
+  | proofDisj a b => err (prod (ProofFormula, ProofFormula)) (decodeError fn b"expected an always-implication [](a => b)")
+  | proofImpl a b => ok (prod (ProofFormula, ProofFormula)) (tuple (a, b))
+  | proofNeg a => err (prod (ProofFormula, ProofFormula)) (decodeError fn b"expected an always-implication [](a => b)")
+  | proofLater a => err (prod (ProofFormula, ProofFormula)) (decodeError fn b"expected an always-implication [](a => b)")
+  | proofNext a => err (prod (ProofFormula, ProofFormula)) (decodeError fn b"expected an always-implication [](a => b)")
+  | proofAlways a => err (prod (ProofFormula, ProofFormula)) (decodeError fn b"expected an always-implication [](a => b)")
+  | proofEventually a => err (prod (ProofFormula, ProofFormula)) (decodeError fn b"expected an always-implication [](a => b)")
+def proofAsEventually : Bytes -> ProofFormula -> Result (ProofFormula) := fun (fn : Bytes) (p : ProofFormula) => match p as self in ProofFormula return Result (ProofFormula) with
+  | proofTt  => err (ProofFormula) (decodeError fn b"expected a leads_to (p ~> q)")
+  | proofFf  => err (ProofFormula) (decodeError fn b"expected a leads_to (p ~> q)")
+  | proofState name pred => err (ProofFormula) (decodeError fn b"expected a leads_to (p ~> q)")
+  | proofAction name act => err (ProofFormula) (decodeError fn b"expected a leads_to (p ~> q)")
+  | proofConj a b => err (ProofFormula) (decodeError fn b"expected a leads_to (p ~> q)")
+  | proofDisj a b => err (ProofFormula) (decodeError fn b"expected a leads_to (p ~> q)")
+  | proofImpl a b => err (ProofFormula) (decodeError fn b"expected a leads_to (p ~> q)")
+  | proofNeg a => err (ProofFormula) (decodeError fn b"expected a leads_to (p ~> q)")
+  | proofLater a => err (ProofFormula) (decodeError fn b"expected a leads_to (p ~> q)")
+  | proofNext a => err (ProofFormula) (decodeError fn b"expected a leads_to (p ~> q)")
+  | proofAlways a => err (ProofFormula) (decodeError fn b"expected a leads_to (p ~> q)")
+  | proofEventually a => ok (ProofFormula) (a)
+def proofAsConj : Bytes -> ProofFormula -> Result (prod (ProofFormula, ProofFormula)) := fun (fn : Bytes) (p : ProofFormula) => match p as self in ProofFormula return Result (prod (ProofFormula, ProofFormula)) with
+  | proofTt  => err (prod (ProofFormula, ProofFormula)) (decodeError fn b"expected a conjunction (p /\\ j)")
+  | proofFf  => err (prod (ProofFormula, ProofFormula)) (decodeError fn b"expected a conjunction (p /\\ j)")
+  | proofState name pred => err (prod (ProofFormula, ProofFormula)) (decodeError fn b"expected a conjunction (p /\\ j)")
+  | proofAction name act => err (prod (ProofFormula, ProofFormula)) (decodeError fn b"expected a conjunction (p /\\ j)")
+  | proofConj a b => ok (prod (ProofFormula, ProofFormula)) (tuple (a, b))
+  | proofDisj a b => err (prod (ProofFormula, ProofFormula)) (decodeError fn b"expected a conjunction (p /\\ j)")
+  | proofImpl a b => err (prod (ProofFormula, ProofFormula)) (decodeError fn b"expected a conjunction (p /\\ j)")
+  | proofNeg a => err (prod (ProofFormula, ProofFormula)) (decodeError fn b"expected a conjunction (p /\\ j)")
+  | proofLater a => err (prod (ProofFormula, ProofFormula)) (decodeError fn b"expected a conjunction (p /\\ j)")
+  | proofNext a => err (prod (ProofFormula, ProofFormula)) (decodeError fn b"expected a conjunction (p /\\ j)")
+  | proofAlways a => err (prod (ProofFormula, ProofFormula)) (decodeError fn b"expected a conjunction (p /\\ j)")
+  | proofEventually a => err (prod (ProofFormula, ProofFormula)) (decodeError fn b"expected a conjunction (p /\\ j)")
+def proofAsAlwaysImplRaw : Bytes -> ProofFormula -> Result (prod (ProofFormula, ProofFormula)) := fun (fn : Bytes) (p : ProofFormula) => resultBind ProofFormula (prod (ProofFormula, ProofFormula)) (proofAsAlways fn p) (proofAsImpl fn)
+def proofAsLeadsRaw : Bytes -> ProofFormula -> Result (prod (ProofFormula, ProofFormula)) := fun (fn : Bytes) (p : ProofFormula) => resultBind (prod (ProofFormula, ProofFormula)) (prod (ProofFormula, ProofFormula)) (proofAsAlwaysImplRaw fn p) (fun (pq : prod (ProofFormula, ProofFormula)) => resultMap ProofFormula (prod (ProofFormula, ProofFormula)) (fun (q : ProofFormula) => tuple (pq.0, q)) (proofAsEventually fn pq.1))
+def proofAsAlwaysImpl : Bytes -> ProofFormula -> Result (prod (ProofFormula, ProofFormula)) := fun (fn : Bytes) (p : ProofFormula) => resultFold (prod (ProofFormula, ProofFormula)) (Result (prod (ProofFormula, ProofFormula))) (fun (e : Error) => err (prod (ProofFormula, ProofFormula)) (decodeError fn b"expected an always-implication [](a => b)")) (ok (prod (ProofFormula, ProofFormula))) (proofAsAlwaysImplRaw fn p)
+def proofAsLeads : Bytes -> ProofFormula -> Result (prod (ProofFormula, ProofFormula)) := fun (fn : Bytes) (p : ProofFormula) => resultFold (prod (ProofFormula, ProofFormula)) (Result (prod (ProofFormula, ProofFormula))) (fun (e : Error) => err (prod (ProofFormula, ProofFormula)) (decodeError fn b"expected a leads_to (p ~> q)")) (ok (prod (ProofFormula, ProofFormula))) (proofAsLeadsRaw fn p)
+def proofIsState : ProofFormula -> Bool := fun (p : ProofFormula) => match p as self in ProofFormula return Bool with
+  | proofTt  => false
+  | proofFf  => false
+  | proofState name pred => true
+  | proofAction name act => false
+  | proofConj a b => false
+  | proofDisj a b => false
+  | proofImpl a b => false
+  | proofNeg a => false
+  | proofLater a => false
+  | proofNext a => false
+  | proofAlways a => false
+  | proofEventually a => false
+def proofIsAction : ProofFormula -> Bool := fun (p : ProofFormula) => match p as self in ProofFormula return Bool with
+  | proofTt  => false
+  | proofFf  => false
+  | proofState name pred => false
+  | proofAction name act => true
+  | proofConj a b => false
+  | proofDisj a b => false
+  | proofImpl a b => false
+  | proofNeg a => false
+  | proofLater a => false
+  | proofNext a => false
+  | proofAlways a => false
+  | proofEventually a => false
+def proofTrans : (ProofFact) -> (ProofFact) -> Result ProofFact := fun (f : ProofFact) => fun (g : ProofFact) =>
+  let fn : Bytes := b"Rule.leads_to_trans" in
+  resultBind (Bool) ProofFact (proofRequire fn b"facts have different specs" (proofFormulaEqual f.0 g.0)) (fun (checked : Bool) =>
+  resultBind (prod (ProofFormula, ProofFormula)) ProofFact (proofAsLeads fn f.1) (fun (fpq : prod (ProofFormula, ProofFormula)) =>
+  resultBind (prod (ProofFormula, ProofFormula)) ProofFact (proofAsLeads fn g.1) (fun (gpq : prod (ProofFormula, ProofFormula)) =>
+  resultBind (Bool) ProofFact (proofRequire fn b"middle formulas do not match (q ~> _ vs _ ~> q)" (proofFormulaEqual fpq.1 gpq.0)) (fun (checked : Bool) =>
+  ok ProofFact (proofAssume f.0 (proofLeadsTo fpq.0 gpq.1))))))
+def proofOr : (ProofFact) -> (ProofFact) -> Result ProofFact := fun (f : ProofFact) => fun (g : ProofFact) =>
+  let fn : Bytes := b"Rule.or_leads_to" in
+  resultBind (Bool) ProofFact (proofRequire fn b"facts have different specs" (proofFormulaEqual f.0 g.0)) (fun (checked : Bool) =>
+  resultBind (prod (ProofFormula, ProofFormula)) ProofFact (proofAsLeads fn f.1) (fun (fpq : prod (ProofFormula, ProofFormula)) =>
+  resultBind (prod (ProofFormula, ProofFormula)) ProofFact (proofAsLeads fn g.1) (fun (gpq : prod (ProofFormula, ProofFormula)) =>
+  resultBind (Bool) ProofFact (proofRequire fn b"leads_to targets do not match" (proofFormulaEqual fpq.1 gpq.1)) (fun (checked : Bool) =>
+  ok ProofFact (proofAssume f.0 (proofLeadsTo (proofDisj fpq.0 gpq.0) fpq.1))))))
+def proofWeaken : (ProofFact) -> (ProofFact) -> (ProofFact) -> Result ProofFact := fun (pre : ProofFact) => fun (post : ProofFact) => fun (f : ProofFact) =>
+  let fn : Bytes := b"Rule.leads_to_weaken" in
+  resultBind (Bool) ProofFact (proofRequire fn b"premise-weakening fact has a different spec" (proofFormulaEqual pre.0 f.0)) (fun (checked : Bool) =>
+  resultBind (Bool) ProofFact (proofRequire fn b"postcondition-strengthening fact has a different spec" (proofFormulaEqual post.0 f.0)) (fun (checked : Bool) =>
+  resultBind (prod (ProofFormula, ProofFormula)) ProofFact (proofAsAlwaysImpl fn pre.1) (fun (p : prod (ProofFormula, ProofFormula)) =>
+  resultBind (prod (ProofFormula, ProofFormula)) ProofFact (proofAsAlwaysImpl fn post.1) (fun (q : prod (ProofFormula, ProofFormula)) =>
+  resultBind (prod (ProofFormula, ProofFormula)) ProofFact (proofAsLeads fn f.1) (fun (fpq : prod (ProofFormula, ProofFormula)) =>
+  resultBind (Bool) ProofFact (proofRequire fn b"[](p2 => p1) consequent must match leads_to premise p1" (proofFormulaEqual p.1 fpq.0)) (fun (checked : Bool) =>
+  resultBind (Bool) ProofFact (proofRequire fn b"[](q1 => q2) antecedent must match leads_to conclusion q1" (proofFormulaEqual q.0 fpq.1)) (fun (checked : Bool) =>
+  ok ProofFact (proofAssume f.0 (proofLeadsTo p.0 q.1)))))))))
+def proofApply : (ProofFact) -> (ProofFact) -> Result ProofFact := fun (init : ProofFact) => fun (f : ProofFact) =>
+  let fn : Bytes := b"Rule.leads_to_apply" in
+  resultBind (Bool) ProofFact (proofRequire fn b"facts have different specs" (proofFormulaEqual init.0 f.0)) (fun (checked : Bool) =>
+  resultBind (prod (ProofFormula, ProofFormula)) ProofFact (proofAsLeads fn f.1) (fun (fpq : prod (ProofFormula, ProofFormula)) =>
+  resultBind (Bool) ProofFact (proofRequire fn b"init fact must match the leads_to premise p" (proofFormulaEqual init.1 fpq.0)) (fun (checked : Bool) =>
+  ok ProofFact (proofAssume f.0 (proofEventually fpq.1)))))
+def proofBorrow : (ProofFact) -> (ProofFact) -> Result ProofFact := fun (inv : ProofFact) => fun (f : ProofFact) =>
+  let fn : Bytes := b"Rule.borrow_inv" in
+  resultBind (Bool) ProofFact (proofRequire fn b"facts have different specs" (proofFormulaEqual inv.0 f.0)) (fun (checked : Bool) =>
+  resultBind (ProofFormula) ProofFact (proofAsAlways fn inv.1) (fun (j : ProofFormula) =>
+  resultBind (prod (ProofFormula, ProofFormula)) ProofFact (proofAsLeads fn f.1) (fun (fpq : prod (ProofFormula, ProofFormula)) =>
+  resultBind (prod (ProofFormula, ProofFormula)) ProofFact (proofAsConj fn fpq.0) (fun (pj : prod (ProofFormula, ProofFormula)) =>
+  resultBind (Bool) ProofFact (proofRequire fn b"right conjunct of the premise must be the invariant body j" (proofFormulaEqual j pj.1)) (fun (checked : Bool) =>
+  ok ProofFact (proofAssume f.0 (proofLeadsTo pj.0 fpq.1)))))))
+def proofInitInvariant : (ProofFormula) -> (ProofFormula) -> (Ghost -> Result Bool) -> (Ghost -> Result Bool) -> (ProofFact) -> (ProofFact) -> Result ProofFact := fun (sp : ProofFormula) => fun (inv : ProofFormula) => fun (initial : Ghost -> Result Bool) => fun (preserved : Ghost -> Result Bool) => fun (specInit : ProofFact) => fun (specNext : ProofFact) =>
+  let fn : Bytes := b"Rule.init_invariant" in
+  resultBind (Bool) ProofFact (proofRequire fn b"spec_init has a different spec" (proofFormulaEqual sp specInit.0)) (fun (checked : Bool) =>
+  resultBind (Bool) ProofFact (proofRequire fn b"spec_next has a different spec" (proofFormulaEqual sp specNext.0)) (fun (checked : Bool) =>
+  resultBind (Bool) ProofFact (proofRequire fn b"inv must be a lift_state leaf" (proofIsState inv)) (fun (checked : Bool) =>
+  resultBind (Bool) ProofFact (proofRequire fn b"spec_init goal must be a lift_state leaf (|= init)" (proofIsState specInit.1)) (fun (checked : Bool) =>
+  resultBind (ProofFormula) ProofFact (proofAsAlways fn specNext.1) (fun (next : ProofFormula) =>
+  resultBind (Bool) ProofFact (proofRequire fn b"spec_next goal must be [](lift_action next)" (proofIsAction next)) (fun (checked : Bool) =>
+  resultBind (Bool) ProofFact (initial ghost) (fun (initOk : Bool) =>
+  resultBind (Bool) ProofFact (proofRequire fn b"obligation failed: not (forall s. init s => inv s)" (initOk)) (fun (checked : Bool) =>
+  resultBind (Bool) ProofFact (preserved ghost) (fun (stepOk : Bool) =>
+  resultBind (Bool) ProofFact (proofRequire fn b"obligation failed: not (forall s s'. inv s /\\ next s s' => inv s')" (stepOk)) (fun (checked : Bool) =>
+  ok ProofFact (proofAssume sp (proofAlways inv))))))))))))
+def proofWf1 : (ProofFormula) -> (ProofFormula) -> (ProofFormula) -> (Ghost -> Result Bool) -> (Ghost -> Result Bool) -> (ProofFact) -> (ProofFact) -> (ProofFact) -> Result ProofFact := fun (sp : ProofFormula) => fun (pre : ProofFormula) => fun (post : ProofFormula) => fun (closure : Ghost -> Result Bool) => fun (drives : Ghost -> Result Bool) => fun (alwaysNext : ProofFact) => fun (preEnables : ProofFact) => fun (fair : ProofFact) =>
+  let fn : Bytes := b"Rule.wf1" in
+  resultBind (Bool) ProofFact (proofRequire fn b"always_next has a different spec" (proofFormulaEqual sp alwaysNext.0)) (fun (checked : Bool) =>
+  resultBind (Bool) ProofFact (proofRequire fn b"pre_enables has a different spec" (proofFormulaEqual sp preEnables.0)) (fun (checked : Bool) =>
+  resultBind (Bool) ProofFact (proofRequire fn b"fair has a different spec" (proofFormulaEqual sp fair.0)) (fun (checked : Bool) =>
+  resultBind (Bool) ProofFact (proofRequire fn b"pre must be a lift_state leaf" (proofIsState pre)) (fun (checked : Bool) =>
+  resultBind (Bool) ProofFact (proofRequire fn b"post must be a lift_state leaf" (proofIsState post)) (fun (checked : Bool) =>
+  resultBind (ProofFormula) ProofFact (proofAsAlways fn alwaysNext.1) (fun (next : ProofFormula) =>
+  resultBind (Bool) ProofFact (proofRequire fn b"always_next goal must be [](lift_action next)" (proofIsAction next)) (fun (checked : Bool) =>
+  resultBind (prod (ProofFormula, ProofFormula)) ProofFact (proofAsAlwaysImpl fn preEnables.1) (fun (pe : prod (ProofFormula, ProofFormula)) =>
+  resultBind (Bool) ProofFact (proofRequire fn b"pre_enables antecedent must be pre ([](pre => enabled forward))" (proofFormulaEqual pe.0 pre)) (fun (checked : Bool) =>
+  resultBind (prod (ProofFormula, ProofFormula)) ProofFact (proofAsLeads fn fair.1) (fun (fairpq : prod (ProofFormula, ProofFormula)) =>
+  resultBind (Bool) ProofFact (proofRequire fn b"fair premise must be [](enabled forward), matching the pre_enables consequent" (proofFormulaEqual fairpq.0 (proofAlways pe.1))) (fun (checked : Bool) =>
+  resultBind (Bool) ProofFact (closure ghost) (fun (closed : Bool) =>
+  resultBind (Bool) ProofFact (proofRequire fn b"obligation failed: not (p /\\ next => p' \\/ q')" (closed)) (fun (checked : Bool) =>
+  resultBind (Bool) ProofFact (drives ghost) (fun (driven : Bool) =>
+  resultBind (Bool) ProofFact (proofRequire fn b"obligation failed: not (p /\\ next /\\ forward => q')" (driven)) (fun (checked : Bool) =>
+  ok ProofFact (proofAssume sp (proofLeadsTo pre post)))))))))))))))))

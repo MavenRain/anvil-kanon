@@ -1,0 +1,29 @@
+def clusterOutcomeEncode : Outcome ClusterState -> Value := fun (outcome : Outcome ClusterState) => case outcome with
+  | 0 (r : prod (Lasso ClusterState, Nat)) => jsonObject (jsonObjectCons b"tag" (jsonString b"refuted")
+      (jsonObjectCons b"stem" (jsonSequenceEncode ClusterState clusterStateWireEncode r.0.0) (jsonObjectCons b"loop" (jsonSequenceEncode ClusterState clusterStateWireEncode r.0.1)
+      (jsonObjectCons b"steps" (jsonEncodeNat r.1) jsonObjectNil))))
+  | 1 (r : prod (Bool, Int, Nat)) => jsonObject (jsonObjectCons b"tag" (jsonString b"noCounterexample")
+      (jsonObjectCons b"decisive" (jsonBool r.0) (jsonObjectCons b"depth" (jsonInt r.1) (jsonObjectCons b"states" (jsonEncodeNat r.2) jsonObjectNil))))
+def invariantIdentityEncode : Invariant -> Value := fun (i : Invariant) => jsonObject (jsonObjectCons b"name" (jsonString i.0) (jsonObjectCons b"source" (jsonString i.1) jsonObjectNil))
+def clusterReportEncode : ClusterReport -> Value := fun (r : ClusterReport) => jsonObject (jsonObjectCons b"outcome" (clusterOutcomeEncode r.0)
+  (jsonObjectCons b"bound" (boundWireEncode r.1) (jsonObjectCons b"maxUidSeen" (jsonInt r.2) (jsonObjectCons b"maxRvSeen" (jsonInt r.3)
+  (jsonObjectCons b"pruned" (jsonBool r.4) (jsonObjectCons b"violated" (jsonEncodeOption Invariant invariantIdentityEncode r.5)
+  (jsonObjectCons b"gateStates" (jsonEncodeOption Nat jsonEncodeNat r.6) jsonObjectNil)))))))
+def clusterQueryDecode : Value -> Result ClusterQuery := fun (j : Value) => resultBind Bytes ClusterQuery (jsonGetString j) (fun (name : Bytes) =>
+  case (bytesEqual name b"always") with | 1 (u : Unit) => ok ClusterQuery queryAlways
+  | 0 (u : Unit) => (case (bytesEqual name b"esr") with | 1 (u : Unit) => ok ClusterQuery queryEsr
+  | 0 (u : Unit) => (case (bytesEqual name b"settled") with | 1 (u : Unit) => ok ClusterQuery querySettled
+  | 0 (u : Unit) => (case (bytesEqual name b"temporal") with | 1 (u : Unit) => ok ClusterQuery queryTemporal
+  | 0 (u : Unit) => (case (bytesEqual name b"unique") with | 1 (u : Unit) => ok ClusterQuery queryUnique
+  | 0 (u : Unit) => err ClusterQuery (decodeError b"cluster query" name))))))
+def clusterCheckInvoke : Value -> Result Value := fun (input : Value) =>
+  resultBind Bool Value (jsonField Bool input b"stateful" jsonGetBool) (fun (stateful : Bool) =>
+  resultBind ClusterQuery Value (jsonField ClusterQuery input b"query" clusterQueryDecode) (fun (query : ClusterQuery) =>
+  resultBind Int Value (jsonField Int input b"desired" jsonGetInt) (fun (desired : Int) =>
+  resultBind (Sequence Int) Value (jsonField (Sequence Int) input b"desireds" (jsonSequenceDecode Int jsonGetInt)) (fun (desireds : Sequence Int) =>
+  resultBind Int Value (jsonField Int input b"depth" jsonGetInt) (fun (depth : Int) =>
+  resultBind Bound Value (jsonField Bound input b"bound" boundWireDecode) (fun (b : Bound) =>
+  resultMap Bool Value (fun (forceFalse : Bool) => clusterReportEncode (checkClusterScenarioWithTarget stateful query desired desireds depth b
+    (fun (s : ClusterState) => boolAnd (boolNot forceFalse) (scenarioCheckerTarget stateful desired s)))) (jsonField Bool input b"forceFalse" jsonGetBool)))))))
+def clusterCheckRender : Value -> Bytes := fun (input : Value) => case (clusterCheckInvoke input) with
+  | 0 (e : Error) => bytesAppend b"error: " (errorText e) | 1 (j : Value) => valueRender j

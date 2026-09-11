@@ -1,0 +1,145 @@
+-- The API server is parameterized by installed resource validators.
+def ApiState : Type 0 := prod (ResourceStore, Int, Int)
+def apiStateMake : ResourceStore -> Int -> Int -> ApiState := fun (store : ResourceStore) (uid : Int) (rv : Int) => tuple (store, uid, rv)
+def apiStateEqual : ApiState -> ApiState -> Bool := fun (a : ApiState) (b : ApiState) => boolAnd (resourceStoreEqual a.0 b.0) (boolAnd (intEqual a.1 b.1) (intEqual a.2 b.2))
+def apiStateInit : ApiState -> Bool := fun (s : ApiState) => natEq (resourceStoreSize s.0) 0
+def InstalledTypes : Type 0 := prod ((CommonKind -> Value -> Bool), (CommonKind -> Value -> Bool), (DynamicObjectT -> Bool), (DynamicObjectT -> DynamicObjectT -> Bool), (CommonKind -> Value))
+def apiUnmarshallable : InstalledTypes -> DynamicObjectT -> Bool := fun (it : InstalledTypes) (obj : DynamicObjectT) =>
+  boolAnd (it.0 (dynamicObjectTKind obj) (dynamicObjectTSpec obj)) (it.1 (dynamicObjectTKind obj) (dynamicObjectTStatus obj))
+def apiGuard : Bool -> ApiError -> Option ApiError := fun (bad : Bool) (error : ApiError) => select (Option ApiError) bad (some ApiError error) (none ApiError)
+def apiFirst : Option ApiError -> Option ApiError -> Option ApiError := fun (a : Option ApiError) (b : Option ApiError) => optionFold ApiError (Option ApiError) b (some ApiError) a
+def apiMetadataValidity : DynamicObjectT -> Option ApiError := fun (obj : DynamicObjectT) =>
+  apiGuard (optionFold ListOwnerReferenceT Bool false (fun (owners : ListOwnerReferenceT) => natLt 1 (ownersControllerCount owners)) (objectMetaTOwnerReferences (dynamicObjectTMetadata obj))) apiMethodApiErrorInvalid
+def apiMetadataTransition : DynamicObjectT -> DynamicObjectT -> Option ApiError := fun (obj : DynamicObjectT) (old : DynamicObjectT) =>
+  let m : ObjectMetaT := dynamicObjectTMetadata obj in
+  let om : ObjectMetaT := dynamicObjectTMetadata old in
+  apiGuard (boolAnd (optionIsSome Bytes (objectMetaTDeletionTimestamp om))
+    (boolAnd (optionIsSome ListBytes (objectMetaTFinalizers m)) (boolNot (bytesListSubset (objectMetaFinalizers m) (objectMetaFinalizers om))))) apiMethodApiErrorForbidden
+def apiCreatedValidity : InstalledTypes -> DynamicObjectT -> Option ApiError := fun (it : InstalledTypes) (obj : DynamicObjectT) =>
+  apiFirst (apiMetadataValidity obj) (apiGuard (boolNot (it.2 obj)) apiMethodApiErrorInvalid)
+def apiUpdatedValidity : InstalledTypes -> DynamicObjectT -> DynamicObjectT -> Option ApiError := fun (it : InstalledTypes) (obj : DynamicObjectT) (old : DynamicObjectT) =>
+  apiFirst (apiMetadataValidity obj) (apiFirst (apiMetadataTransition obj old)
+    (apiFirst (apiGuard (boolNot (it.2 obj)) apiMethodApiErrorInvalid) (apiGuard (boolNot (it.3 obj old)) apiMethodApiErrorInvalid)))
+def apiUnconditionalUpdate : CommonKind -> Bool := fun (kind : CommonKind) =>
+  match kind as self in CommonKind return Bool with
+  | commonKindCustomResource name => false
+  | commonKindConfigMap => true | commonKindDaemonSet => true | commonKindPersistentVolumeClaim => true
+  | commonKindPod => true | commonKindRole => true | commonKindRoleBinding => true | commonKindStatefulSet => true
+  | commonKindService => true | commonKindServiceAccount => true | commonKindSecret => true
+def ApiObjectOutput : Type 0 := prod (ApiState, ApiResult DynamicObjectT)
+def ApiDeleteOutput : Type 0 := prod (ApiState, ApiResult Ghost)
+def apiRejectObject : ApiState -> ApiError -> ApiObjectOutput := fun (s : ApiState) (e : ApiError) => tuple (s, apiError DynamicObjectT e)
+def apiRejectDelete : ApiState -> ApiError -> ApiDeleteOutput := fun (s : ApiState) (e : ApiError) => tuple (s, apiError Ghost e)
+def apiGet : CommonObjectRef -> ApiState -> ApiResult DynamicObjectT := fun (key : CommonObjectRef) (s : ApiState) =>
+  optionFold DynamicObjectT (ApiResult DynamicObjectT) (apiError DynamicObjectT apiMethodApiErrorObjectNotFound) (apiOk DynamicObjectT) (resourceStoreGet key s.0)
+def apiList : CommonKind -> Bytes -> ApiState -> ApiResult ListDynamicObjectT := fun (kind : CommonKind) (ns : Bytes) (s : ApiState) => apiOk ListDynamicObjectT (resourceStoreList kind ns s.0)
+def apiCreateAdmission : InstalledTypes -> Bytes -> DynamicObjectT -> ApiState -> Option ApiError := fun (it : InstalledTypes) (ns : Bytes) (obj : DynamicObjectT) (s : ApiState) =>
+  let m : ObjectMetaT := dynamicObjectTMetadata obj in
+  apiFirst (apiGuard (boolNot (boolOr (optionIsSome Bytes (objectMetaTName m)) (optionIsSome Bytes (objectMetaTGenerateName m)))) apiMethodApiErrorInvalid)
+  (apiFirst (apiGuard (optionFold Bytes Bool false (fun (n : Bytes) => boolNot (bytesEqual ns n)) (objectMetaTNamespace m)) apiMethodApiErrorBadRequest)
+  (apiFirst (apiGuard (boolNot (apiUnmarshallable it obj)) apiMethodApiErrorBadRequest)
+    (optionFold Bytes (Option ApiError) (none ApiError) (fun (name : Bytes) => apiGuard (optionIsSome DynamicObjectT (resourceStoreGet (commonObjectRefMake (dynamicObjectTKind obj) name ns) s.0)) apiMethodApiErrorObjectAlreadyExists) (objectMetaTName m))))
+def apiCreate : InstalledTypes -> Bytes -> DynamicObjectT -> ApiState -> ApiObjectOutput := fun (it : InstalledTypes) (ns : Bytes) (obj : DynamicObjectT) (s : ApiState) =>
+  optionFold ApiError ApiObjectOutput
+    (let m : ObjectMetaT := dynamicObjectTMetadata obj in
+    let name : Bytes := optionValue Bytes (resourceStoreGeneratedName s.0 (optionValue Bytes b"" (objectMetaTGenerateName m))) (objectMetaTName m) in
+    let m : ObjectMetaT := objectMetaTSetName (some Bytes name) m in
+    let m : ObjectMetaT := objectMetaTSetNamespace (some Bytes ns) m in
+    let m : ObjectMetaT := objectMetaTSetResourceVersion (some Int s.2) m in
+    let m : ObjectMetaT := objectMetaTSetUid (some Int s.1) m in
+    let m : ObjectMetaT := objectMetaTSetDeletionTimestamp (none Bytes) m in
+    let created : DynamicObjectT := dynamicObjectTMake (dynamicObjectTKind obj) m (dynamicObjectTSpec obj) (it.4 (dynamicObjectTKind obj)) in
+    let key : CommonObjectRef := commonObjectRefMake (dynamicObjectTKind obj) name ns in
+    optionFold ApiError ApiObjectOutput
+      (tuple (tuple (resourceStoreSet key created s.0, intAdd s.1 (nonnegative 1), intAdd s.2 (nonnegative 1)), apiOk DynamicObjectT created))
+      (apiRejectObject s) (apiFirst (apiGuard (optionIsSome DynamicObjectT (resourceStoreGet key s.0)) apiMethodApiErrorObjectAlreadyExists) (apiCreatedValidity it created)))
+    (apiRejectObject s) (apiCreateAdmission it ns obj s)
+def apiHasFinalizers : ObjectMetaT -> Bool := fun (m : ObjectMetaT) => natLt 0 (listBytesLength (objectMetaFinalizers m))
+def apiDelete : CommonObjectRef -> Option ApiMethodPreconditions -> ApiState -> ApiDeleteOutput := fun (key : CommonObjectRef) (preconditions : Option ApiMethodPreconditions) (s : ApiState) =>
+  optionFold DynamicObjectT ApiDeleteOutput (apiRejectDelete s apiMethodApiErrorObjectNotFound) (fun (obj : DynamicObjectT) =>
+    let m : ObjectMetaT := dynamicObjectTMetadata obj in
+    let conflict : Bool := optionFold ApiMethodPreconditions Bool false (fun (p : ApiMethodPreconditions) =>
+      boolOr (boolAnd (optionIsSome Int (apiMethodPreconditionsUid p)) (boolNot (optionEqual Int intEqual (apiMethodPreconditionsUid p) (objectMetaTUid m))))
+        (boolAnd (optionIsSome Int (apiMethodPreconditionsResourceVersion p)) (boolNot (optionEqual Int intEqual (apiMethodPreconditionsResourceVersion p) (objectMetaTResourceVersion m))))) preconditions in
+    case conflict with | 1 (u : Unit) => apiRejectDelete s apiMethodApiErrorConflict
+    | 0 (u : Unit) => (case (apiHasFinalizers m) with
+      | 0 (u : Unit) => tuple (tuple (resourceStoreRemove key s.0, s.1, intAdd s.2 (nonnegative 1)), apiOk Ghost ghost)
+      | 1 (u : Unit) => (case (optionIsSome Bytes (objectMetaTDeletionTimestamp m)) with
+        | 1 (u : Unit) => tuple (s, apiOk Ghost ghost)
+        | 0 (u : Unit) =>
+          let stamped : DynamicObjectT := objectWithResourceVersion s.2 (objectWithDeletionTimestamp b"2000-01-01T00:00:00Z" obj) in
+          tuple (tuple (resourceStoreSet key stamped s.0, s.1, intAdd s.2 (nonnegative 1)), apiOk Ghost ghost)))) (resourceStoreGet key s.0)
+def apiUpdateAdmission : InstalledTypes -> Bytes -> Bytes -> DynamicObjectT -> ApiState -> Option ApiError := fun (it : InstalledTypes) (ns : Bytes) (name : Bytes) (obj : DynamicObjectT) (s : ApiState) =>
+  let m : ObjectMetaT := dynamicObjectTMetadata obj in
+  let key : CommonObjectRef := commonObjectRefMake (dynamicObjectTKind obj) name ns in
+  let stored : Option DynamicObjectT := resourceStoreGet key s.0 in
+  apiFirst (apiGuard (boolNot (optionIsSome Bytes (objectMetaTName m))) apiMethodApiErrorBadRequest)
+  (apiFirst (apiGuard (optionFold Bytes Bool false (fun (n : Bytes) => boolNot (bytesEqual name n)) (objectMetaTName m)) apiMethodApiErrorBadRequest)
+  (apiFirst (apiGuard (optionFold Bytes Bool false (fun (n : Bytes) => boolNot (bytesEqual ns n)) (objectMetaTNamespace m)) apiMethodApiErrorBadRequest)
+  (apiFirst (apiGuard (boolNot (apiUnmarshallable it obj)) apiMethodApiErrorBadRequest)
+  (apiFirst (apiGuard (boolNot (optionIsSome DynamicObjectT stored)) apiMethodApiErrorObjectNotFound)
+  (apiFirst (apiGuard (boolAnd (boolNot (optionIsSome Int (objectMetaTResourceVersion m))) (boolNot (apiUnconditionalUpdate (dynamicObjectTKind obj)))) apiMethodApiErrorInvalid)
+    (optionFold DynamicObjectT (Option ApiError) (none ApiError) (fun (old : DynamicObjectT) =>
+      let om : ObjectMetaT := dynamicObjectTMetadata old in
+      apiFirst (apiGuard (boolAnd (optionIsSome Int (objectMetaTResourceVersion m)) (boolNot (optionEqual Int intEqual (objectMetaTResourceVersion m) (objectMetaTResourceVersion om)))) apiMethodApiErrorConflict)
+        (apiGuard (boolAnd (optionIsSome Int (objectMetaTUid m)) (boolNot (optionEqual Int intEqual (objectMetaTUid m) (objectMetaTUid om)))) apiMethodApiErrorConflict)) stored))))))
+def apiMergeUpdate : Bytes -> DynamicObjectT -> DynamicObjectT -> DynamicObjectT := fun (ns : Bytes) (obj : DynamicObjectT) (old : DynamicObjectT) =>
+  let om : ObjectMetaT := dynamicObjectTMetadata old in
+  let m : ObjectMetaT := objectMetaTSetNamespace (some Bytes ns) (dynamicObjectTMetadata obj) in
+  let m : ObjectMetaT := objectMetaTSetResourceVersion (objectMetaTResourceVersion om) m in
+  let m : ObjectMetaT := objectMetaTSetUid (objectMetaTUid om) m in
+  let m : ObjectMetaT := objectMetaTSetDeletionTimestamp (objectMetaTDeletionTimestamp om) m in
+  dynamicObjectTMake (dynamicObjectTKind old) m (dynamicObjectTSpec obj) (dynamicObjectTStatus old)
+def apiMergeStatus : DynamicObjectT -> DynamicObjectT -> DynamicObjectT := fun (obj : DynamicObjectT) (old : DynamicObjectT) => dynamicObjectTSetStatus (dynamicObjectTStatus obj) old
+def apiUpdate : InstalledTypes -> Bool -> Bytes -> Bytes -> DynamicObjectT -> ApiState -> ApiObjectOutput := fun (it : InstalledTypes) (statusOnly : Bool) (ns : Bytes) (name : Bytes) (obj : DynamicObjectT) (s : ApiState) =>
+  optionFold ApiError ApiObjectOutput
+    (let key : CommonObjectRef := commonObjectRefMake (dynamicObjectTKind obj) name ns in
+    optionFold DynamicObjectT ApiObjectOutput (apiRejectObject s apiMethodApiErrorObjectNotFound) (fun (old : DynamicObjectT) =>
+      let updated : DynamicObjectT := select DynamicObjectT statusOnly (apiMergeStatus obj old) (apiMergeUpdate ns obj old) in
+      case (dynamicObjectTEqual updated old) with | 1 (u : Unit) => tuple (s, apiOk DynamicObjectT old)
+      | 0 (u : Unit) =>
+        let stamped : DynamicObjectT := objectWithResourceVersion s.2 updated in
+        let md : ObjectMetaT := dynamicObjectTMetadata stamped in
+        let regular : Bool := boolOr statusOnly (boolOr (boolNot (optionIsSome Bytes (objectMetaTDeletionTimestamp md))) (apiHasFinalizers md)) in
+        let deletionKey : CommonObjectRef := commonObjectRefMake (dynamicObjectTKind stamped) (optionValue Bytes b"" (objectMetaTName md)) (optionValue Bytes b"" (objectMetaTNamespace md)) in
+        optionFold ApiError ApiObjectOutput
+          (tuple (tuple (select ResourceStore regular (resourceStoreSet key stamped s.0) (resourceStoreRemove deletionKey s.0), s.1, intAdd s.2 (nonnegative 1)), apiOk DynamicObjectT stamped))
+          (apiRejectObject s) (apiUpdatedValidity it stamped old)) (resourceStoreGet key s.0))
+    (apiRejectObject s) (apiUpdateAdmission it ns name obj s)
+def apiGetThenDelete : CommonObjectRef -> OwnerReferenceT -> ApiState -> ApiDeleteOutput := fun (key : CommonObjectRef) (owner : OwnerReferenceT) (s : ApiState) =>
+  case (ownerIsController owner) with | 0 (u : Unit) => apiRejectDelete s apiMethodApiErrorBadRequest
+  | 1 (u : Unit) => (case (apiGet key s) with | 0 (e : ApiError) => apiRejectDelete s e
+    | 1 (obj : DynamicObjectT) => (case (objectMetaOwnersContain (dynamicObjectTMetadata obj) owner) with
+      | 0 (u : Unit) => apiRejectDelete s apiMethodApiErrorTransactionAbort
+      | 1 (u : Unit) => apiDelete key (none ApiMethodPreconditions) s))
+def apiGetThenUpdate : InstalledTypes -> Bool -> Bytes -> Bytes -> OwnerReferenceT -> DynamicObjectT -> ApiState -> ApiObjectOutput :=
+  fun (it : InstalledTypes) (statusOnly : Bool) (ns : Bytes) (name : Bytes) (owner : OwnerReferenceT) (obj : DynamicObjectT) (s : ApiState) =>
+  case (ownerIsController owner) with | 0 (u : Unit) => apiRejectObject s apiMethodApiErrorBadRequest
+  | 1 (u : Unit) => (case (apiGet (commonObjectRefMake (dynamicObjectTKind obj) name ns) s) with
+    | 0 (e : ApiError) => apiRejectObject s e
+    | 1 (old : DynamicObjectT) => (case (objectMetaOwnersContain (dynamicObjectTMetadata old) owner) with
+      | 0 (u : Unit) => apiRejectObject s apiMethodApiErrorTransactionAbort
+      | 1 (u : Unit) =>
+        let om : ObjectMetaT := dynamicObjectTMetadata old in
+        let m : ObjectMetaT := objectMetaTSetUid (objectMetaTUid om) (objectMetaTSetResourceVersion (objectMetaTResourceVersion om) (dynamicObjectTMetadata obj)) in
+        let updated : DynamicObjectT := select DynamicObjectT statusOnly (apiMergeStatus obj old) (dynamicObjectTSetMetadata m obj) in
+        apiUpdate it statusOnly ns name updated s))
+def ApiOutput : Type 0 := prod (ApiState, Response)
+def apiHandle : InstalledTypes -> Request -> ApiState -> ApiOutput := fun (it : InstalledTypes) (req : Request) (s : ApiState) =>
+  match req as self in ApiMethodApiRequest return ApiOutput with
+  | apiMethodApiRequestGetRequest r => tuple (s, makeResponseGet (apiGet (apiMethodGetRequestKey r) s))
+  | apiMethodApiRequestListRequest r => tuple (s, makeResponseList (apiList (apiMethodListRequestKind r) (apiMethodListRequestNamespace r) s))
+  | apiMethodApiRequestCreateRequest r =>
+    let result : ApiObjectOutput := apiCreate it (apiMethodCreateRequestNamespace r) (apiMethodCreateRequestObj r) s in tuple (result.0, makeResponseCreate result.1)
+  | apiMethodApiRequestDeleteRequest r =>
+    let result : ApiDeleteOutput := apiDelete (apiMethodDeleteRequestKey r) (apiMethodDeleteRequestPreconditions r) s in tuple (result.0, makeResponseDelete result.1)
+  | apiMethodApiRequestUpdateRequest r =>
+    let result : ApiObjectOutput := apiUpdate it false (apiMethodUpdateRequestNamespace r) (apiMethodUpdateRequestName r) (apiMethodUpdateRequestObj r) s in tuple (result.0, makeResponseUpdate result.1)
+  | apiMethodApiRequestUpdateStatusRequest r =>
+    let result : ApiObjectOutput := apiUpdate it true (apiMethodUpdateStatusRequestNamespace r) (apiMethodUpdateStatusRequestName r) (apiMethodUpdateStatusRequestObj r) s in tuple (result.0, makeResponseUpdateStatus result.1)
+  | apiMethodApiRequestGetThenDeleteRequest r =>
+    let result : ApiDeleteOutput := apiGetThenDelete (apiMethodGetThenDeleteRequestKey r) (apiMethodGetThenDeleteRequestOwnerRef r) s in tuple (result.0, makeResponseGetThenDelete result.1)
+  | apiMethodApiRequestGetThenUpdateRequest r =>
+    let result : ApiObjectOutput := apiGetThenUpdate it false (apiMethodGetThenUpdateRequestNamespace r) (apiMethodGetThenUpdateRequestName r) (apiMethodGetThenUpdateRequestOwnerRef r) (apiMethodGetThenUpdateRequestObj r) s in tuple (result.0, makeResponseGetThenUpdate result.1)
+  | apiMethodApiRequestGetThenUpdateStatusRequest r =>
+    let result : ApiObjectOutput := apiGetThenUpdate it true (apiMethodGetThenUpdateStatusRequestNamespace r) (apiMethodGetThenUpdateStatusRequestName r) (apiMethodGetThenUpdateStatusRequestOwnerRef r) (apiMethodGetThenUpdateStatusRequestObj r) s in tuple (result.0, makeResponseGetThenUpdateStatus result.1)

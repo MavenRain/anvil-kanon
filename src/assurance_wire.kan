@@ -1,0 +1,33 @@
+def invariantEvaluateJson : ClusterState -> Invariant -> Value := fun (s : ClusterState) (i : Invariant) => jsonObject (jsonObjectCons b"name" (jsonString i.0)
+  (jsonObjectCons b"source" (jsonString i.1) (jsonObjectCons b"holds" (jsonBool (i.2 s)) (jsonObjectCons b"interesting" (jsonBool (i.3 s)) jsonObjectNil))))
+def assuranceFixtureInvoke : Value -> Result Value := fun (input : Value) =>
+  resultBind InstalledTypes Value (jsonField InstalledTypes input b"policy" apiFixturePolicy) (fun (policy : InstalledTypes) =>
+  resultBind ClusterState Value (jsonField ClusterState input b"state" clusterStateWireDecode) (fun (s : ClusterState) =>
+  resultBind Bound Value (jsonField Bound input b"bound" boundWireDecode) (fun (b : Bound) =>
+  resultBind Int Value (jsonField Int input b"controllerId" jsonGetInt) (fun (id : Int) =>
+  resultBind Value Value (jsonField Value input b"pendingState" jsonDecodeValue) (fun (pending : Value) =>
+  resultBind Value Value (jsonField Value input b"quietState" jsonDecodeValue) (fun (quiet : Value) =>
+    let c : ClusterConfig := tuple (policy, fixtureModels) in
+    let all : Invariants := sequenceAppend Invariant (clusterStructural id)
+      (sequenceAppend Invariant (correspondenceFamily c id) (sequenceAppend Invariant (reconcileCorrespondenceFamily id (valueEqual pending) (valueEqual quiet))
+      (sequenceAppend Invariant (provenanceFamily id) (sequenceAppend Invariant (responseRvFamily b) (responseMatchedFamily id))))) in
+    ok Value (jsonSequenceEncode Invariant (invariantEvaluateJson s) all)))))))
+def assuranceFixtureRender : Value -> Bytes := fun (input : Value) => case (assuranceFixtureInvoke input) with
+  | 0 (e : Error) => bytesAppend b"error: " (errorText e) | 1 (j : Value) => valueRender j
+def statefulAssuranceFixtureInvoke : Value -> Result Value := fun (input : Value) =>
+  resultBind ClusterState Value (jsonField ClusterState input b"state" clusterStateWireDecode) (fun (s : ClusterState) =>
+  resultBind Int Value (jsonField Int input b"controllerId" jsonGetInt) (fun (id : Int) =>
+  resultBind Stateful Value (jsonField Stateful input b"cr" (fun (j : Value) => resultBind DynamicObjectT Stateful (dynamicObjectTDecode j) vStatefulSetTUnmarshal)) (fun (cr : Stateful) =>
+    let all : Invariants := sequenceAppend Invariant (vstsInvariants cr id) (sequenceAppend Invariant (vstsGuaranteeFamily cr id)
+      (sequenceAppend Invariant (vstsHelperFamily cr) (sequenceAppend Invariant vstsRelyFamily (sequenceAppend Invariant (vstsBindingFamily cr id)
+      (sequenceAppend Invariant (vstsPredicateFamily cr id) (sequenceAppend Invariant (vstsAllLocalBindingFamily id) (vstsLivenessGoal cr))))))) in
+    ok Value (jsonSequenceEncode Invariant (invariantEvaluateJson s) all))))
+def statefulAssuranceFixtureRender : Value -> Bytes := fun (input : Value) => case (statefulAssuranceFixtureInvoke input) with
+  | 0 (e : Error) => bytesAppend b"error: " (errorText e) | 1 (j : Value) => valueRender j
+def vrsAssuranceFixtureInvoke : Value -> Result Value := fun (input : Value) =>
+  resultBind ClusterState Value (jsonField ClusterState input b"state" clusterStateWireDecode) (fun (s : ClusterState) =>
+  resultBind Int Value (jsonField Int input b"controllerId" jsonGetInt) (fun (id : Int) =>
+  resultBind Vrs Value (jsonField Vrs input b"cr" vreplicaSetTResourceDecode) (fun (cr : Vrs) =>
+    ok Value (jsonSequenceEncode Invariant (invariantEvaluateJson s) (sequenceAppend Invariant (vrsAllInvariants cr id) (vrsLivenessGoal cr))))))
+def vrsAssuranceFixtureRender : Value -> Bytes := fun (input : Value) => case (vrsAssuranceFixtureInvoke input) with
+  | 0 (e : Error) => bytesAppend b"error: " (errorText e) | 1 (j : Value) => valueRender j

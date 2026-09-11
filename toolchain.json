@@ -1,0 +1,19 @@
+{
+  "validated_on": "2026-09-10",
+  "node": "23.10.0",
+  "ocaml": "5.3.0",
+  "kanon": {
+    "repository": "https://github.com/MavenRain/kanon",
+    "checkout_revision": "69f3be5198cda4334de4fd23b4ccc92cac595789",
+    "compiler_sha256": "d8b522e8b92ce11227fb16c5420d472e33f601013721e1826e9d04fc3231ccc3",
+    "note": "Installed prebuilt compiler; checkout revision records the local source, not an independently established binary provenance."
+  },
+  "comp_cat": {
+    "repository": "https://github.com/MavenRain/comp-cat-ocaml",
+    "revision": "426b28a1cff7b3af27be8b941465b2f19a1e7677",
+    "temporal_sha256": "384daefc4590f44da447d8b702a149909c5ffff03d2decb84deb07f3afe588d2",
+    "rule_sha256": "7d478f85be28dfb8fd80cfdee4f88604e47be5e9d352a8d7f156f46268193851",
+    "installed_sources_match": true
+  },
+  "host_workaround": "Disable Maglev through node:v8 before warming the adapter on Node 23, following a sampled optimizer/GC shutdown deadlock."
+}

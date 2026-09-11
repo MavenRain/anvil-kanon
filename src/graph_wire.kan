@@ -1,0 +1,37 @@
+-- Small-graph transport exercises the generic checker independently of Kubernetes.
+def graphFormula : Bytes -> Sequence Nat -> Sequence Nat -> Formula Nat := fun (mode : Bytes) (target : Sequence Nat) (second : Sequence Nat) =>
+  let p : Formula Nat := formulaState Nat b"target" (fun (n : Nat) => sequenceAny Nat target (natEq n)) in
+  let q : Formula Nat := formulaState Nat b"second" (fun (n : Nat) => sequenceAny Nat second (natEq n)) in
+  select (Formula Nat) (bytesEqual mode b"always") (formulaAlways Nat p)
+  (select (Formula Nat) (bytesEqual mode b"eventually") (formulaEventually Nat p)
+  (select (Formula Nat) (bytesEqual mode b"next") (formulaNext Nat p)
+  (select (Formula Nat) (bytesEqual mode b"alwaysEventually") (formulaAlways Nat (formulaEventually Nat p))
+  (select (Formula Nat) (bytesEqual mode b"eventuallyAlways") (formulaEventually Nat (formulaAlways Nat p))
+  (select (Formula Nat) (bytesEqual mode b"alternating") (formulaNeg Nat (formulaConj Nat (formulaAlways Nat (formulaEventually Nat p)) (formulaAlways Nat (formulaEventually Nat q))))
+  (select (Formula Nat) (bytesEqual mode b"true") (formulaTrue Nat) (formulaFalse Nat)))))))
+def graphOutcomeEncode : Outcome Nat -> Value := fun (outcome : Outcome Nat) => case outcome with
+  | 0 (r : prod (Lasso Nat, Nat)) => jsonObject (jsonObjectCons b"tag" (jsonString b"refuted")
+      (jsonObjectCons b"stem" (jsonSequenceEncode Nat jsonEncodeNat r.0.0) (jsonObjectCons b"loop" (jsonSequenceEncode Nat jsonEncodeNat r.0.1)
+      (jsonObjectCons b"steps" (jsonEncodeNat r.1) jsonObjectNil))))
+  | 1 (r : prod (Bool, Int, Nat)) => jsonObject (jsonObjectCons b"tag" (jsonString b"noCounterexample")
+      (jsonObjectCons b"decisive" (jsonBool r.0) (jsonObjectCons b"depth" (jsonInt r.1) (jsonObjectCons b"states" (jsonEncodeNat r.2) jsonObjectNil))))
+def graphInvoke : Value -> Result Value := fun (input : Value) =>
+  resultBind (Sequence (Sequence Nat)) Value (jsonField (Sequence (Sequence Nat)) input b"graph" (jsonSequenceDecode (Sequence Nat) (jsonSequenceDecode Nat jsonGetNat))) (fun (graph : Sequence (Sequence Nat)) =>
+  resultBind (Sequence Nat) Value (jsonField (Sequence Nat) input b"init" (jsonSequenceDecode Nat jsonGetNat)) (fun (init : Sequence Nat) =>
+  resultBind Int Value (jsonField Int input b"depth" jsonGetInt) (fun (depth : Int) =>
+  resultBind Bytes Value (jsonField Bytes input b"mode" jsonGetString) (fun (mode : Bytes) =>
+  resultBind (Sequence Nat) Value (jsonField (Sequence Nat) input b"target" (jsonSequenceDecode Nat jsonGetNat)) (fun (target : Sequence Nat) =>
+  resultBind (Sequence Nat) Value (jsonField (Sequence Nat) input b"second" (jsonSequenceDecode Nat jsonGetNat)) (fun (second : Sequence Nat) =>
+  resultMap Bool Value (fun (fair : Bool) =>
+    let successors : Nat -> Sequence Nat := fun (n : Nat) => optionValue (Sequence Nat) (sequenceEmpty Nat) (graph.1 n) in
+    let targetPred : Nat -> Bool := fun (n : Nat) => sequenceAny Nat target (natEq n) in
+    let fairPred : Lasso Nat -> Bool := fun (l : Lasso Nat) => boolOr (boolNot fair) (sequenceAny Nat l.1 targetPred) in
+    let reach : Reachable Nat := explore Nat depth successors natEq init in
+    let outcome : Outcome Nat := select (Outcome Nat) (bytesEqual mode b"safety") (checkSafety Nat reach targetPred natEq)
+      (select (Outcome Nat) (bytesEqual mode b"reaches") (checkReaches Nat reach targetPred (fun (n : Nat) => sequenceEvery Nat (successors n) (natEq n)) natEq)
+        (checkTemporal Nat depth successors natEq init fairPred (formulaHolds Nat (graphFormula mode target second)))) in
+    jsonObject (jsonObjectCons b"outcome" (graphOutcomeEncode outcome)
+      (jsonObjectCons b"order" (jsonSequenceEncode Nat jsonEncodeNat reach.0) (jsonObjectCons b"frontierEmptied" (jsonBool reach.2) jsonObjectNil))))
+    (jsonField Bool input b"fair" jsonGetBool)))))))
+def graphInvokeRender : Value -> Bytes := fun (input : Value) => case (graphInvoke input) with
+  | 0 (e : Error) => bytesAppend b"error: " (errorText e) | 1 (v : Value) => valueRender v

@@ -1,0 +1,165 @@
+-- Io.void has no inhabitants, so these controllers use Kubernetes I/O only.
+def Request : Type 0 := ApiMethodApiRequest
+def Response : Type 0 := ApiMethodApiResponse
+def ApiError : Type 0 := ApiMethodApiError
+def ApiResult : (0 A : Type 0) -> Type 0 := fun (0 A : Type 0) => Either ApiError A
+def apiOk : (0 A : Type 0) -> A -> ApiResult A := fun (0 A : Type 0) (x : A) => inj 1 of 2 x
+def apiError : (0 A : Type 0) -> ApiError -> ApiResult A := fun (0 A : Type 0) (e : ApiError) => inj 0 of 2 e
+def apiResultOption : (0 A : Type 0) -> ApiResult A -> Option A := fun (0 A : Type 0) (r : ApiResult A) =>
+  case r with | 0 (e : ApiError) => none A | 1 (x : A) => some A x
+def apiResponseOk : (0 A : Type 0) -> Option (ApiResult A) -> Option A := fun (0 A : Type 0) (r : Option (ApiResult A)) =>
+  optionBind (ApiResult A) A r (fun (x : ApiResult A) => apiResultOption A x)
+
+
+def responseGet : Option Response -> Option (ApiResult DynamicObjectT) := fun (response : Option Response) =>
+  optionBind Response (ApiResult DynamicObjectT) response (fun (r : Response) =>
+    match r as self in ApiMethodApiResponse return Option (ApiResult DynamicObjectT) with
+    | apiMethodApiResponseGetResponse x => some (ApiResult DynamicObjectT) (apiMethodGetResponseRes x)
+    | apiMethodApiResponseListResponse x => none (ApiResult DynamicObjectT)
+    | apiMethodApiResponseCreateResponse x => none (ApiResult DynamicObjectT)
+    | apiMethodApiResponseDeleteResponse x => none (ApiResult DynamicObjectT)
+    | apiMethodApiResponseUpdateResponse x => none (ApiResult DynamicObjectT)
+    | apiMethodApiResponseUpdateStatusResponse x => none (ApiResult DynamicObjectT)
+    | apiMethodApiResponseGetThenDeleteResponse x => none (ApiResult DynamicObjectT)
+    | apiMethodApiResponseGetThenUpdateResponse x => none (ApiResult DynamicObjectT)
+    | apiMethodApiResponseGetThenUpdateStatusResponse x => none (ApiResult DynamicObjectT))
+
+def makeResponseGet : ApiResult DynamicObjectT -> Response := fun (r : ApiResult DynamicObjectT) => apiMethodApiResponseGetResponse (apiMethodGetResponseMake r)
+
+def responseList : Option Response -> Option (ApiResult ListDynamicObjectT) := fun (response : Option Response) =>
+  optionBind Response (ApiResult ListDynamicObjectT) response (fun (r : Response) =>
+    match r as self in ApiMethodApiResponse return Option (ApiResult ListDynamicObjectT) with
+    | apiMethodApiResponseGetResponse x => none (ApiResult ListDynamicObjectT)
+    | apiMethodApiResponseListResponse x => some (ApiResult ListDynamicObjectT) (apiMethodListResponseRes x)
+    | apiMethodApiResponseCreateResponse x => none (ApiResult ListDynamicObjectT)
+    | apiMethodApiResponseDeleteResponse x => none (ApiResult ListDynamicObjectT)
+    | apiMethodApiResponseUpdateResponse x => none (ApiResult ListDynamicObjectT)
+    | apiMethodApiResponseUpdateStatusResponse x => none (ApiResult ListDynamicObjectT)
+    | apiMethodApiResponseGetThenDeleteResponse x => none (ApiResult ListDynamicObjectT)
+    | apiMethodApiResponseGetThenUpdateResponse x => none (ApiResult ListDynamicObjectT)
+    | apiMethodApiResponseGetThenUpdateStatusResponse x => none (ApiResult ListDynamicObjectT))
+
+def makeResponseList : ApiResult ListDynamicObjectT -> Response := fun (r : ApiResult ListDynamicObjectT) => apiMethodApiResponseListResponse (apiMethodListResponseMake r)
+
+def responseCreate : Option Response -> Option (ApiResult DynamicObjectT) := fun (response : Option Response) =>
+  optionBind Response (ApiResult DynamicObjectT) response (fun (r : Response) =>
+    match r as self in ApiMethodApiResponse return Option (ApiResult DynamicObjectT) with
+    | apiMethodApiResponseGetResponse x => none (ApiResult DynamicObjectT)
+    | apiMethodApiResponseListResponse x => none (ApiResult DynamicObjectT)
+    | apiMethodApiResponseCreateResponse x => some (ApiResult DynamicObjectT) (apiMethodCreateResponseRes x)
+    | apiMethodApiResponseDeleteResponse x => none (ApiResult DynamicObjectT)
+    | apiMethodApiResponseUpdateResponse x => none (ApiResult DynamicObjectT)
+    | apiMethodApiResponseUpdateStatusResponse x => none (ApiResult DynamicObjectT)
+    | apiMethodApiResponseGetThenDeleteResponse x => none (ApiResult DynamicObjectT)
+    | apiMethodApiResponseGetThenUpdateResponse x => none (ApiResult DynamicObjectT)
+    | apiMethodApiResponseGetThenUpdateStatusResponse x => none (ApiResult DynamicObjectT))
+
+def makeResponseCreate : ApiResult DynamicObjectT -> Response := fun (r : ApiResult DynamicObjectT) => apiMethodApiResponseCreateResponse (apiMethodCreateResponseMake r)
+
+def responseDelete : Option Response -> Option (ApiResult Ghost) := fun (response : Option Response) =>
+  optionBind Response (ApiResult Ghost) response (fun (r : Response) =>
+    match r as self in ApiMethodApiResponse return Option (ApiResult Ghost) with
+    | apiMethodApiResponseGetResponse x => none (ApiResult Ghost)
+    | apiMethodApiResponseListResponse x => none (ApiResult Ghost)
+    | apiMethodApiResponseCreateResponse x => none (ApiResult Ghost)
+    | apiMethodApiResponseDeleteResponse x => some (ApiResult Ghost) (apiMethodDeleteResponseRes x)
+    | apiMethodApiResponseUpdateResponse x => none (ApiResult Ghost)
+    | apiMethodApiResponseUpdateStatusResponse x => none (ApiResult Ghost)
+    | apiMethodApiResponseGetThenDeleteResponse x => none (ApiResult Ghost)
+    | apiMethodApiResponseGetThenUpdateResponse x => none (ApiResult Ghost)
+    | apiMethodApiResponseGetThenUpdateStatusResponse x => none (ApiResult Ghost))
+
+def makeResponseDelete : ApiResult Ghost -> Response := fun (r : ApiResult Ghost) => apiMethodApiResponseDeleteResponse (apiMethodDeleteResponseMake r)
+
+def responseUpdate : Option Response -> Option (ApiResult DynamicObjectT) := fun (response : Option Response) =>
+  optionBind Response (ApiResult DynamicObjectT) response (fun (r : Response) =>
+    match r as self in ApiMethodApiResponse return Option (ApiResult DynamicObjectT) with
+    | apiMethodApiResponseGetResponse x => none (ApiResult DynamicObjectT)
+    | apiMethodApiResponseListResponse x => none (ApiResult DynamicObjectT)
+    | apiMethodApiResponseCreateResponse x => none (ApiResult DynamicObjectT)
+    | apiMethodApiResponseDeleteResponse x => none (ApiResult DynamicObjectT)
+    | apiMethodApiResponseUpdateResponse x => some (ApiResult DynamicObjectT) (apiMethodUpdateResponseRes x)
+    | apiMethodApiResponseUpdateStatusResponse x => none (ApiResult DynamicObjectT)
+    | apiMethodApiResponseGetThenDeleteResponse x => none (ApiResult DynamicObjectT)
+    | apiMethodApiResponseGetThenUpdateResponse x => none (ApiResult DynamicObjectT)
+    | apiMethodApiResponseGetThenUpdateStatusResponse x => none (ApiResult DynamicObjectT))
+
+def makeResponseUpdate : ApiResult DynamicObjectT -> Response := fun (r : ApiResult DynamicObjectT) => apiMethodApiResponseUpdateResponse (apiMethodUpdateResponseMake r)
+
+def responseUpdateStatus : Option Response -> Option (ApiResult DynamicObjectT) := fun (response : Option Response) =>
+  optionBind Response (ApiResult DynamicObjectT) response (fun (r : Response) =>
+    match r as self in ApiMethodApiResponse return Option (ApiResult DynamicObjectT) with
+    | apiMethodApiResponseGetResponse x => none (ApiResult DynamicObjectT)
+    | apiMethodApiResponseListResponse x => none (ApiResult DynamicObjectT)
+    | apiMethodApiResponseCreateResponse x => none (ApiResult DynamicObjectT)
+    | apiMethodApiResponseDeleteResponse x => none (ApiResult DynamicObjectT)
+    | apiMethodApiResponseUpdateResponse x => none (ApiResult DynamicObjectT)
+    | apiMethodApiResponseUpdateStatusResponse x => some (ApiResult DynamicObjectT) (apiMethodUpdateStatusResponseRes x)
+    | apiMethodApiResponseGetThenDeleteResponse x => none (ApiResult DynamicObjectT)
+    | apiMethodApiResponseGetThenUpdateResponse x => none (ApiResult DynamicObjectT)
+    | apiMethodApiResponseGetThenUpdateStatusResponse x => none (ApiResult DynamicObjectT))
+
+def makeResponseUpdateStatus : ApiResult DynamicObjectT -> Response := fun (r : ApiResult DynamicObjectT) => apiMethodApiResponseUpdateStatusResponse (apiMethodUpdateStatusResponseMake r)
+
+def responseGetThenDelete : Option Response -> Option (ApiResult Ghost) := fun (response : Option Response) =>
+  optionBind Response (ApiResult Ghost) response (fun (r : Response) =>
+    match r as self in ApiMethodApiResponse return Option (ApiResult Ghost) with
+    | apiMethodApiResponseGetResponse x => none (ApiResult Ghost)
+    | apiMethodApiResponseListResponse x => none (ApiResult Ghost)
+    | apiMethodApiResponseCreateResponse x => none (ApiResult Ghost)
+    | apiMethodApiResponseDeleteResponse x => none (ApiResult Ghost)
+    | apiMethodApiResponseUpdateResponse x => none (ApiResult Ghost)
+    | apiMethodApiResponseUpdateStatusResponse x => none (ApiResult Ghost)
+    | apiMethodApiResponseGetThenDeleteResponse x => some (ApiResult Ghost) (apiMethodGetThenDeleteResponseRes x)
+    | apiMethodApiResponseGetThenUpdateResponse x => none (ApiResult Ghost)
+    | apiMethodApiResponseGetThenUpdateStatusResponse x => none (ApiResult Ghost))
+
+def makeResponseGetThenDelete : ApiResult Ghost -> Response := fun (r : ApiResult Ghost) => apiMethodApiResponseGetThenDeleteResponse (apiMethodGetThenDeleteResponseMake r)
+
+def responseGetThenUpdate : Option Response -> Option (ApiResult DynamicObjectT) := fun (response : Option Response) =>
+  optionBind Response (ApiResult DynamicObjectT) response (fun (r : Response) =>
+    match r as self in ApiMethodApiResponse return Option (ApiResult DynamicObjectT) with
+    | apiMethodApiResponseGetResponse x => none (ApiResult DynamicObjectT)
+    | apiMethodApiResponseListResponse x => none (ApiResult DynamicObjectT)
+    | apiMethodApiResponseCreateResponse x => none (ApiResult DynamicObjectT)
+    | apiMethodApiResponseDeleteResponse x => none (ApiResult DynamicObjectT)
+    | apiMethodApiResponseUpdateResponse x => none (ApiResult DynamicObjectT)
+    | apiMethodApiResponseUpdateStatusResponse x => none (ApiResult DynamicObjectT)
+    | apiMethodApiResponseGetThenDeleteResponse x => none (ApiResult DynamicObjectT)
+    | apiMethodApiResponseGetThenUpdateResponse x => some (ApiResult DynamicObjectT) (apiMethodGetThenUpdateResponseRes x)
+    | apiMethodApiResponseGetThenUpdateStatusResponse x => none (ApiResult DynamicObjectT))
+
+def makeResponseGetThenUpdate : ApiResult DynamicObjectT -> Response := fun (r : ApiResult DynamicObjectT) => apiMethodApiResponseGetThenUpdateResponse (apiMethodGetThenUpdateResponseMake r)
+
+def responseGetThenUpdateStatus : Option Response -> Option (ApiResult DynamicObjectT) := fun (response : Option Response) =>
+  optionBind Response (ApiResult DynamicObjectT) response (fun (r : Response) =>
+    match r as self in ApiMethodApiResponse return Option (ApiResult DynamicObjectT) with
+    | apiMethodApiResponseGetResponse x => none (ApiResult DynamicObjectT)
+    | apiMethodApiResponseListResponse x => none (ApiResult DynamicObjectT)
+    | apiMethodApiResponseCreateResponse x => none (ApiResult DynamicObjectT)
+    | apiMethodApiResponseDeleteResponse x => none (ApiResult DynamicObjectT)
+    | apiMethodApiResponseUpdateResponse x => none (ApiResult DynamicObjectT)
+    | apiMethodApiResponseUpdateStatusResponse x => none (ApiResult DynamicObjectT)
+    | apiMethodApiResponseGetThenDeleteResponse x => none (ApiResult DynamicObjectT)
+    | apiMethodApiResponseGetThenUpdateResponse x => none (ApiResult DynamicObjectT)
+    | apiMethodApiResponseGetThenUpdateStatusResponse x => some (ApiResult DynamicObjectT) (apiMethodGetThenUpdateStatusResponseRes x))
+
+def makeResponseGetThenUpdateStatus : ApiResult DynamicObjectT -> Response := fun (r : ApiResult DynamicObjectT) => apiMethodApiResponseGetThenUpdateStatusResponse (apiMethodGetThenUpdateStatusResponseMake r)
+
+def requestGet : CommonObjectRef -> Request := fun (key : CommonObjectRef) => apiMethodApiRequestGetRequest (apiMethodGetRequestMake key)
+
+def requestList : CommonKind -> Bytes -> Request := fun (kind : CommonKind) (ns : Bytes) => apiMethodApiRequestListRequest (apiMethodListRequestMake kind ns)
+
+def requestCreate : Bytes -> DynamicObjectT -> Request := fun (ns : Bytes) (obj : DynamicObjectT) => apiMethodApiRequestCreateRequest (apiMethodCreateRequestMake ns obj)
+
+def requestDelete : CommonObjectRef -> Option ApiMethodPreconditions -> Request := fun (key : CommonObjectRef) (preconditions : Option ApiMethodPreconditions) => apiMethodApiRequestDeleteRequest (apiMethodDeleteRequestMake key preconditions)
+
+def requestUpdate : Bytes -> Bytes -> DynamicObjectT -> Request := fun (ns : Bytes) (name : Bytes) (obj : DynamicObjectT) => apiMethodApiRequestUpdateRequest (apiMethodUpdateRequestMake ns name obj)
+
+def requestUpdateStatus : Bytes -> Bytes -> DynamicObjectT -> Request := fun (ns : Bytes) (name : Bytes) (obj : DynamicObjectT) => apiMethodApiRequestUpdateStatusRequest (apiMethodUpdateStatusRequestMake ns name obj)
+
+def requestGetThenDelete : CommonObjectRef -> OwnerReferenceT -> Request := fun (key : CommonObjectRef) (owner : OwnerReferenceT) => apiMethodApiRequestGetThenDeleteRequest (apiMethodGetThenDeleteRequestMake key owner)
+
+def requestGetThenUpdate : Bytes -> Bytes -> OwnerReferenceT -> DynamicObjectT -> Request := fun (ns : Bytes) (name : Bytes) (owner : OwnerReferenceT) (obj : DynamicObjectT) => apiMethodApiRequestGetThenUpdateRequest (apiMethodGetThenUpdateRequestMake ns name owner obj)
+
+def requestGetThenUpdateStatus : Bytes -> Bytes -> OwnerReferenceT -> DynamicObjectT -> Request := fun (ns : Bytes) (name : Bytes) (owner : OwnerReferenceT) (obj : DynamicObjectT) => apiMethodApiRequestGetThenUpdateStatusRequest (apiMethodGetThenUpdateStatusRequestMake ns name owner obj)

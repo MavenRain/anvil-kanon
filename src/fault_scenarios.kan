@@ -1,0 +1,79 @@
+mu FaultQuery : Type 0 :=
+  | faultQueryAlways : FaultQuery | faultQueryCorrespondence : FaultQuery | faultQueryReconcile : FaultQuery
+  | faultQueryResponseRv : FaultQuery | faultQueryResponseMatched : FaultQuery | faultQueryStore : FaultQuery
+  | faultQueryHelper : FaultQuery | faultQueryUnique : FaultQuery | faultQuerySettles : FaultQuery
+  | faultQueryProvenance : FaultQuery | faultQueryRely : FaultQuery | faultQueryForge : FaultQuery
+  | faultQueryInternal : FaultQuery | faultQueryScaleDown : FaultQuery | faultQueryLocalBinding : FaultQuery | faultQueryStatePredicates : FaultQuery
+def FaultOptions : Type 0 := prod (Int, Sequence Int, Sequence Int, Bool, Bool, Bool, Bool)
+def vstsStepExpectsPending : StatefulStep -> Bool := fun (step : StatefulStep) => let rank : Nat := vStatefulSetReconcilerStepRank step in
+  boolOr (natEq rank 1) (boolOr (natEq rank 3) (boolOr (natEq rank 5) (boolOr (natEq rank 8) (boolOr (natEq rank 10) (boolOr (natEq rank 12) (natEq rank 14))))))
+def vstsPendingStates : Value -> Bool := fun (v : Value) => optionFold StatefulState Bool false (fun (st : StatefulState) => vstsStepExpectsPending (vStatefulSetReconcilerSReconcileStep st)) (resultToOption StatefulState (statefulStateDecode v))
+def vstsNoneStates : Value -> Bool := fun (v : Value) => optionFold StatefulState Bool false (fun (st : StatefulState) => boolNot (vstsStepExpectsPending (vStatefulSetReconcilerSReconcileStep st))) (resultToOption StatefulState (statefulStateDecode v))
+def faultBudgetTaken : FaultBudget -> Faulted -> Bool := fun (b : FaultBudget) (f : Faulted) => boolOr (boolAnd (intPositiveFlag b.0) (intPositiveFlag f.1))
+  (boolOr (boolAnd (intPositiveFlag b.1) (intPositiveFlag f.2)) (boolAnd (intPositiveFlag b.2) (intPositiveFlag f.3)))
+def faultScenarioSeed : FaultQuery -> FaultOptions -> ClusterState := fun (q : FaultQuery) (o : FaultOptions) => match q as self in FaultQuery return ClusterState with
+  | faultQueryAlways => scenarioStatefulSeedFaults o.0 true false false false
+  | faultQueryCorrespondence => scenarioStatefulSeedFaults o.0 true false false false
+  | faultQueryUnique => scenarioStatefulSeedMultiFaults o.1 true false false false
+  | faultQuerySettles => scenarioStatefulSeedFaults o.0 true true true false
+  | faultQueryResponseRv => scenarioStatefulSeedFaults o.0 true o.3 o.4 o.5
+  | faultQueryResponseMatched => scenarioStatefulSeedFaults o.0 true o.3 o.4 o.5
+  | faultQueryHelper => scenarioStatefulSeedFaults o.0 true o.3 o.4 o.5
+  | faultQueryScaleDown => scenarioStatefulSeedWithPods o.0 o.2 true o.3 o.4 false
+  | faultQueryLocalBinding => scenarioStatefulSeedWithPods o.0 o.2 true o.3 o.4 false
+  | faultQueryStatePredicates => scenarioStatefulSeedWithPods o.0 o.2 true o.3 o.4 false
+  | faultQueryReconcile => scenarioStatefulSeedFaults o.0 true o.3 o.4 false
+  | faultQueryStore => scenarioStatefulSeedFaults o.0 true o.3 o.4 false
+  | faultQueryProvenance => scenarioStatefulSeedFaults o.0 true o.3 o.4 false
+  | faultQueryRely => scenarioStatefulSeedFaults o.0 true o.3 o.4 false
+  | faultQueryForge => scenarioStatefulSeedFaults o.0 true o.3 o.4 false
+  | faultQueryInternal => scenarioStatefulSeedFaults o.0 true o.3 o.4 false
+def faultScenarioInvariants : FaultQuery -> Bound -> FaultOptions -> Invariants := fun (q : FaultQuery) (b : Bound) (o : FaultOptions) =>
+  let cr : Stateful := scenarioStateful false o.0 in match q as self in FaultQuery return Invariants with
+  | faultQueryAlways => vstsAlways cr (nonnegative 0)
+  | faultQueryCorrespondence => correspondenceFamily scenarioStatefulCluster (nonnegative 0)
+  | faultQueryReconcile => reconcileCorrespondenceFamily (nonnegative 0) vstsPendingStates vstsNoneStates
+  | faultQueryResponseRv => responseRvFamily b | faultQueryResponseMatched => responseMatchedFamily (nonnegative 0)
+  | faultQueryStore => storeFamily (nonnegative 0) | faultQueryHelper => vstsHelperFamily (scenarioStateful o.5 o.0)
+  | faultQueryUnique => sequenceSlice Invariant (clusterStructural (nonnegative 0)) 5 1
+  | faultQuerySettles => vstsLivenessGoal cr | faultQueryProvenance => provenanceFamily (nonnegative 0)
+  | faultQueryRely => vstsRelyFamily | faultQueryForge => vstsHelperFamily cr
+  | faultQueryInternal => vstsGuaranteeFamily cr (nonnegative 0) | faultQueryScaleDown => vstsGuaranteeFamily cr (nonnegative 0)
+  | faultQueryLocalBinding => vstsBindingFamily cr (nonnegative 0) | faultQueryStatePredicates => vstsPredicateFamily cr (nonnegative 0)
+def faultInteresting : Invariants -> Faulted -> Bool := fun (xs : Invariants) (f : Faulted) => sequenceAny Invariant xs (fun (i : Invariant) => i.3 f.0)
+def faultGenericGate : FaultOptions -> FaultBudget -> Invariants -> Faulted -> Bool := fun (o : FaultOptions) (b : FaultBudget) (xs : Invariants) (f : Faulted) =>
+  boolAnd (implies o.6 (faultBudgetTaken b f)) (faultInteresting xs f)
+def faultSettledDisabled : Bound -> Faulted -> Bool := fun (b : Bound) (f : Faulted) => boolAnd (clusterSettled b scenarioStatefulCluster f.0) (boolNot (faultAnyLive (nonnegative 0) f.0))
+def faultForgeGate : Bound -> FaultOptions -> Faulted -> Bool := fun (b : Bound) (o : FaultOptions) (f : Faulted) => boolNot (listPodTEvery b.7
+  (fun (pod : PodT) => let key : CommonObjectRef := assuranceRef commonKindPod (podTMetadata pod) in boolNot
+    (boolAnd (vstsPodPremise (scenarioStateful false o.0) key) (optionIsSome DynamicObjectT (resourceStoreGet key f.0.0.0)))))
+def faultScenarioGate : FaultQuery -> Bound -> FaultBudget -> FaultOptions -> Invariants -> Faulted -> Bool :=
+  fun (q : FaultQuery) (bound : Bound) (budget : FaultBudget) (o : FaultOptions) (xs : Invariants) (f : Faulted) => match q as self in FaultQuery return Bool with
+  | faultQueryAlways => boolAnd (intPositiveFlag f.1) (faultInteresting xs f)
+  | faultQueryCorrespondence => boolAnd (implies o.6 (intPositiveFlag f.1)) (faultInteresting xs f)
+  | faultQueryUnique => boolAnd (intPositiveFlag f.1) (faultInteresting xs f)
+  | faultQuerySettles => faultSettledDisabled bound f | faultQueryForge => faultForgeGate bound o f
+  | faultQueryReconcile => faultGenericGate o budget xs f | faultQueryResponseRv => faultGenericGate o budget xs f
+  | faultQueryResponseMatched => faultGenericGate o budget xs f | faultQueryStore => faultGenericGate o budget xs f
+  | faultQueryHelper => faultGenericGate o budget xs f | faultQueryProvenance => faultGenericGate o budget xs f
+  | faultQueryRely => faultGenericGate o budget xs f | faultQueryInternal => faultGenericGate o budget xs f
+  | faultQueryScaleDown => faultGenericGate o budget xs f | faultQueryLocalBinding => faultGenericGate o budget xs f | faultQueryStatePredicates => faultGenericGate o budget xs f
+def checkFaultScenario : FaultQuery -> Int -> Bound -> FaultBudget -> FaultOptions -> FaultReport :=
+  fun (q : FaultQuery) (depth : Int) (bound : Bound) (budget : FaultBudget) (o : FaultOptions) =>
+  let xs : Invariants := faultScenarioInvariants q bound o in
+  let seed : ClusterState := faultScenarioSeed q o in
+  let safety : Reachable Faulted -> Outcome Faulted := fun (r : Reachable Faulted) => checkSafety Faulted r (fun (f : Faulted) => invariantConjunction xs f.0) faultedEqual in
+  let check : Reachable Faulted -> Outcome Faulted := (match q as self in FaultQuery return Reachable Faulted -> Outcome Faulted with
+    | faultQuerySettles => (fun (r : Reachable Faulted) => checkReaches Faulted r (fun (f : Faulted) => vstsCurrentStateMatches (scenarioStateful false o.0) f.0) (faultSettledDisabled bound) faultedEqual)
+    | faultQueryAlways => safety | faultQueryCorrespondence => safety | faultQueryReconcile => safety | faultQueryResponseRv => safety
+    | faultQueryResponseMatched => safety | faultQueryStore => safety | faultQueryHelper => safety | faultQueryUnique => safety
+    | faultQueryProvenance => safety | faultQueryRely => safety | faultQueryForge => safety | faultQueryInternal => safety
+    | faultQueryScaleDown => safety | faultQueryLocalBinding => safety | faultQueryStatePredicates => safety) in
+  faultRunLeg depth bound budget scenarioStatefulCluster (nonnegative 0) seed check (faultViolatedOf xs)
+    (fun (r : Reachable Faulted) => some Nat (reachableCount Faulted r (faultScenarioGate q bound budget o xs)))
+def faultRelyViolatingForge : Int -> PodT := fun (desired : Int) => let cr : Stateful := scenarioStateful false desired in
+  let pod : PodT := statefulMakePod cr (intAdd desired (nonnegative 1)) in
+  podTSetMetadata (objectMetaTSetFinalizers (some ListBytes (listBytesCons b"anvil-ocaml/p20-forge" listBytesNil))
+    (objectMetaTSetNamespace (some Bytes (vstsNamespace cr)) (podTMetadata pod))) pod
+def faultRelyRespectingForge : Int -> PodT := fun (desired : Int) => let pod : PodT := faultRelyViolatingForge desired in
+  podTSetMetadata (objectMetaTSetOwnerReferences (none ListOwnerReferenceT) (objectMetaTSetName (some Bytes (bytesAppend b"p20-outsider-" (intText (intAdd desired (nonnegative 1))))) (podTMetadata pod))) pod

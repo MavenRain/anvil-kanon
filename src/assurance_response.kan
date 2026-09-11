@@ -1,0 +1,47 @@
+-- Response provenance, bounded store equality, and pending-request keys.
+def assuranceOkGet : Message -> Option DynamicObjectT := fun (m : Message) => select (Option DynamicObjectT) (hostEqual m.0 hostApi) (apiResponseOk DynamicObjectT (responseGet (contentGetResponse m.3))) (none DynamicObjectT)
+def assuranceOkCreate : Message -> Option DynamicObjectT := fun (m : Message) => select (Option DynamicObjectT) (hostEqual m.0 hostApi) (apiResponseOk DynamicObjectT (responseCreate (contentGetResponse m.3))) (none DynamicObjectT)
+def assuranceObjectKey : CommonObjectRef -> DynamicObjectT -> Bool := fun (key : CommonObjectRef) (obj : DynamicObjectT) => resultFold CommonObjectRef Bool (fun (e : Error) => false) (commonObjectRefEqual key) (objectRef obj)
+def assuranceGetKey : Request -> Option CommonObjectRef := fun (r : Request) => match r as self in ApiMethodApiRequest return Option CommonObjectRef with
+  | apiMethodApiRequestGetRequest x => some CommonObjectRef (apiMethodGetRequestKey x)
+  | apiMethodApiRequestListRequest x => none CommonObjectRef | apiMethodApiRequestCreateRequest x => none CommonObjectRef
+  | apiMethodApiRequestDeleteRequest x => none CommonObjectRef | apiMethodApiRequestUpdateRequest x => none CommonObjectRef
+  | apiMethodApiRequestUpdateStatusRequest x => none CommonObjectRef | apiMethodApiRequestGetThenDeleteRequest x => none CommonObjectRef
+  | apiMethodApiRequestGetThenUpdateRequest x => none CommonObjectRef | apiMethodApiRequestGetThenUpdateStatusRequest x => none CommonObjectRef
+def assuranceCreateRequest : Request -> Option ApiMethodCreateRequest := fun (r : Request) => match r as self in ApiMethodApiRequest return Option ApiMethodCreateRequest with
+  | apiMethodApiRequestCreateRequest x => some ApiMethodCreateRequest x
+  | apiMethodApiRequestGetRequest x => none ApiMethodCreateRequest | apiMethodApiRequestListRequest x => none ApiMethodCreateRequest
+  | apiMethodApiRequestDeleteRequest x => none ApiMethodCreateRequest | apiMethodApiRequestUpdateRequest x => none ApiMethodCreateRequest
+  | apiMethodApiRequestUpdateStatusRequest x => none ApiMethodCreateRequest | apiMethodApiRequestGetThenDeleteRequest x => none ApiMethodCreateRequest
+  | apiMethodApiRequestGetThenUpdateRequest x => none ApiMethodCreateRequest | apiMethodApiRequestGetThenUpdateStatusRequest x => none ApiMethodCreateRequest
+def assuranceSameRv : DynamicObjectT -> DynamicObjectT -> Bool := fun (a : DynamicObjectT) (b : DynamicObjectT) => optionFold Int Bool false
+  (fun (rv : Int) => optionFold Int Bool false (intEqual rv) (objectMetaTResourceVersion (dynamicObjectTMetadata b))) (objectMetaTResourceVersion (dynamicObjectTMetadata a))
+def rec keysEvery : Keys -> (CommonObjectRef -> Bool) -> Bool := fun (xs : Keys) (p : CommonObjectRef -> Bool) => match xs as self in Keys return Bool with
+  | keysNil => true | keysCons k t => boolAnd (p k) (keysEvery t p)
+def keysAny : Keys -> (CommonObjectRef -> Bool) -> Bool := fun (xs : Keys) (p : CommonObjectRef -> Bool) => boolNot (keysEvery xs (fun (k : CommonObjectRef) => boolNot (p k)))
+def assuranceBoundKeys : Bound -> ClusterState -> Keys := fun (b : Bound) (s : ClusterState) => kindsGcKeys (resourceKinds s.0.0) (resourceKeys s.0.0) b.1
+def assuranceGetRvLower : ClusterState -> Bool := fun (s : ClusterState) => messagePoolEvery s.2 (fun (m : Message) => optionFold DynamicObjectT Bool true (fun (obj : DynamicObjectT) =>
+  optionFold Int Bool false (fun (rv : Int) => intLess rv s.0.2) (objectMetaTResourceVersion (dynamicObjectTMetadata obj))) (assuranceOkGet m))
+def assuranceGetSameRv : Bound -> ClusterState -> Bool := fun (b : Bound) (s : ClusterState) => keysEvery (assuranceBoundKeys b s) (fun (k : CommonObjectRef) =>
+  optionFold DynamicObjectT Bool true (fun (stored : DynamicObjectT) => messagePoolEvery s.2 (fun (m : Message) => optionFold DynamicObjectT Bool true
+    (fun (obj : DynamicObjectT) => implies (boolAnd (assuranceObjectKey k obj) (assuranceSameRv stored obj)) (dynamicObjectTEqual stored obj)) (assuranceOkGet m))) (resourceStoreGet k s.0.0))
+def assuranceGetSameRvWitness : Bound -> ClusterState -> Bool := fun (b : Bound) (s : ClusterState) => keysAny (assuranceBoundKeys b s) (fun (k : CommonObjectRef) =>
+  optionFold DynamicObjectT Bool false (fun (stored : DynamicObjectT) => messagePoolAny s.2 (fun (m : Message) => optionFold DynamicObjectT Bool false
+    (fun (obj : DynamicObjectT) => boolAnd (assuranceObjectKey k obj) (assuranceSameRv stored obj)) (assuranceOkGet m))) (resourceStoreGet k s.0.0))
+def assuranceMatchedGet : Int -> ClusterState -> Bool := fun (id : Int) (s : ClusterState) => ongoingEvery (assuranceOngoing id s) (fun (k : CommonObjectRef) (o : Ongoing) =>
+  optionFold Message Bool true (fun (pending : Message) => messagePoolEvery s.2 (fun (m : Message) => optionFold DynamicObjectT Bool true (fun (obj : DynamicObjectT) =>
+    implies (messageResponseMatches m pending) (optionFold CommonObjectRef Bool false (fun (key : CommonObjectRef) => assuranceObjectKey key obj)
+      (optionBind Request CommonObjectRef (contentGetRequest pending.3) assuranceGetKey))) (assuranceOkGet m))) o.1)
+def assuranceMatchedGetWitness : Int -> ClusterState -> Bool := fun (id : Int) (s : ClusterState) => ongoingAny (assuranceOngoing id s) (fun (k : CommonObjectRef) (o : Ongoing) =>
+  optionFold Message Bool false (fun (pending : Message) => messagePoolAny s.2 (fun (m : Message) => boolAnd (optionIsSome DynamicObjectT (assuranceOkGet m)) (messageResponseMatches m pending))) o.1)
+def assuranceCreateKeyMatches : ApiMethodCreateRequest -> DynamicObjectT -> Bool := fun (req : ApiMethodCreateRequest) (obj : DynamicObjectT) =>
+  optionFold Bytes Bool true (fun (name : Bytes) => assuranceObjectKey (commonObjectRefMake (dynamicObjectTKind (apiMethodCreateRequestObj req)) name (apiMethodCreateRequestNamespace req)) obj)
+    (objectMetaTName (dynamicObjectTMetadata (apiMethodCreateRequestObj req)))
+def assuranceMatchedCreate : Int -> ClusterState -> Bool := fun (id : Int) (s : ClusterState) => ongoingEvery (assuranceOngoing id s) (fun (k : CommonObjectRef) (o : Ongoing) =>
+  optionFold Message Bool true (fun (pending : Message) => messagePoolEvery s.2 (fun (m : Message) => optionFold DynamicObjectT Bool true (fun (obj : DynamicObjectT) =>
+    implies (messageResponseMatches m pending) (optionFold ApiMethodCreateRequest Bool false (fun (req : ApiMethodCreateRequest) => assuranceCreateKeyMatches req obj)
+      (optionBind Request ApiMethodCreateRequest (contentGetRequest pending.3) assuranceCreateRequest))) (assuranceOkCreate m))) o.1)
+def assuranceMatchedCreateWitness : Int -> ClusterState -> Bool := fun (id : Int) (s : ClusterState) => ongoingAny (assuranceOngoing id s) (fun (k : CommonObjectRef) (o : Ongoing) =>
+  optionFold Message Bool false (fun (pending : Message) => optionFold ApiMethodCreateRequest Bool false (fun (req : ApiMethodCreateRequest) =>
+    boolAnd (optionIsSome Bytes (objectMetaTName (dynamicObjectTMetadata (apiMethodCreateRequestObj req)))) (messagePoolAny s.2 (fun (m : Message) =>
+      boolAnd (optionIsSome DynamicObjectT (assuranceOkCreate m)) (messageResponseMatches m pending)))) (optionBind Request ApiMethodCreateRequest (contentGetRequest pending.3) assuranceCreateRequest)) o.1)

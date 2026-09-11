@@ -1,0 +1,52 @@
+-- Fault budgets extend state identity; they never merge distinct histories.
+def FaultBudget : Type 0 := prod (Int, Int, Int)
+def faultBudgetDefault : FaultBudget := tuple (nonnegative 1, nonnegative 1, nonnegative 1)
+def faultBudgetCrashOnly : FaultBudget := tuple (nonnegative 1, nonnegative 0, nonnegative 0)
+def Faulted : Type 0 := prod (ClusterState, Int, Int, Int)
+def faultedOfSeed : ClusterState -> Faulted := fun (s : ClusterState) => tuple (s, nonnegative 0, nonnegative 0, nonnegative 0)
+def faultedEqual : Faulted -> Faulted -> Bool := fun (a : Faulted) (b : Faulted) => boolAnd (intEqual a.1 b.1) (boolAnd (intEqual a.2 b.2) (boolAnd (intEqual a.3 b.3) (clusterStateEqual a.0 b.0)))
+mu FaultDimension : Type 0 := | faultCrashes : FaultDimension | faultDrops : FaultDimension | faultMonkeys : FaultDimension
+def faultStepDimension : ClusterStep -> Option FaultDimension := fun (step : ClusterStep) => match step as self in ClusterStep return Option FaultDimension with
+  | stepRestart id => some FaultDimension faultCrashes | stepDrop msg error => some FaultDimension faultDrops | stepMonkey pod => some FaultDimension faultMonkeys
+  | stepApi recv => none FaultDimension | stepBuiltin key => none FaultDimension | stepController id recv key => none FaultDimension
+  | stepSchedule id key => none FaultDimension | stepDisableCrash id => none FaultDimension | stepDisableDrop => none FaultDimension
+  | stepDisableMonkey => none FaultDimension | stepExternal id recv => none FaultDimension | stepStutter => none FaultDimension
+def faultCharge : FaultBudget -> Faulted -> ClusterState -> FaultDimension -> Option Faulted := fun (b : FaultBudget) (f : Faulted) (s : ClusterState) (dim : FaultDimension) =>
+  match dim as self in FaultDimension return Option Faulted with
+  | faultCrashes => let count : Int := intAdd f.1 (nonnegative 1) in select (Option Faulted) (intLess b.0 count) (none Faulted) (some Faulted (tuple (s, count, f.2, f.3)))
+  | faultDrops => let count : Int := intAdd f.2 (nonnegative 1) in select (Option Faulted) (intLess b.1 count) (none Faulted) (some Faulted (tuple (s, f.1, count, f.3)))
+  | faultMonkeys => let count : Int := intAdd f.3 (nonnegative 1) in select (Option Faulted) (intLess b.2 count) (none Faulted) (some Faulted (tuple (s, f.1, f.2, count)))
+def faultAdvance : FaultBudget -> Faulted -> ClusterStep -> ClusterState -> Option Faulted := fun (b : FaultBudget) (f : Faulted) (step : ClusterStep) (s : ClusterState) =>
+  optionFold FaultDimension (Option Faulted) (some Faulted (tuple (s, f.1, f.2, f.3))) (faultCharge b f s) (faultStepDimension step)
+def faultedSuccessors : Bound -> FaultBudget -> ClusterConfig -> Faulted -> Sequence Faulted := fun (bound : Bound) (budget : FaultBudget) (c : ClusterConfig) (f : Faulted) =>
+  successorsFold (Sequence Faulted) (boundedLabelledSuccessors bound c f.0) (sequenceEmpty Faulted) (fun (acc : Sequence Faulted) (step : ClusterStep) (s : ClusterState) =>
+    optionFold Faulted (Sequence Faulted) acc (sequencePush Faulted acc) (faultAdvance budget f step s))
+def faultCrashEnabled : Int -> ClusterState -> Bool := fun (id : Int) (s : ClusterState) => optionFold Actor Bool false (fun (a : Actor) => a.2) (actorMapGet id s.1)
+def faultAnyLive : Int -> ClusterState -> Bool := fun (id : Int) (s : ClusterState) => boolOr (faultCrashEnabled id s) (boolOr s.4 s.5)
+def FaultMetadata : Type 0 := prod (Int, Int, Int, Int, Int, Nat, Nat, Nat, Bool, Bool)
+def faultMetadataZero : FaultMetadata := tuple (nonnegative 0, nonnegative 0, nonnegative 0, nonnegative 0, nonnegative 0, 0, 0, 0, false, false)
+def faultMetadata : Bound -> FaultBudget -> ClusterConfig -> Int -> Reachable Faulted -> FaultMetadata :=
+  fun (bound : Bound) (budget : FaultBudget) (c : ClusterConfig) (id : Int) (r : Reachable Faulted) => sequenceFold Faulted FaultMetadata r.0 faultMetadataZero
+    (fun (acc : FaultMetadata) (f : Faulted) =>
+      let all : Successors := clusterEnabledSuccessors bound c f.0 in
+      let labelled : Successors := successorsFilter all (fun (step : ClusterStep) (s : ClusterState) => boolNot (clusterOverCeiling bound s)) in
+      tuple (intMax acc.0 f.0.0.1, intMax acc.1 f.0.0.2, intMax acc.2 f.1, intMax acc.3 f.2, intMax acc.4 f.3,
+        natAdd acc.5 (boolNat (intPositiveFlag f.1)),
+        natAdd acc.6 (boolNat (boolAnd (intEqual f.1 (nonnegative 0)) (boolAnd (intEqual f.2 (nonnegative 0)) (intEqual f.3 (nonnegative 0))))),
+        natAdd acc.7 (boolNat (boolAnd (clusterSettled bound c f.0) (faultAnyLive id f.0))),
+        boolOr acc.8 (successorsAny all (fun (step : ClusterStep) (s : ClusterState) => clusterOverCeiling bound s)),
+        boolOr acc.9 (successorsAny labelled (fun (step : ClusterStep) (s : ClusterState) => boolNot (optionIsSome Faulted (faultAdvance budget f step s))))))
+def FaultReport : Type 0 := prod (Outcome Faulted, Bound, FaultBudget, FaultMetadata, Option Invariant, Option Nat)
+def faultViolatedOf : Invariants -> Outcome Faulted -> Option Invariant := fun (xs : Invariants) (outcome : Outcome Faulted) => case outcome with
+  | 1 (clean : prod (Bool, Int, Nat)) => none Invariant
+  | 0 (bad : prod (Lasso Faulted, Nat)) => optionBind Faulted Invariant (bad.0.1.1 0) (fun (f : Faulted) => invariantFirstViolated xs f.0)
+def faultRunLeg : Int -> Bound -> FaultBudget -> ClusterConfig -> Int -> ClusterState -> (Reachable Faulted -> Outcome Faulted) -> (Outcome Faulted -> Option Invariant) -> (Reachable Faulted -> Option Nat) -> FaultReport :=
+  fun (depth : Int) (bound : Bound) (budget : FaultBudget) (c : ClusterConfig) (id : Int) (seed : ClusterState)
+    (check : Reachable Faulted -> Outcome Faulted) (violated : Outcome Faulted -> Option Invariant) (gate : Reachable Faulted -> Option Nat) =>
+  let r : Reachable Faulted := explore Faulted depth (faultedSuccessors bound budget c) faultedEqual (sequenceSingleton Faulted (faultedOfSeed seed)) in
+  let outcome : Outcome Faulted := check r in tuple (outcome, bound, budget, faultMetadata bound budget c id r, violated outcome, gate r)
+def faultCheckInvariants : Int -> Bound -> FaultBudget -> ClusterConfig -> Int -> ClusterState -> Invariants -> (Faulted -> Bool) -> FaultReport :=
+  fun (depth : Int) (bound : Bound) (budget : FaultBudget) (c : ClusterConfig) (id : Int) (seed : ClusterState) (xs : Invariants) (gate : Faulted -> Bool) =>
+  faultRunLeg depth bound budget c id seed
+    (fun (r : Reachable Faulted) => checkSafety Faulted r (fun (f : Faulted) => invariantConjunction xs f.0) faultedEqual)
+    (faultViolatedOf xs) (fun (r : Reachable Faulted) => some Nat (reachableCount Faulted r gate))

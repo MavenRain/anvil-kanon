@@ -1,0 +1,84 @@
+-- Independent reference transitions, translated from assurance/oracle_api_server.ml.
+-- Shared data accessors and response constructors do not implement transitions.
+def oracleUnmarshallable : InstalledTypes -> DynamicObjectT -> Bool := fun (it : InstalledTypes) (o : DynamicObjectT) => boolAnd (it.0 (dynamicObjectTKind o) (dynamicObjectTSpec o)) (it.1 (dynamicObjectTKind o) (dynamicObjectTStatus o))
+def oracleMetadataValidity : DynamicObjectT -> Option ApiError := fun (o : DynamicObjectT) => optionFold ListOwnerReferenceT (Option ApiError) (none ApiError)
+  (fun (refs : ListOwnerReferenceT) => apiGuard (boolAnd (natLt 1 (listOwnerReferenceTLength refs)) (natLt 1 (ownersControllerCount refs))) apiMethodApiErrorInvalid) (objectMetaTOwnerReferences (dynamicObjectTMetadata o))
+def oracleValidity : InstalledTypes -> DynamicObjectT -> Option DynamicObjectT -> Option ApiError := fun (it : InstalledTypes) (o : DynamicObjectT) (old : Option DynamicObjectT) =>
+  let metadataTransition : Option ApiError := optionFold DynamicObjectT (Option ApiError) (none ApiError) (fun (previous : DynamicObjectT) =>
+    let m : ObjectMetaT := dynamicObjectTMetadata o in let om : ObjectMetaT := dynamicObjectTMetadata previous in
+    apiGuard (boolAnd (optionIsSome Bytes (objectMetaTDeletionTimestamp om)) (boolAnd (optionIsSome ListBytes (objectMetaTFinalizers m)) (boolNot (bytesListSubset (objectMetaFinalizers m) (objectMetaFinalizers om))))) apiMethodApiErrorForbidden) old in
+  apiFirst (oracleMetadataValidity o) (apiFirst metadataTransition (apiFirst (apiGuard (boolNot (it.2 o)) apiMethodApiErrorInvalid)
+    (optionFold DynamicObjectT (Option ApiError) (none ApiError) (fun (previous : DynamicObjectT) => apiGuard (boolNot (it.3 o previous)) apiMethodApiErrorInvalid) old)))
+def oracleGeneratedName : ResourceStore -> Bytes -> Bytes := fun (store : ResourceStore) (prefix : Bytes) =>
+  let candidate : Nat -> Bytes := fun (i : Nat) => bytesAppend prefix (intText (nonnegative i)) in
+  let available : Option Bytes := countFold (Option Bytes) (natCount (natAdd (resourceStoreSize store) 1)) 0 (none Bytes)
+    (fun (i : Nat) (found : Option Bytes) => optionFold Bytes (Option Bytes)
+      (select (Option Bytes) (storeAny store (fun (key : CommonObjectRef) (o : DynamicObjectT) => bytesEqual (commonObjectRefName key) (candidate i))) (none Bytes) (some Bytes (candidate i))) (some Bytes) found) in
+  optionValue Bytes (candidate (natAdd (resourceStoreSize store) 1)) available
+def oracleGet : CommonObjectRef -> ApiState -> ApiResult DynamicObjectT := fun (key : CommonObjectRef) (s : ApiState) => optionFold DynamicObjectT (ApiResult DynamicObjectT) (apiError DynamicObjectT apiMethodApiErrorObjectNotFound) (apiOk DynamicObjectT) (resourceStoreGet key s.0)
+def oracleList : CommonKind -> Bytes -> ApiState -> ApiResult ListDynamicObjectT := fun (kind : CommonKind) (ns : Bytes) (s : ApiState) => apiOk ListDynamicObjectT
+  (listDynamicObjectTFilter (storeObjects s.0) (fun (o : DynamicObjectT) => boolAnd (commonKindEqual kind (dynamicObjectTKind o)) (optionFold Bytes Bool false (bytesEqual ns) (objectMetaTNamespace (dynamicObjectTMetadata o)))))
+def oracleCreate : InstalledTypes -> Bytes -> DynamicObjectT -> ApiState -> ApiObjectOutput := fun (it : InstalledTypes) (ns : Bytes) (obj : DynamicObjectT) (s : ApiState) =>
+  let m : ObjectMetaT := dynamicObjectTMetadata obj in
+  let admission : Option ApiError := apiFirst
+    (apiGuard (boolAnd (boolNot (optionIsSome Bytes (objectMetaTName m))) (boolNot (optionIsSome Bytes (objectMetaTGenerateName m)))) apiMethodApiErrorInvalid)
+    (apiFirst (apiGuard (optionFold Bytes Bool false (fun (n : Bytes) => boolNot (bytesEqual ns n)) (objectMetaTNamespace m)) apiMethodApiErrorBadRequest)
+    (apiFirst (apiGuard (boolNot (oracleUnmarshallable it obj)) apiMethodApiErrorBadRequest)
+      (optionFold Bytes (Option ApiError) (none ApiError) (fun (n : Bytes) => apiGuard (optionIsSome DynamicObjectT (resourceStoreGet (commonObjectRefMake (dynamicObjectTKind obj) n ns) s.0)) apiMethodApiErrorObjectAlreadyExists) (objectMetaTName m)))) in
+  case admission with | 1 (e : ApiError) => apiRejectObject s e | 0 (u : Unit) =>
+  let name : Bytes := optionValue Bytes (oracleGeneratedName s.0 (optionValue Bytes b"" (objectMetaTGenerateName m))) (objectMetaTName m) in
+  let key : CommonObjectRef := commonObjectRefMake (dynamicObjectTKind obj) name ns in
+  let stamped : ObjectMetaT := objectMetaTSetDeletionTimestamp (none Bytes) (objectMetaTSetUid (some Int s.1) (objectMetaTSetResourceVersion (some Int s.2) (objectMetaTSetNamespace (some Bytes ns) (objectMetaTSetName (some Bytes name) m)))) in
+  let created : DynamicObjectT := dynamicObjectTMake (dynamicObjectTKind obj) stamped (dynamicObjectTSpec obj) (it.4 (dynamicObjectTKind obj)) in
+  case (apiFirst (apiGuard (optionIsSome DynamicObjectT (resourceStoreGet key s.0)) apiMethodApiErrorObjectAlreadyExists) (oracleValidity it created (none DynamicObjectT))) with
+    | 1 (e : ApiError) => apiRejectObject s e
+    | 0 (u : Unit) => tuple (tuple (resourceStoreSet key created s.0, intAdd s.1 (nonnegative 1), intAdd s.2 (nonnegative 1)), apiOk DynamicObjectT created)
+def oracleDelete : CommonObjectRef -> Option ApiMethodPreconditions -> ApiState -> ApiDeleteOutput := fun (key : CommonObjectRef) (pre : Option ApiMethodPreconditions) (s : ApiState) =>
+  case (resourceStoreGet key s.0) with | 0 (u : Unit) => apiRejectDelete s apiMethodApiErrorObjectNotFound
+  | 1 (obj : DynamicObjectT) => let m : ObjectMetaT := dynamicObjectTMetadata obj in
+    let mismatch : Option Int -> Option Int -> Bool := fun (want : Option Int) (have : Option Int) => boolAnd (optionIsSome Int want) (boolNot (optionEqual Int intEqual want have)) in
+    case (optionFold ApiMethodPreconditions Bool false (fun (p : ApiMethodPreconditions) => boolOr (mismatch (apiMethodPreconditionsUid p) (objectMetaTUid m)) (mismatch (apiMethodPreconditionsResourceVersion p) (objectMetaTResourceVersion m))) pre) with
+    | 1 (u : Unit) => apiRejectDelete s apiMethodApiErrorConflict
+    | 0 (u : Unit) => (case (natLt 0 (listBytesLength (objectMetaFinalizers m))) with
+      | 0 (u : Unit) => tuple (tuple (resourceStoreRemove key s.0, s.1, intAdd s.2 (nonnegative 1)), apiOk Ghost ghost)
+      | 1 (u : Unit) => (case (optionIsSome Bytes (objectMetaTDeletionTimestamp m)) with
+        | 1 (u : Unit) => tuple (s, apiOk Ghost ghost)
+        | 0 (u : Unit) => tuple (tuple (resourceStoreSet key (objectWithResourceVersion s.2 (objectWithDeletionTimestamp b"2000-01-01T00:00:00Z" obj)) s.0, s.1, intAdd s.2 (nonnegative 1)), apiOk Ghost ghost)))
+def oracleUnconditional : CommonKind -> Bool := fun (kind : CommonKind) => match kind as self in CommonKind return Bool with
+  | commonKindCustomResource name => false | commonKindConfigMap => true | commonKindDaemonSet => true | commonKindPersistentVolumeClaim => true | commonKindPod => true | commonKindRole => true | commonKindRoleBinding => true | commonKindStatefulSet => true | commonKindService => true | commonKindServiceAccount => true | commonKindSecret => true
+def oracleUpdate : InstalledTypes -> Bool -> Bytes -> Bytes -> DynamicObjectT -> ApiState -> ApiObjectOutput := fun (it : InstalledTypes) (status : Bool) (ns : Bytes) (name : Bytes) (obj : DynamicObjectT) (s : ApiState) =>
+  let m : ObjectMetaT := dynamicObjectTMetadata obj in
+  let key : CommonObjectRef := commonObjectRefMake (dynamicObjectTKind obj) name ns in
+  let malformed : Bool := boolOr (boolNot (optionFold Bytes Bool false (bytesEqual name) (objectMetaTName m))) (boolOr
+    (optionFold Bytes Bool false (fun (n : Bytes) => boolNot (bytesEqual ns n)) (objectMetaTNamespace m)) (boolNot (oracleUnmarshallable it obj))) in
+  case malformed with | 1 (u : Unit) => apiRejectObject s apiMethodApiErrorBadRequest
+  | 0 (u : Unit) => (case (resourceStoreGet key s.0) with | 0 (u : Unit) => apiRejectObject s apiMethodApiErrorObjectNotFound
+  | 1 (old : DynamicObjectT) =>
+    let om : ObjectMetaT := dynamicObjectTMetadata old in
+    let mismatch : Option Int -> Option Int -> Bool := fun (want : Option Int) (have : Option Int) => boolAnd (optionIsSome Int want) (boolNot (optionEqual Int intEqual want have)) in
+    let admission : Option ApiError := apiFirst (apiGuard (boolAnd (boolNot (optionIsSome Int (objectMetaTResourceVersion m))) (boolNot (oracleUnconditional (dynamicObjectTKind obj)))) apiMethodApiErrorInvalid)
+      (apiGuard (boolOr (mismatch (objectMetaTResourceVersion m) (objectMetaTResourceVersion om)) (mismatch (objectMetaTUid m) (objectMetaTUid om))) apiMethodApiErrorConflict) in
+    case admission with | 1 (e : ApiError) => apiRejectObject s e | 0 (u : Unit) =>
+    let newMeta : ObjectMetaT := objectMetaTSetDeletionTimestamp (objectMetaTDeletionTimestamp om) (objectMetaTSetUid (objectMetaTUid om) (objectMetaTSetResourceVersion (objectMetaTResourceVersion om) (objectMetaTSetNamespace (some Bytes ns) m))) in
+    let updated : DynamicObjectT := select DynamicObjectT status
+      (dynamicObjectTMake (dynamicObjectTKind old) om (dynamicObjectTSpec old) (dynamicObjectTStatus obj))
+      (dynamicObjectTMake (dynamicObjectTKind old) newMeta (dynamicObjectTSpec obj) (dynamicObjectTStatus old)) in
+    case (dynamicObjectTEqual updated old) with | 1 (u : Unit) => tuple (s, apiOk DynamicObjectT old)
+    | 0 (u : Unit) => let stamped : DynamicObjectT := objectWithResourceVersion s.2 updated in
+      case (oracleValidity it stamped (some DynamicObjectT old)) with | 1 (e : ApiError) => apiRejectObject s e
+      | 0 (u : Unit) =>
+        let sm : ObjectMetaT := dynamicObjectTMetadata stamped in
+        let retain : Bool := boolOr status (boolOr (boolNot (optionIsSome Bytes (objectMetaTDeletionTimestamp sm))) (natLt 0 (listBytesLength (objectMetaFinalizers sm)))) in
+        tuple (tuple (select ResourceStore retain (resourceStoreSet key stamped s.0) (resourceStoreRemove key s.0), s.1, intAdd s.2 (nonnegative 1)), apiOk DynamicObjectT stamped))
+def oracleGetThenDelete : CommonObjectRef -> OwnerReferenceT -> ApiState -> ApiDeleteOutput := fun (key : CommonObjectRef) (owner : OwnerReferenceT) (s : ApiState) =>
+  case (ownerIsController owner) with | 0 (u : Unit) => apiRejectDelete s apiMethodApiErrorBadRequest | 1 (u : Unit) =>
+  (case (oracleGet key s) with | 0 (e : ApiError) => apiRejectDelete s e | 1 (current : DynamicObjectT) =>
+    case (objectMetaOwnersContain (dynamicObjectTMetadata current) owner) with | 0 (u : Unit) => apiRejectDelete s apiMethodApiErrorTransactionAbort | 1 (u : Unit) => oracleDelete key (none ApiMethodPreconditions) s)
+def oracleGetThenUpdate : InstalledTypes -> Bool -> Bytes -> Bytes -> OwnerReferenceT -> DynamicObjectT -> ApiState -> ApiObjectOutput := fun (it : InstalledTypes) (status : Bool) (ns : Bytes) (name : Bytes) (owner : OwnerReferenceT) (obj : DynamicObjectT) (s : ApiState) =>
+  case (ownerIsController owner) with | 0 (u : Unit) => apiRejectObject s apiMethodApiErrorBadRequest | 1 (u : Unit) =>
+  (case (oracleGet (commonObjectRefMake (dynamicObjectTKind obj) name ns) s) with | 0 (e : ApiError) => apiRejectObject s e | 1 (current : DynamicObjectT) =>
+    case (objectMetaOwnersContain (dynamicObjectTMetadata current) owner) with | 0 (u : Unit) => apiRejectObject s apiMethodApiErrorTransactionAbort | 1 (u : Unit) =>
+      let cm : ObjectMetaT := dynamicObjectTMetadata current in
+      let stamped : ObjectMetaT := objectMetaTSetUid (objectMetaTUid cm) (objectMetaTSetResourceVersion (objectMetaTResourceVersion cm) (dynamicObjectTMetadata obj)) in
+      let adjusted : DynamicObjectT := select DynamicObjectT status (dynamicObjectTSetStatus (dynamicObjectTStatus obj) current) (dynamicObjectTSetMetadata stamped obj) in
+      oracleUpdate it status ns name adjusted s)

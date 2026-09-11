@@ -1,0 +1,24 @@
+-- Structural iteration counts derived from the native arbitrary-precision Nat.
+mu Count : Type 0 := | countZero : Count | countSucc (tail : Count) : Count
+def rec countAppend : Count -> Count -> Count := fun (a : Count) (b : Count) =>
+  match a as self in Count return Count with | countZero => b | countSucc t => countSucc (countAppend t b)
+def countTen : Count -> Count := fun (n : Count) =>
+  let two : Count := countAppend n n in
+  let four : Count := countAppend two two in
+  countAppend (countAppend four four) two
+def countDigit : Nat -> Count := fun (n : Nat) =>
+  let one : Count := countSucc countZero in
+  let two : Count := countSucc one in
+  let three : Count := countSucc two in
+  let four : Count := countSucc three in
+  let five : Count := countSucc four in
+  let six : Count := countSucc five in
+  let seven : Count := countSucc six in
+  let eight : Count := countSucc seven in
+  select Count (natEq n 0) countZero (select Count (natEq n 1) one (select Count (natEq n 2) two
+    (select Count (natEq n 3) three (select Count (natEq n 4) four (select Count (natEq n 5) five
+    (select Count (natEq n 6) six (select Count (natEq n 7) seven (select Count (natEq n 8) eight (countSucc eight)))))))))
+def rec countDecimal : Bytes -> Count -> Count := fun (digits : Bytes) (acc : Count) =>
+  match digits as self in Bytes return Count with | bytesNil => acc
+  | bytesCons h t => countDecimal t (countAppend (countTen acc) (countDigit (natSub h 48)))
+def natCount : Nat -> Count := fun (n : Nat) => countDecimal (decimal n) countZero

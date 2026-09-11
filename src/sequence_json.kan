@@ -1,0 +1,22 @@
+def rec jsonSequenceDecodeItems : (0 A : Type 0) -> (Value -> Result A) -> Values -> Result (Sequence A) :=
+  fun (0 A : Type 0) (decode : Value -> Result A) (xs : Values) => match xs as self in JsonTree sort return Result (Sequence A) with
+  | jsonArrayNil => ok (Sequence A) (sequenceEmpty A)
+  | jsonArrayCons h t => resultBind A (Sequence A) (decode h) (fun (a : A) =>
+      resultMap (Sequence A) (Sequence A) (sequencePrepend A a) (jsonSequenceDecodeItems A decode t))
+  | jsonNull => err (Sequence A) (decodeError b"sequence" b"expected array")
+  | jsonBool x => err (Sequence A) (decodeError b"sequence" b"expected array")
+  | jsonInt x => err (Sequence A) (decodeError b"sequence" b"expected array")
+  | jsonIntLiteral x => err (Sequence A) (decodeError b"sequence" b"expected array")
+  | jsonFloat x => err (Sequence A) (decodeError b"sequence" b"expected array")
+  | jsonString x => err (Sequence A) (decodeError b"sequence" b"expected array")
+  | jsonArray x => err (Sequence A) (decodeError b"sequence" b"expected array")
+  | jsonObject x => err (Sequence A) (decodeError b"sequence" b"expected array")
+  | jsonObjectNil => err (Sequence A) (decodeError b"sequence" b"expected array")
+  | jsonObjectCons k v t => err (Sequence A) (decodeError b"sequence" b"expected array")
+def jsonSequenceDecode : (0 A : Type 0) -> (Value -> Result A) -> Value -> Result (Sequence A) := fun (0 A : Type 0) (decode : Value -> Result A) (j : Value) =>
+  resultBind Values (Sequence A) (jsonGetArray j) (jsonSequenceDecodeItems A decode)
+def jsonSequenceEncode : (0 A : Type 0) -> (A -> Value) -> Sequence A -> Value := fun (0 A : Type 0) (encode : A -> Value) (xs : Sequence A) =>
+  jsonArray (sequenceFold A Values (sequenceReverse A xs) jsonArrayNil (fun (acc : Values) (a : A) => jsonArrayCons (encode a) acc))
+def jsonGetNat : Value -> Result Nat := fun (j : Value) => resultBind Int Nat (jsonGetInt j) (fun (i : Int) =>
+  optionFold Nat (Result Nat) (err Nat (decodeError b"nat" b"negative integer")) (ok Nat) (intToNat i))
+def jsonEncodeNat : Nat -> Value := fun (n : Nat) => jsonInt (nonnegative n)

@@ -1,0 +1,99 @@
+-- The indices distinguish JSON values, array tails, and object tails.
+mu ValueSort : Type 0 :=
+| jsonSort : ValueSort
+| arraySort : ValueSort
+| objectSort : ValueSort
+
+mu JsonTree : (0 sort : ValueSort) -> Type 0 :=
+| jsonNull : JsonTree jsonSort
+| jsonBool (value : Bool) : JsonTree jsonSort
+| jsonInt (value : Int) : JsonTree jsonSort
+| jsonIntLiteral (value : Bytes) : JsonTree jsonSort
+| jsonFloat (value : Bytes) : JsonTree jsonSort
+| jsonString (value : Bytes) : JsonTree jsonSort
+| jsonArray (items : JsonTree arraySort) : JsonTree jsonSort
+| jsonObject (members : JsonTree objectSort) : JsonTree jsonSort
+| jsonArrayNil : JsonTree arraySort
+| jsonArrayCons (head : JsonTree jsonSort) (tail : JsonTree arraySort) : JsonTree arraySort
+| jsonObjectNil : JsonTree objectSort
+| jsonObjectCons (key : Bytes) (value : JsonTree jsonSort) (tail : JsonTree objectSort) : JsonTree objectSort
+
+def Value : Type 0 := JsonTree jsonSort
+def Values : Type 0 := JsonTree arraySort
+def Members : Type 0 := JsonTree objectSort
+
+def jsonHex : Nat -> Nat := fun (n : Nat) => chooseNat (natLt n 10) (natAdd n 48) (natAdd n 87)
+def jsonEscapeByte : Nat -> Bytes := fun (c : Nat) =>
+  case (natEq c 34) with
+  | 1 (u : Unit) => b"\\\""
+  | 0 (u : Unit) =>
+    case (natEq c 92) with
+    | 1 (u : Unit) => b"\\\\"
+    | 0 (u : Unit) =>
+      case (natEq c 8) with | 1 (u : Unit) => b"\\b" | 0 (u : Unit) =>
+      case (natEq c 9) with | 1 (u : Unit) => b"\\t" | 0 (u : Unit) =>
+      case (natEq c 10) with | 1 (u : Unit) => b"\\n" | 0 (u : Unit) =>
+      case (natEq c 12) with | 1 (u : Unit) => b"\\f" | 0 (u : Unit) =>
+      case (natEq c 13) with | 1 (u : Unit) => b"\\r" | 0 (u : Unit) =>
+      case (natLt c 32) with
+      | 0 (u : Unit) => bytesCons c bytesNil
+      | 1 (u : Unit) =>
+        let hi : Nat := chooseNat (natLt c 16) 0 1 in
+        bytesAppend b"\\u00" (bytesCons (jsonHex hi) (bytesCons (jsonHex (natSub c (natMul hi 16))) bytesNil))
+def rec jsonEscapeWalk : Bytes -> Bytes -> Bytes := fun (s : Bytes) (acc : Bytes) =>
+  match s as self in Bytes return Bytes with
+  | bytesNil => bytesReverseOnto (bytesCons 34 acc) bytesNil
+  | bytesCons h t => jsonEscapeWalk t (bytesReverseOnto (jsonEscapeByte h) acc)
+def jsonQuote : Bytes -> Bytes := fun (s : Bytes) => jsonEscapeWalk s (bytesCons 34 bytesNil)
+def jsonTreeEmpty : (0 sort : ValueSort) -> JsonTree sort -> Bool :=
+  fun (0 sort : ValueSort) (v : JsonTree sort) =>
+  match v as self in JsonTree s return Bool with
+  | jsonNull => false
+  | jsonBool x => false
+  | jsonInt x => false
+  | jsonIntLiteral x => false
+  | jsonFloat x => false
+  | jsonString x => false
+  | jsonArray x => false
+  | jsonObject x => false
+  | jsonArrayNil => true
+  | jsonArrayCons h t => false
+  | jsonObjectNil => true
+  | jsonObjectCons k v t => false
+def rec jsonTreeRender : (0 sort : ValueSort) -> JsonTree sort -> Bytes :=
+  fun (0 sort : ValueSort) (v : JsonTree sort) =>
+  match v as self in JsonTree s return Bytes with
+  | jsonNull => b"null"
+  | jsonBool x => (case x with | 0 (u : Unit) => b"false" | 1 (u : Unit) => b"true")
+  | jsonInt x => intText x
+  | jsonIntLiteral x => x
+  | jsonFloat x => x
+  | jsonString x => jsonQuote x
+  | jsonArray x => bytesCons 91 (bytesAppend (jsonTreeRender arraySort x) b"]")
+  | jsonObject x => bytesCons 123 (bytesAppend (jsonTreeRender objectSort x) b"}")
+  | jsonArrayNil => bytesNil
+  | jsonArrayCons h t =>
+    let sep : Bytes := case (jsonTreeEmpty arraySort t) with | 0 (u : Unit) => b"," | 1 (u : Unit) => bytesNil in
+    bytesAppend (jsonTreeRender jsonSort h) (bytesAppend sep (jsonTreeRender arraySort t))
+  | jsonObjectNil => bytesNil
+  | jsonObjectCons k v t =>
+    let sep : Bytes := case (jsonTreeEmpty objectSort t) with | 0 (u : Unit) => b"," | 1 (u : Unit) => bytesNil in
+    bytesAppend (jsonQuote k) (bytesCons 58 (bytesAppend (jsonTreeRender jsonSort v) (bytesAppend sep (jsonTreeRender objectSort t))))
+def valueRender : Value -> Bytes := fun (v : Value) => jsonTreeRender jsonSort v
+-- Value equality in the source compares rendered strings, including key order.
+def valueEqual : Value -> Value -> Bool := fun (a : Value) (b : Value) => bytesEqual (valueRender a) (valueRender b)
+
+def jsonGetString : Value -> Result Bytes := fun (v : Value) =>
+  match v as self in JsonTree sort return Result Bytes with
+  | jsonNull => err Bytes (decodeError b"string" b"expected a JSON string")
+  | jsonBool x => err Bytes (decodeError b"string" b"expected a JSON string")
+  | jsonInt x => err Bytes (decodeError b"string" b"expected a JSON string")
+  | jsonIntLiteral x => err Bytes (decodeError b"string" b"expected a JSON string")
+  | jsonFloat x => err Bytes (decodeError b"string" b"expected a JSON string")
+  | jsonString x => ok Bytes x
+  | jsonArray x => err Bytes (decodeError b"string" b"expected a JSON string")
+  | jsonObject x => err Bytes (decodeError b"string" b"expected a JSON string")
+  | jsonArrayNil => err Bytes (decodeError b"string" b"expected a JSON string")
+  | jsonArrayCons h t => err Bytes (decodeError b"string" b"expected a JSON string")
+  | jsonObjectNil => err Bytes (decodeError b"string" b"expected a JSON string")
+  | jsonObjectCons k v t => err Bytes (decodeError b"string" b"expected a JSON string")

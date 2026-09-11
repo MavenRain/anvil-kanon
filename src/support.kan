@@ -1,0 +1,221 @@
+-- Shared total data operations for the Anvil port.
+def Unit : Type 0 := prod ()
+def Bool : Type 0 := sum ((prod () : Type 0), (prod () : Type 0))
+def false : Bool := inj 0 of 2 ()
+def true : Bool := inj 1 of 2 ()
+def boolNat : Bool -> Nat := fun (b : Bool) =>
+  case b with | 0 (u : Unit) => 0 | 1 (u : Unit) => 1
+def boolNot : Bool -> Bool := fun (b : Bool) =>
+  case b with | 0 (u : Unit) => true | 1 (u : Unit) => false
+def boolAnd : Bool -> Bool -> Bool := fun (a : Bool) (b : Bool) =>
+  case a with | 0 (u : Unit) => false | 1 (u : Unit) => b
+def boolOr : Bool -> Bool -> Bool := fun (a : Bool) (b : Bool) =>
+  case a with | 0 (u : Unit) => b | 1 (u : Unit) => true
+def boolEqual : Bool -> Bool -> Bool := fun (a : Bool) (b : Bool) => natEq (boolNat a) (boolNat b)
+
+def Option : (0 A : Type 0) -> Type 0 := fun (0 A : Type 0) => sum ((prod () : Type 0), A)
+def none : (0 A : Type 0) -> Option A := fun (0 A : Type 0) => inj 0 of 2 ()
+def some : (0 A : Type 0) -> A -> Option A := fun (0 A : Type 0) (x : A) => inj 1 of 2 x
+def optionFold : (0 A : Type 0) -> (0 B : Type 0) -> B -> (A -> B) -> Option A -> B :=
+  fun (0 A : Type 0) (0 B : Type 0) (absent : B) (present : A -> B) (o : Option A) =>
+  case o with
+  | 0 (u : Unit) => absent
+  | 1 (value : A) => present value
+def optionMap : (0 A : Type 0) -> (0 B : Type 0) -> (A -> B) -> Option A -> Option B :=
+  fun (0 A : Type 0) (0 B : Type 0) (f : A -> B) (o : Option A) =>
+  optionFold A (Option B) (none B) (fun (x : A) => some B (f x)) o
+def optionBind : (0 A : Type 0) -> (0 B : Type 0) -> Option A -> (A -> Option B) -> Option B :=
+  fun (0 A : Type 0) (0 B : Type 0) (o : Option A) (f : A -> Option B) =>
+  optionFold A (Option B) (none B) f o
+def optionIsSome : (0 A : Type 0) -> Option A -> Bool :=
+  fun (0 A : Type 0) (o : Option A) => optionFold A Bool false (fun (x : A) => true) o
+def optionEqual : (0 A : Type 0) -> (A -> A -> Bool) -> Option A -> Option A -> Bool :=
+  fun (0 A : Type 0) (eq : A -> A -> Bool) (a : Option A) (b : Option A) =>
+  case a with
+  | 0 (u : Unit) => boolNot (optionIsSome A b)
+  | 1 (x : A) => optionFold A Bool false (eq x) b
+def optionValue : (0 A : Type 0) -> A -> Option A -> A :=
+  fun (0 A : Type 0) (default : A) (value : Option A) => optionFold A A default (fun (x : A) => x) value
+
+mu Bytes : Type 0 :=
+| bytesNil : Bytes
+| bytesCons (head : Nat) (tail : Bytes) : Bytes
+def emptyBytes : Bytes := bytesNil
+def consBytes : Nat -> Bytes -> Bytes := fun (h : Nat) (t : Bytes) => bytesCons h t
+def bytesEmpty : Bytes -> Nat := fun (s : Bytes) =>
+  match s as self in Bytes return Nat with | bytesNil => 1 | bytesCons h t => 0
+def bytesHead : Bytes -> Nat := fun (s : Bytes) =>
+  match s as self in Bytes return Nat with | bytesNil => 0 | bytesCons h t => h
+def bytesTail : Bytes -> Bytes := fun (s : Bytes) =>
+  match s as self in Bytes return Bytes with | bytesNil => bytesNil | bytesCons h t => t
+def rec bytesEqual : Bytes -> Bytes -> Bool := fun (a : Bytes) (b : Bytes) =>
+  match a as self in Bytes return Bool with
+  | bytesNil => natEq (bytesEmpty b) 1
+  | bytesCons h t =>
+    match b as other in Bytes return Bool with
+    | bytesNil => false
+    | bytesCons x xs =>
+      case (natEq h x) with | 0 (u : Unit) => false | 1 (u : Unit) => bytesEqual t xs
+def rec bytesReverseOnto : Bytes -> Bytes -> Bytes := fun (a : Bytes) (b : Bytes) =>
+  match a as self in Bytes return Bytes with
+  | bytesNil => b
+  | bytesCons h t => bytesReverseOnto t (bytesCons h b)
+def bytesAppend : Bytes -> Bytes -> Bytes := fun (a : Bytes) (b : Bytes) =>
+  bytesReverseOnto (bytesReverseOnto a bytesNil) b
+
+-- Signed values preserve the source model's negative-input error cases.
+mu Int : Type 0 :=
+| nonnegative (magnitude : Nat) : Int
+| negative (magnitudeMinusOne : Nat) : Int
+def intEqual : Int -> Int -> Bool := fun (a : Int) (b : Int) =>
+  match a as self in Int return Bool with
+  | nonnegative x => (match b as other in Int return Bool with | nonnegative y => natEq x y | negative y => false)
+  | negative x => (match b as other in Int return Bool with | nonnegative y => false | negative y => natEq x y)
+
+mu Error : Type 0 :=
+| kindMismatch (expected : Bytes) (found : Bytes) : Error
+| malformedValue (kind : Bytes) (detail : Bytes) : Error
+| missingField (owner : Bytes) (field : Bytes) : Error
+| decodeError (typ : Bytes) (detail : Bytes) : Error
+| atError (layer : Bytes) (fn : Bytes) (inner : Error) : Error
+def Result : (0 A : Type 0) -> Type 0 := fun (0 A : Type 0) => sum (Error, A)
+def ok : (0 A : Type 0) -> A -> Result A := fun (0 A : Type 0) (x : A) => inj 1 of 2 x
+def err : (0 A : Type 0) -> Error -> Result A := fun (0 A : Type 0) (e : Error) => inj 0 of 2 e
+def resultBind : (0 A : Type 0) -> (0 B : Type 0) -> Result A -> (A -> Result B) -> Result B :=
+  fun (0 A : Type 0) (0 B : Type 0) (r : Result A) (f : A -> Result B) =>
+  case r with | 1 (x : A) => f x | 0 (e : Error) => err B e
+def resultMap : (0 A : Type 0) -> (0 B : Type 0) -> (A -> B) -> Result A -> Result B :=
+  fun (0 A : Type 0) (0 B : Type 0) (f : A -> B) (r : Result A) =>
+  resultBind A B r (fun (x : A) => ok B (f x))
+def resultToOption : (0 A : Type 0) -> Result A -> Option A := fun (0 A : Type 0) (r : Result A) =>
+  case r with | 0 (e : Error) => none A | 1 (x : A) => some A x
+def resultIsOk : (0 A : Type 0) -> Result A -> Bool := fun (0 A : Type 0) (r : Result A) =>
+  case r with | 0 (e : Error) => false | 1 (x : A) => true
+def select : (0 A : Type 0) -> Bool -> A -> A -> A := fun (0 A : Type 0) (b : Bool) (yes : A) (no : A) =>
+  case b with | 0 (u : Unit) => no | 1 (u : Unit) => yes
+def intIsNonnegative : Int -> Bool := fun (i : Int) =>
+  match i as self in Int return Bool with | nonnegative n => true | negative n => false
+def intLess : Int -> Int -> Bool := fun (a : Int) (b : Int) =>
+  match a as self in Int return Bool with
+  | nonnegative x => (match b as other in Int return Bool with | nonnegative y => natLt x y | negative y => false)
+  | negative x => (match b as other in Int return Bool with | nonnegative y => true | negative y => natLt y x)
+def intPositiveFlag : Int -> Bool := fun (i : Int) => intLess (nonnegative 0) i
+def intToNat : Int -> Option Nat := fun (i : Int) =>
+  match i as self in Int return Option Nat with | nonnegative n => some Nat n | negative n => none Nat
+-- OCaml's 64-bit runtime uses signed 63-bit integers with modular arithmetic.
+def intWrap : Int -> Int := fun (i : Int) =>
+  match i as self in Int return Int with
+  | nonnegative n => select Int (natLt n 4611686018427387904) i (negative (natSub 9223372036854775807 n))
+  | negative n => select Int (natLt n 4611686018427387904) i (nonnegative (natSub 9223372036854775807 n))
+def intNegate : Int -> Int := fun (i : Int) =>
+  match i as self in Int return Int with
+  | negative n => intWrap (nonnegative (natAdd n 1))
+  | nonnegative n => select Int (natEq n 0) (nonnegative 0) (negative (natSub n 1))
+def intDifference : Nat -> Nat -> Int := fun (a : Nat) (b : Nat) =>
+  select Int (natLt a b) (negative (natSub (natSub b a) 1)) (nonnegative (natSub a b))
+def intAddRaw : Int -> Int -> Int := fun (a : Int) (b : Int) =>
+  match a as self in Int return Int with
+  | nonnegative x => (match b as other in Int return Int with | nonnegative y => nonnegative (natAdd x y) | negative y => intDifference x (natAdd y 1))
+  | negative x => (match b as other in Int return Int with | nonnegative y => intDifference y (natAdd x 1) | negative y => negative (natAdd (natAdd x y) 1))
+def intAdd : Int -> Int -> Int := fun (a : Int) (b : Int) => intWrap (intAddRaw a b)
+def intSub : Int -> Int -> Int := fun (a : Int) (b : Int) => intAdd a (intNegate b)
+def rec bytesStartsWith : Bytes -> Bytes -> Bool := fun (prefix : Bytes) (s : Bytes) =>
+  match prefix as self in Bytes return Bool with
+  | bytesNil => true
+  | bytesCons h t => (match s as other in Bytes return Bool with
+    | bytesNil => false
+    | bytesCons x xs => (case (natEq h x) with | 0 (u : Unit) => false | 1 (u : Unit) => bytesStartsWith t xs))
+def rec bytesContainsByte : Bytes -> Nat -> Bool := fun (s : Bytes) (c : Nat) =>
+  match s as self in Bytes return Bool with
+  | bytesNil => false
+  | bytesCons h t => (case (natEq h c) with | 1 (u : Unit) => true | 0 (u : Unit) => bytesContainsByte t c)
+
+def chooseNat : Bool -> Nat -> Nat -> Nat := fun (b : Bool) (yes : Nat) (no : Nat) =>
+  case b with | 0 (u : Unit) => no | 1 (u : Unit) => yes
+def unitEqual : Unit -> Unit -> Bool := fun (a : Unit) (b : Unit) => true
+-- OCaml unit data must survive inside Option and Result. The empty product
+-- is erased by the current compiler, so data placeholders use a nominal token.
+mu Ghost : Type 0 :=
+| ghost : Ghost
+def ghostEqual : Ghost -> Ghost -> Bool := fun (a : Ghost) (b : Ghost) => true
+def Either : (0 A : Type 0) -> (0 B : Type 0) -> Type 0 :=
+  fun (0 A : Type 0) (0 B : Type 0) => sum (A, B)
+def eitherEqual : (0 A : Type 0) -> (0 B : Type 0) -> (A -> A -> Bool) -> (B -> B -> Bool) -> Either A B -> Either A B -> Bool :=
+  fun (0 A : Type 0) (0 B : Type 0) (aeq : A -> A -> Bool) (beq : B -> B -> Bool) (x : Either A B) (y : Either A B) =>
+  case x with
+  | 0 (a : A) => (case y with | 0 (b : A) => aeq a b | 1 (b : B) => false)
+  | 1 (a : B) => (case y with | 0 (b : A) => false | 1 (b : B) => beq a b)
+
+def rec bytesLess : Bytes -> Bytes -> Bool := fun (a : Bytes) (b : Bytes) =>
+  match a as self in Bytes return Bool with
+  | bytesNil => natEq (bytesEmpty b) 0
+  | bytesCons h t =>
+    match b as other in Bytes return Bool with
+    | bytesNil => false
+    | bytesCons x xs =>
+      case (natEq h x) with | 0 (u : Unit) => natLt h x | 1 (u : Unit) => bytesLess t xs
+
+mu DecimalPlaces : Type 0 :=
+| noPlaces : DecimalPlaces
+| morePlaces (power : Nat) (tail : DecimalPlaces) : DecimalPlaces
+def decimalPlaces : DecimalPlaces :=
+  morePlaces 10000000000000000000 (morePlaces 1000000000000000000 (morePlaces 100000000000000000
+  (morePlaces 10000000000000000 (morePlaces 1000000000000000 (morePlaces 100000000000000
+  (morePlaces 10000000000000 (morePlaces 1000000000000 (morePlaces 100000000000
+  (morePlaces 10000000000 (morePlaces 1000000000 (morePlaces 100000000 (morePlaces 10000000
+  (morePlaces 1000000 (morePlaces 100000 (morePlaces 10000 (morePlaces 1000
+  (morePlaces 100 (morePlaces 10 (morePlaces 1 noPlaces)))))))))))))))))))
+def decimalDigit : Nat -> Nat -> Nat := fun (n : Nat) (p : Nat) =>
+  chooseNat (natLt n p) 0 (chooseNat (natLt n (natMul 2 p)) 1
+  (chooseNat (natLt n (natMul 3 p)) 2 (chooseNat (natLt n (natMul 4 p)) 3
+  (chooseNat (natLt n (natMul 5 p)) 4 (chooseNat (natLt n (natMul 6 p)) 5
+  (chooseNat (natLt n (natMul 7 p)) 6 (chooseNat (natLt n (natMul 8 p)) 7
+  (chooseNat (natLt n (natMul 9 p)) 8 9))))))))
+def rec decimalWalk : DecimalPlaces -> Nat -> Bool -> Bytes -> Bytes :=
+  fun (ps : DecimalPlaces) (n : Nat) (started : Bool) (acc : Bytes) =>
+  match ps as self in DecimalPlaces return Bytes with
+  | noPlaces => bytesReverseOnto acc bytesNil
+  | morePlaces p rest =>
+    let digit : Nat := decimalDigit n p in
+    let emit : Bool := boolOr started (boolOr (natLt 0 digit) (natEq p 1)) in
+    let next : Bytes := case emit with | 0 (u : Unit) => acc | 1 (u : Unit) => bytesCons (natAdd 48 digit) acc in
+    decimalWalk rest (natSub n (natMul digit p)) emit next
+-- Every OCaml int is inside this range. Wider values get an explicit marker.
+def decimal : Nat -> Bytes := fun (n : Nat) =>
+  case (natLt n 100000000000000000000) with
+  | 0 (u : Unit) => b"overflow"
+  | 1 (u : Unit) => decimalWalk decimalPlaces n false bytesNil
+def intText : Int -> Bytes := fun (n : Int) =>
+  match n as self in Int return Bytes with
+  | nonnegative x => decimal x
+  | negative x => bytesCons 45 (decimal (natAdd x 1))
+def rec parseMagnitude : Bytes -> Nat -> Result Nat := fun (s : Bytes) (acc : Nat) =>
+  match s as self in Bytes return Result Nat with
+  | bytesNil => ok Nat acc
+  | bytesCons h t =>
+    case (boolAnd (boolNot (natLt h 48)) (boolNot (natLt 57 h))) with
+    | 0 (u : Unit) => err Nat (decodeError b"int" b"expected decimal digits")
+    | 1 (u : Unit) =>
+      let next : Nat := natAdd (natMul 10 acc) (natSub h 48) in
+      case (natLt 4611686018427387904 next) with
+      | 1 (u : Unit) => err Nat (decodeError b"int" b"outside the OCaml integer range")
+      | 0 (u : Unit) => parseMagnitude t next
+def parseInteger : Bytes -> Result Int := fun (s : Bytes) =>
+  let sign : Bool := natEq (bytesHead s) 45 in
+  let digits : Bytes := case sign with | 0 (u : Unit) => s | 1 (u : Unit) => bytesTail s in
+  case (natEq (bytesEmpty digits) 1) with
+  | 1 (u : Unit) => err Int (decodeError b"int" b"expected decimal digits")
+  | 0 (u : Unit) => resultBind Nat Int (parseMagnitude digits 0) (fun (n : Nat) =>
+      case (boolAnd (boolNot sign) (natEq n 4611686018427387904)) with
+      | 1 (u : Unit) => err Int (decodeError b"int" b"outside the OCaml integer range")
+      | 0 (u : Unit) =>
+        case (boolAnd sign (natLt 0 n)) with
+        | 1 (u : Unit) => ok Int (negative (natSub n 1))
+        | 0 (u : Unit) => ok Int (nonnegative n))
+def rec errorText : Error -> Bytes := fun (e : Error) =>
+  match e as self in Error return Bytes with
+  | kindMismatch a b => bytesAppend b"kind mismatch: expected " (bytesAppend a (bytesAppend b", found " b))
+  | malformedValue a b => bytesAppend b"malformed marshalled value for " (bytesAppend a (bytesAppend b": " b))
+  | missingField a b => bytesAppend b"required field absent: " (bytesAppend a (bytesCons 46 b))
+  | decodeError a b => bytesAppend b"cannot decode " (bytesAppend a (bytesAppend b": " b))
+  | atError layer fn inner => bytesAppend layer (bytesCons 46 (bytesAppend fn (bytesAppend b" <- " (errorText inner))))

@@ -1,0 +1,30 @@
+-- Finite discharge requires an exercised obligation and an exhausted graph.
+def EdgeReport : Type 0 := prod (Bool, Nat, Nat, Bool)
+def dischargeClosure : Bound -> ClusterConfig -> Reachable ClusterState -> (ClusterState -> Bool) -> (ClusterState -> Bool) -> EdgeReport :=
+  fun (b : Bound) (c : ClusterConfig) (r : Reachable ClusterState) (pre : ClusterState -> Bool) (post : ClusterState -> Bool) =>
+  tuple (sequenceEvery ClusterState r.0 (fun (s : ClusterState) => implies (pre s) (sequenceEvery ClusterState (boundedSuccessors b c s)
+    (fun (next : ClusterState) => boolOr (pre next) (post next)))), reachableCount ClusterState r pre, r.0.0, r.2)
+def dischargeDrives : Bound -> ClusterConfig -> Reachable ClusterState -> (ClusterState -> Bool) -> (ClusterStep -> Bool) -> (ClusterState -> Bool) -> EdgeReport :=
+  fun (b : Bound) (c : ClusterConfig) (r : Reachable ClusterState) (pre : ClusterState -> Bool) (forward : ClusterStep -> Bool) (post : ClusterState -> Bool) =>
+  tuple (sequenceEvery ClusterState r.0 (fun (s : ClusterState) => implies (pre s) (successorsEvery (boundedLabelledSuccessors b c s)
+    (fun (step : ClusterStep) (next : ClusterState) => implies (forward step) (post next)))), reachableCount ClusterState r pre, r.0.0, r.2)
+def dischargeInvariant : Reachable ClusterState -> (ClusterState -> Bool) -> EdgeReport := fun (r : Reachable ClusterState) (inv : ClusterState -> Bool) =>
+  tuple (sequenceEvery ClusterState r.0 inv, r.0.0, r.0.0, r.2)
+def dischargeReaches : Reachable ClusterState -> (ClusterState -> Bool) -> (ClusterState -> Bool) -> EdgeReport := fun (r : Reachable ClusterState) (pre : ClusterState -> Bool) (post : ClusterState -> Bool) =>
+  tuple (natLt 0 (reachableCount ClusterState r post), reachableCount ClusterState r pre, r.0.0, r.2)
+def dischargeObligation : EdgeReport -> Result Bool := fun (r : EdgeReport) => case r.0 with
+  | 0 (u : Unit) => err Bool (decodeError b"Discharge.obligation" b"violated")
+  | 1 (u : Unit) => (case (natLt 0 r.1) with | 0 (u : Unit) => err Bool (decodeError b"Discharge.obligation" b"vacuous (witnesses=0)")
+      | 1 (u : Unit) => (case r.3 with | 0 (u : Unit) => err Bool (decodeError b"Discharge.obligation" b"graph truncated") | 1 (u : Unit) => ok Bool true))
+def vrsReconcileStepOf : Int -> CommonObjectRef -> ClusterState -> Option VrsStep := fun (id : Int) (key : CommonObjectRef) (s : ClusterState) =>
+  optionBind Ongoing VrsStep (ongoingMapGet key (assuranceOngoing id s)) (fun (o : Ongoing) => optionMap VrsState VrsStep vreplicaSetReconcilerSReconcileStep (resultToOption VrsState (vrsStateDecode o.2)))
+def vstsReconcileStepOf : Int -> CommonObjectRef -> ClusterState -> Option StatefulStep := fun (id : Int) (key : CommonObjectRef) (s : ClusterState) =>
+  optionBind Ongoing StatefulStep (ongoingMapGet key (assuranceOngoing id s)) (fun (o : Ongoing) => optionMap StatefulState StatefulStep vStatefulSetReconcilerSReconcileStep (resultToOption StatefulState (statefulStateDecode o.2)))
+def vrsAtPhase : Int -> CommonObjectRef -> (VrsStep -> Bool) -> ClusterState -> Bool := fun (id : Int) (key : CommonObjectRef) (p : VrsStep -> Bool) (s : ClusterState) => optionFold VrsStep Bool false p (vrsReconcileStepOf id key s)
+def vstsAtPhase : Int -> CommonObjectRef -> (StatefulStep -> Bool) -> ClusterState -> Bool := fun (id : Int) (key : CommonObjectRef) (p : StatefulStep -> Bool) (s : ClusterState) => optionFold StatefulStep Bool false p (vstsReconcileStepOf id key s)
+def vrsAtStep : Int -> CommonObjectRef -> VrsStep -> ClusterState -> Bool := fun (id : Int) (key : CommonObjectRef) (step : VrsStep) => vrsAtPhase id key (vreplicaSetReconcilerStepEqual step)
+def vstsAtStep : Int -> CommonObjectRef -> StatefulStep -> ClusterState -> Bool := fun (id : Int) (key : CommonObjectRef) (step : StatefulStep) => vstsAtPhase id key (vStatefulSetReconcilerStepEqual step)
+def vrsNoOngoing : Int -> CommonObjectRef -> ClusterState -> Bool := fun (id : Int) (key : CommonObjectRef) (s : ClusterState) => boolNot (optionIsSome VrsStep (vrsReconcileStepOf id key s))
+def vstsNoOngoing : Int -> CommonObjectRef -> ClusterState -> Bool := fun (id : Int) (key : CommonObjectRef) (s : ClusterState) => boolNot (optionIsSome StatefulStep (vstsReconcileStepOf id key s))
+def vrsScheduledOnly : Int -> CommonObjectRef -> ClusterState -> Bool := fun (id : Int) (key : CommonObjectRef) (s : ClusterState) => boolAnd (optionIsSome DynamicObjectT (resourceStoreGet key (assuranceScheduled id s))) (vrsNoOngoing id key s)
+def vstsScheduledOnly : Int -> CommonObjectRef -> ClusterState -> Bool := fun (id : Int) (key : CommonObjectRef) (s : ClusterState) => boolAnd (optionIsSome DynamicObjectT (resourceStoreGet key (assuranceScheduled id s))) (vstsNoOngoing id key s)

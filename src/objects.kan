@@ -1,0 +1,105 @@
+-- Behaviour from common.ml, owner_reference.ml, object_meta.ml,
+-- label_selector.ml, and dynamic_object.ml at the pinned source revision.
+def kindShow : CommonKind -> Bytes := fun (k : CommonKind) =>
+  match k as self in CommonKind return Bytes with
+  | commonKindConfigMap => b"ConfigMap"
+  | commonKindCustomResource name => bytesAppend b"CustomResource(" (bytesAppend name b")")
+  | commonKindDaemonSet => b"DaemonSet"
+  | commonKindPersistentVolumeClaim => b"PersistentVolumeClaim"
+  | commonKindPod => b"Pod"
+  | commonKindRole => b"Role"
+  | commonKindRoleBinding => b"RoleBinding"
+  | commonKindStatefulSet => b"StatefulSet"
+  | commonKindService => b"Service"
+  | commonKindServiceAccount => b"ServiceAccount"
+  | commonKindSecret => b"Secret"
+def ownerDefault : OwnerReferenceT := ownerReferenceTMake (none Bool) (none Bool) (commonKindCustomResource b"") b"" (nonnegative 0)
+def ownerToRef : OwnerReferenceT -> Bytes -> CommonObjectRef := fun (o : OwnerReferenceT) (ns : Bytes) =>
+  commonObjectRefMake (ownerReferenceTKind o) (ownerReferenceTName o) ns
+def ownerIsController : OwnerReferenceT -> Bool := fun (o : OwnerReferenceT) =>
+  optionFold Bool Bool false (fun (b : Bool) => b) (ownerReferenceTController o)
+def ownerEqualWithoutUid : OwnerReferenceT -> OwnerReferenceT -> Bool := fun (a : OwnerReferenceT) (b : OwnerReferenceT) =>
+  boolAnd (optionEqual Bool boolEqual (ownerReferenceTController a) (ownerReferenceTController b))
+  (boolAnd (optionEqual Bool boolEqual (ownerReferenceTBlockOwnerDeletion a) (ownerReferenceTBlockOwnerDeletion b))
+  (boolAnd (commonKindEqual (ownerReferenceTKind a) (ownerReferenceTKind b))
+  (bytesEqual (ownerReferenceTName a) (ownerReferenceTName b))))
+def rec ownersContain : ListOwnerReferenceT -> OwnerReferenceT -> Bool := fun (xs : ListOwnerReferenceT) (owner : OwnerReferenceT) =>
+  match xs as self in ListOwnerReferenceT return Bool with
+  | listOwnerReferenceTNil => false
+  | listOwnerReferenceTCons h t =>
+    case (ownerReferenceTEqual h owner) with
+    | 1 (u : Unit) => true
+    | 0 (u : Unit) => ownersContain t owner
+def rec ownersControllerCount : ListOwnerReferenceT -> Nat := fun (xs : ListOwnerReferenceT) =>
+  match xs as self in ListOwnerReferenceT return Nat with
+  | listOwnerReferenceTNil => 0
+  | listOwnerReferenceTCons h t => natAdd (boolNat (ownerIsController h)) (ownersControllerCount t)
+def objectMetaDefault : ObjectMetaT := objectMetaTMake
+  (none Bytes) (none Bytes) (none Bytes) (none Int) (none Int)
+  (none StringMap) (none StringMap) (none ListOwnerReferenceT) (none ListBytes) (none Bytes)
+def objectMetaAddLabel : Bytes -> Bytes -> ObjectMetaT -> ObjectMetaT := fun (k : Bytes) (v : Bytes) (m : ObjectMetaT) =>
+  let old : StringMap := optionFold StringMap StringMap stringMapEmpty (fun (x : StringMap) => x) (objectMetaTLabels m) in
+  objectMetaTSetLabels (some StringMap (stringMapSet k v old)) m
+def objectMetaWithoutLabel : Bytes -> ObjectMetaT -> ObjectMetaT := fun (k : Bytes) (m : ObjectMetaT) =>
+  optionFold StringMap ObjectMetaT m
+    (fun (labels : StringMap) => objectMetaTSetLabels (some StringMap (stringMapRemove k labels)) m)
+    (objectMetaTLabels m)
+def objectMetaAddAnnotation : Bytes -> Bytes -> ObjectMetaT -> ObjectMetaT := fun (k : Bytes) (v : Bytes) (m : ObjectMetaT) =>
+  let old : StringMap := optionFold StringMap StringMap stringMapEmpty (fun (x : StringMap) => x) (objectMetaTAnnotations m) in
+  objectMetaTSetAnnotations (some StringMap (stringMapSet k v old)) m
+def objectMetaOwnersContain : ObjectMetaT -> OwnerReferenceT -> Bool := fun (m : ObjectMetaT) (o : OwnerReferenceT) =>
+  optionFold ListOwnerReferenceT Bool false (fun (xs : ListOwnerReferenceT) => ownersContain xs o) (objectMetaTOwnerReferences m)
+def objectMetaOwnersOnlyContain : ObjectMetaT -> OwnerReferenceT -> Bool := fun (m : ObjectMetaT) (o : OwnerReferenceT) =>
+  optionEqual ListOwnerReferenceT listOwnerReferenceTEqual (objectMetaTOwnerReferences m)
+    (some ListOwnerReferenceT (listOwnerReferenceTCons o listOwnerReferenceTNil))
+def objectMetaWellFormed : ObjectMetaT -> Bool := fun (m : ObjectMetaT) =>
+  boolAnd (optionIsSome Bytes (objectMetaTName m)) (boolAnd (optionIsSome Bytes (objectMetaTNamespace m))
+    (boolAnd (optionIsSome Int (objectMetaTResourceVersion m)) (optionIsSome Int (objectMetaTUid m))))
+def rec bytesListContains : ListBytes -> Bytes -> Bool := fun (xs : ListBytes) (s : Bytes) =>
+  match xs as self in ListBytes return Bool with
+  | listBytesNil => false
+  | listBytesCons h t =>
+    case (bytesEqual h s) with | 1 (u : Unit) => true | 0 (u : Unit) => bytesListContains t s
+def rec bytesListSubset : ListBytes -> ListBytes -> Bool := fun (xs : ListBytes) (ys : ListBytes) =>
+  match xs as self in ListBytes return Bool with
+  | listBytesNil => true
+  | listBytesCons h t =>
+    case (bytesListContains ys h) with | 0 (u : Unit) => false | 1 (u : Unit) => bytesListSubset t ys
+def objectMetaFinalizers : ObjectMetaT -> ListBytes := fun (m : ObjectMetaT) =>
+  optionFold ListBytes ListBytes listBytesNil (fun (xs : ListBytes) => xs) (objectMetaTFinalizers m)
+def selectorMatches : LabelSelectorT -> StringMap -> Bool := fun (s : LabelSelectorT) (labels : StringMap) =>
+  optionFold StringMap Bool true (fun (wanted : StringMap) => stringMapSubset wanted labels) (labelSelectorTMatchLabels s)
+def objectRef : DynamicObjectT -> Result CommonObjectRef := fun (o : DynamicObjectT) =>
+  let m : ObjectMetaT := dynamicObjectTMetadata o in
+  optionFold Bytes (Result CommonObjectRef)
+    (err CommonObjectRef (missingField b"metadata" b"name"))
+    (fun (name : Bytes) => optionFold Bytes (Result CommonObjectRef)
+      (err CommonObjectRef (missingField b"metadata" b"namespace"))
+      (fun (ns : Bytes) => ok CommonObjectRef (commonObjectRefMake (dynamicObjectTKind o) name ns))
+      (objectMetaTNamespace m))
+    (objectMetaTName m)
+def objectWithName : Bytes -> DynamicObjectT -> DynamicObjectT := fun (x : Bytes) (o : DynamicObjectT) =>
+  dynamicObjectTSetMetadata (objectMetaTSetName (some Bytes x) (dynamicObjectTMetadata o)) o
+def objectWithNamespace : Bytes -> DynamicObjectT -> DynamicObjectT := fun (x : Bytes) (o : DynamicObjectT) =>
+  dynamicObjectTSetMetadata (objectMetaTSetNamespace (some Bytes x) (dynamicObjectTMetadata o)) o
+def objectWithUid : Int -> DynamicObjectT -> DynamicObjectT := fun (x : Int) (o : DynamicObjectT) =>
+  dynamicObjectTSetMetadata (objectMetaTSetUid (some Int x) (dynamicObjectTMetadata o)) o
+def objectWithResourceVersion : Int -> DynamicObjectT -> DynamicObjectT := fun (x : Int) (o : DynamicObjectT) =>
+  dynamicObjectTSetMetadata (objectMetaTSetResourceVersion (some Int x) (dynamicObjectTMetadata o)) o
+def objectWithDeletionTimestamp : Bytes -> DynamicObjectT -> DynamicObjectT := fun (x : Bytes) (o : DynamicObjectT) =>
+  dynamicObjectTSetMetadata (objectMetaTSetDeletionTimestamp (some Bytes x) (dynamicObjectTMetadata o)) o
+
+def ownerIsControllerFlag : OwnerReferenceT -> Nat := fun (o : OwnerReferenceT) => boolNat (ownerIsController o)
+def ownerEqualFlag : OwnerReferenceT -> OwnerReferenceT -> Nat := fun (a : OwnerReferenceT) (b : OwnerReferenceT) => boolNat (ownerReferenceTEqual a b)
+def ownerEqualWithoutUidFlag : OwnerReferenceT -> OwnerReferenceT -> Nat := fun (a : OwnerReferenceT) (b : OwnerReferenceT) => boolNat (ownerEqualWithoutUid a b)
+def objectMetaWellFormedFlag : ObjectMetaT -> Nat := fun (m : ObjectMetaT) => boolNat (objectMetaWellFormed m)
+def objectMetaEqualFlag : ObjectMetaT -> ObjectMetaT -> Nat := fun (a : ObjectMetaT) (b : ObjectMetaT) => boolNat (objectMetaTEqual a b)
+def objectMetaOwnersContainFlag : ObjectMetaT -> OwnerReferenceT -> Nat := fun (m : ObjectMetaT) (o : OwnerReferenceT) => boolNat (objectMetaOwnersContain m o)
+def objectMetaOwnersOnlyContainFlag : ObjectMetaT -> OwnerReferenceT -> Nat := fun (m : ObjectMetaT) (o : OwnerReferenceT) => boolNat (objectMetaOwnersOnlyContain m o)
+def selectorMatchesFlag : LabelSelectorT -> StringMap -> Nat := fun (s : LabelSelectorT) (m : StringMap) => boolNat (selectorMatches s m)
+def noneStringMap : Option StringMap := none StringMap
+def someStringMap : StringMap -> Option StringMap := fun (x : StringMap) => some StringMap x
+def noneOwners : Option ListOwnerReferenceT := none ListOwnerReferenceT
+def someOwners : ListOwnerReferenceT -> Option ListOwnerReferenceT := fun (x : ListOwnerReferenceT) => some ListOwnerReferenceT x
+def noneStrings : Option ListBytes := none ListBytes
+def someStrings : ListBytes -> Option ListBytes := fun (x : ListBytes) => some ListBytes x

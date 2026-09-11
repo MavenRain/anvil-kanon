@@ -1,0 +1,46 @@
+-- JSON transport for reproducible API-server fixtures.
+def resourceEntryEncode : CommonObjectRef -> DynamicObjectT -> Value := fun (key : CommonObjectRef) (obj : DynamicObjectT) =>
+  jsonObject (jsonObjectCons b"key" (commonObjectRefEncode key) (jsonObjectCons b"obj" (dynamicObjectTEncode obj) jsonObjectNil))
+def rec resourceStoreEncodeItems : ResourceStore -> Values := fun (s : ResourceStore) => match s as self in ResourceStore return Values with
+  | resourceStoreNil => jsonArrayNil | resourceStoreCons k v t => jsonArrayCons (resourceEntryEncode k v) (resourceStoreEncodeItems t)
+def rec resourceStoreDecodeItems : Values -> ResourceStore -> Result ResourceStore := fun (xs : Values) (s : ResourceStore) =>
+  match xs as self in JsonTree sort return Result ResourceStore with
+  | jsonArrayNil => ok ResourceStore s
+  | jsonArrayCons h t => resultBind CommonObjectRef ResourceStore (jsonField CommonObjectRef h b"key" commonObjectRefDecode) (fun (key : CommonObjectRef) =>
+      resultBind DynamicObjectT ResourceStore (jsonField DynamicObjectT h b"obj" dynamicObjectTDecode) (fun (obj : DynamicObjectT) => resourceStoreDecodeItems t (resourceStoreSet key obj s)))
+  | jsonNull => err ResourceStore (decodeError b"store" b"expected array")
+  | jsonBool x => err ResourceStore (decodeError b"store" b"expected array")
+  | jsonInt x => err ResourceStore (decodeError b"store" b"expected array")
+  | jsonIntLiteral x => err ResourceStore (decodeError b"store" b"expected array")
+  | jsonFloat x => err ResourceStore (decodeError b"store" b"expected array")
+  | jsonString x => err ResourceStore (decodeError b"store" b"expected array")
+  | jsonArray x => err ResourceStore (decodeError b"store" b"expected array")
+  | jsonObject x => err ResourceStore (decodeError b"store" b"expected array")
+  | jsonObjectNil => err ResourceStore (decodeError b"store" b"expected array")
+  | jsonObjectCons k v t => err ResourceStore (decodeError b"store" b"expected array")
+def resourceStoreDecode : Value -> Result ResourceStore := fun (j : Value) => resultBind Values ResourceStore (jsonGetArray j) (fun (xs : Values) => resourceStoreDecodeItems xs resourceStoreNil)
+def apiStateEncode : ApiState -> Value := fun (s : ApiState) =>
+  jsonObject (jsonObjectCons b"resources" (jsonArray (resourceStoreEncodeItems s.0))
+    (jsonObjectCons b"uidCounter" (jsonInt s.1) (jsonObjectCons b"resourceVersionCounter" (jsonInt s.2) jsonObjectNil)))
+def apiStateDecode : Value -> Result ApiState := fun (j : Value) =>
+  resultBind ResourceStore ApiState (jsonField ResourceStore j b"resources" resourceStoreDecode) (fun (store : ResourceStore) =>
+  resultBind Int ApiState (jsonField Int j b"uidCounter" jsonGetInt) (fun (uid : Int) =>
+  resultMap Int ApiState (fun (rv : Int) => tuple (store, uid, rv)) (jsonField Int j b"resourceVersionCounter" jsonGetInt)))
+def apiFixturePolicy : Value -> Result InstalledTypes := fun (j : Value) =>
+  resultBind Bool InstalledTypes (jsonField Bool j b"spec" jsonGetBool) (fun (spec : Bool) =>
+  resultBind Bool InstalledTypes (jsonField Bool j b"status" jsonGetBool) (fun (status : Bool) =>
+  resultBind Bool InstalledTypes (jsonField Bool j b"valid" jsonGetBool) (fun (valid : Bool) =>
+  resultBind Bool InstalledTypes (jsonField Bool j b"transition" jsonGetBool) (fun (transition : Bool) =>
+  resultMap Value InstalledTypes (fun (defaultStatus : Value) => tuple (
+    (fun (k : CommonKind) (v : Value) => spec), (fun (k : CommonKind) (v : Value) => status),
+    (fun (o : DynamicObjectT) => valid), (fun (o : DynamicObjectT) (old : DynamicObjectT) => transition),
+    (fun (k : CommonKind) => defaultStatus))) (jsonMember j b"defaultStatus")))))
+def apiInvoke : Value -> Result Value := fun (input : Value) =>
+  resultBind InstalledTypes Value (jsonField InstalledTypes input b"policy" apiFixturePolicy) (fun (it : InstalledTypes) =>
+  resultBind ApiState Value (jsonField ApiState input b"state" apiStateDecode) (fun (s : ApiState) =>
+  resultMap Request Value (fun (req : Request) =>
+    let output : ApiOutput := apiHandle it req s in
+    jsonObject (jsonObjectCons b"state" (apiStateEncode output.0) (jsonObjectCons b"response" (apiMethodApiResponseEncode output.1) jsonObjectNil)))
+    (jsonField Request input b"request" apiMethodApiRequestDecode)))
+def apiInvokeRender : Value -> Bytes := fun (input : Value) => case (apiInvoke input) with
+  | 0 (e : Error) => bytesAppend b"error: " (errorText e) | 1 (v : Value) => valueRender v

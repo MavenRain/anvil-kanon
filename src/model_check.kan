@@ -1,0 +1,87 @@
+-- Bounded reachability and simple-lasso falsification, generic over state type.
+-- Safety witnesses require the caller's graph to be stutter-closed.
+-- Decisiveness covers only the supplied bounded successor relation.
+def Lasso : (0 A : Type 0) -> Type 0 := fun (0 A : Type 0) => prod (Sequence A, Sequence A)
+def Outcome : (0 A : Type 0) -> Type 0 := fun (0 A : Type 0) => Either (prod (Lasso A, Nat)) (prod (Bool, Int, Nat))
+def Reachable : (0 A : Type 0) -> Type 0 := fun (0 A : Type 0) => prod (Sequence A, Sequence (prod (A, A)), Bool, Int)
+def BfsWork : (0 A : Type 0) -> Type 0 := fun (0 A : Type 0) => prod (Sequence A, Sequence (prod (A, A)), Sequence A)
+def bfsDiscover : (0 A : Type 0) -> (A -> A -> Bool) -> A -> BfsWork A -> A -> BfsWork A :=
+  fun (0 A : Type 0) (equal : A -> A -> Bool) (parent : A) (work : BfsWork A) (child : A) =>
+  case (boolOr (equal parent child) (sequenceAny A work.0 (equal child))) with | 1 (u : Unit) => work
+  | 0 (u : Unit) => tuple (sequencePush A work.0 child, sequencePush (prod (A, A)) work.1 (tuple (child, parent)), sequencePush A work.2 child)
+def rec bfsWalk : (0 A : Type 0) -> Count -> Int -> (A -> Sequence A) -> (A -> A -> Bool) -> Sequence A -> BfsWork A -> Reachable A :=
+  fun (0 A : Type 0) (fuel : Count) (depth : Int) (successors : A -> Sequence A) (equal : A -> A -> Bool) (frontier : Sequence A) (work : BfsWork A) =>
+  match fuel as self in Count return Reachable A with
+  | countZero => tuple (work.0, work.1, natEq frontier.0 0, depth)
+  | countSucc tail => (case (natEq frontier.0 0) with | 1 (u : Unit) => tuple (work.0, work.1, true, depth)
+    | 0 (u : Unit) =>
+      let initial : BfsWork A := tuple (work.0, work.1, sequenceEmpty A) in
+      let next : BfsWork A := sequenceFold A (BfsWork A) frontier initial (fun (acc : BfsWork A) (s : A) =>
+        sequenceFold A (BfsWork A) (successors s) acc (bfsDiscover A equal s)) in
+      bfsWalk A tail depth successors equal next.2 next)
+def explore : (0 A : Type 0) -> Int -> (A -> Sequence A) -> (A -> A -> Bool) -> Sequence A -> Reachable A :=
+  fun (0 A : Type 0) (depth : Int) (successors : A -> Sequence A) (equal : A -> A -> Bool) (init : Sequence A) =>
+  let distinct : Sequence A := sequenceFold A (Sequence A) init (sequenceEmpty A) (fun (acc : Sequence A) (a : A) =>
+    select (Sequence A) (sequenceAny A acc (equal a)) acc (sequencePush A acc a)) in
+  bfsWalk A (natCount (optionValue Nat 0 (intToNat depth))) depth successors equal distinct (tuple (distinct, sequenceEmpty (prod (A, A)), sequenceEmpty A))
+def reachableParent : (0 A : Type 0) -> Reachable A -> (A -> A -> Bool) -> A -> Option A := fun (0 A : Type 0) (r : Reachable A) (equal : A -> A -> Bool) (s : A) =>
+  optionMap (prod (A, A)) A (fun (pair : prod (A, A)) => pair.1) (sequenceFind (prod (A, A)) r.1 (fun (pair : prod (A, A)) => equal pair.0 s))
+def rec reachablePathWalk : (0 A : Type 0) -> Count -> Reachable A -> (A -> A -> Bool) -> A -> Sequence A -> Sequence A :=
+  fun (0 A : Type 0) (fuel : Count) (r : Reachable A) (equal : A -> A -> Bool) (s : A) (acc : Sequence A) =>
+  match fuel as self in Count return Sequence A with
+  | countZero => sequencePrepend A s acc
+  | countSucc tail => optionFold A (Sequence A) (sequencePrepend A s acc)
+      (fun (parent : A) => reachablePathWalk A tail r equal parent (sequencePrepend A s acc)) (reachableParent A r equal s)
+def reachablePath : (0 A : Type 0) -> Reachable A -> (A -> A -> Bool) -> A -> Sequence A := fun (0 A : Type 0) (r : Reachable A) (equal : A -> A -> Bool) (s : A) =>
+  reachablePathWalk A (natCount r.0.0) r equal s (sequenceEmpty A)
+def outcomeClean : (0 A : Type 0) -> Reachable A -> Outcome A := fun (0 A : Type 0) (r : Reachable A) => inj 1 of 2 (tuple (r.2, r.3, r.0.0))
+def refutedAt : (0 A : Type 0) -> Reachable A -> (A -> A -> Bool) -> A -> Outcome A := fun (0 A : Type 0) (r : Reachable A) (equal : A -> A -> Bool) (s : A) =>
+  let path : Sequence A := reachablePath A r equal s in
+  inj 0 of 2 (tuple (tuple (path, sequenceSingleton A s), natAdd path.0 1))
+def checkSafety : (0 A : Type 0) -> Reachable A -> (A -> Bool) -> (A -> A -> Bool) -> Outcome A := fun (0 A : Type 0) (r : Reachable A) (invariant : A -> Bool) (equal : A -> A -> Bool) =>
+  optionFold A (Outcome A) (outcomeClean A r) (refutedAt A r equal) (sequenceFind A r.0 (fun (a : A) => boolNot (invariant a)))
+def checkReaches : (0 A : Type 0) -> Reachable A -> (A -> Bool) -> (A -> Bool) -> (A -> A -> Bool) -> Outcome A :=
+  fun (0 A : Type 0) (r : Reachable A) (target : A -> Bool) (quiescent : A -> Bool) (equal : A -> A -> Bool) =>
+  checkSafety A r (fun (a : A) => boolOr (boolNot (quiescent a)) (target a)) equal
+mu Verdict : Type 0 := | verdictTrue : Verdict | verdictFalse : Verdict | verdictUnknown : Verdict
+def DfsWork : (0 A : Type 0) -> Type 0 := fun (0 A : Type 0) => prod (Option (Lasso A), Bool, Bool)
+def lassoConsider : (0 A : Type 0) -> (Lasso A -> Verdict) -> (Lasso A -> Bool) -> Lasso A -> DfsWork A -> DfsWork A :=
+  fun (0 A : Type 0) (goal : Lasso A -> Verdict) (fair : Lasso A -> Bool) (lasso : Lasso A) (work : DfsWork A) =>
+  case (optionIsSome (Lasso A) work.0) with | 1 (u : Unit) => work
+  | 0 (u : Unit) => (match (goal lasso) as self in Verdict return DfsWork A with
+    | verdictFalse => select (DfsWork A) (fair lasso) (tuple (some (Lasso A) lasso, work.1, work.2)) work
+    | verdictTrue => work
+    | verdictUnknown => tuple (work.0, false, work.2))
+def lassoReentry : (0 A : Type 0) -> (A -> A -> Bool) -> A -> Sequence A -> Option (Lasso A) := fun (0 A : Type 0) (equal : A -> A -> Bool) (next : A) (ordered : Sequence A) =>
+  optionMap Nat (Lasso A) (fun (i : Nat) => tuple (sequenceSlice A ordered 0 i, sequenceSlice A ordered i (natSub ordered.0 i))) (sequenceFindIndex A ordered (equal next))
+def dfsLevel : (0 A : Type 0) -> (A -> Sequence A) -> (A -> A -> Bool) -> (Lasso A -> Verdict) -> (Lasso A -> Bool) ->
+  (Sequence A -> DfsWork A -> DfsWork A) -> Sequence A -> DfsWork A -> DfsWork A :=
+  fun (0 A : Type 0) (successors : A -> Sequence A) (equal : A -> A -> Bool) (goal : Lasso A -> Verdict) (fair : Lasso A -> Bool)
+    (descend : Sequence A -> DfsWork A -> DfsWork A) (pathRev : Sequence A) (work : DfsWork A) =>
+  case (optionIsSome (Lasso A) work.0) with | 1 (u : Unit) => work
+  | 0 (u : Unit) => optionFold A (DfsWork A) work (fun (current : A) =>
+    let ordered : Sequence A := sequenceReverse A pathRev in
+    let succs : Sequence A := successors current in
+    let candidate : Lasso A := tuple (sequenceSlice A ordered 0 (natSub ordered.0 1), sequenceSingleton A current) in
+    let work : DfsWork A := select (DfsWork A) (sequenceAny A succs (equal current)) (lassoConsider A goal fair candidate work) work in
+    sequenceFold A (DfsWork A) succs work (fun (acc : DfsWork A) (next : A) =>
+      case (optionIsSome (Lasso A) acc.0) with | 1 (u : Unit) => acc
+      | 0 (u : Unit) => (case (lassoReentry A equal next ordered) with
+        | 0 (u : Unit) => descend (sequencePrepend A next pathRev) acc
+        | 1 (lasso : Lasso A) =>
+          let considered : DfsWork A := lassoConsider A goal fair lasso acc in
+          tuple (considered.0, considered.1, boolOr considered.2 (natLt 1 lasso.1.0))))) (pathRev.1 0)
+def rec dfsWalk : (0 A : Type 0) -> Count -> (A -> Sequence A) -> (A -> A -> Bool) -> (Lasso A -> Verdict) -> (Lasso A -> Bool) -> Sequence A -> DfsWork A -> DfsWork A :=
+  fun (0 A : Type 0) (fuel : Count) (successors : A -> Sequence A) (equal : A -> A -> Bool) (goal : Lasso A -> Verdict) (fair : Lasso A -> Bool) (pathRev : Sequence A) (work : DfsWork A) =>
+  match fuel as self in Count return DfsWork A with
+  | countZero => dfsLevel A successors equal goal fair (fun (path : Sequence A) (acc : DfsWork A) => acc) pathRev work
+  | countSucc tail => dfsLevel A successors equal goal fair (fun (path : Sequence A) (acc : DfsWork A) => dfsWalk A tail successors equal goal fair path acc) pathRev work
+def checkTemporal : (0 A : Type 0) -> Int -> (A -> Sequence A) -> (A -> A -> Bool) -> Sequence A -> (Lasso A -> Bool) -> (Lasso A -> Verdict) -> Outcome A :=
+  fun (0 A : Type 0) (depth : Int) (successors : A -> Sequence A) (equal : A -> A -> Bool) (init : Sequence A) (fair : Lasso A -> Bool) (goal : Lasso A -> Verdict) =>
+  let reach : Reachable A := explore A depth successors equal init in
+  let fuel : Count := natCount (natSub (optionValue Nat 0 (intToNat depth)) 1) in
+  let work : DfsWork A := sequenceFold A (DfsWork A) init (tuple (none (Lasso A), true, false)) (fun (acc : DfsWork A) (s : A) =>
+    dfsWalk A fuel successors equal goal fair (sequenceSingleton A s) acc) in
+  optionFold (Lasso A) (Outcome A)
+    (inj 1 of 2 (tuple (boolAnd reach.2 (boolAnd work.1 (boolAnd (boolNot (intLess depth (nonnegative reach.0.0))) (boolNot work.2))), depth, reach.0.0)))
+    (fun (lasso : Lasso A) => inj 0 of 2 (tuple (lasso, natAdd lasso.0.0 lasso.1.0))) work.0

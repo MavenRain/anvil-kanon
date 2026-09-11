@@ -1,0 +1,16 @@
+{
+  "name": "anvil-kanon",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": "./runtime/host.mjs",
+  "bin": { "anvil-kanon": "bin/anvil.mjs" },
+  "license": "MIT OR Apache-2.0",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "oracle:build": "node scripts/oracle.mjs",
+    "generate": "node scripts/generate.mjs",
+    "operator": "node bin/anvil.mjs operator",
+    "test": "node --test test/*.test.mjs"
+  }
+}

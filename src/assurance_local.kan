@@ -1,0 +1,73 @@
+-- VStatefulSet local binding and liveness state predicates.
+def vstsAtReconcile : Int -> CommonObjectRef -> Bool -> Bool -> (Ongoing -> StatefulState -> ClusterState -> Bool) -> ClusterState -> Bool :=
+  fun (id : Int) (key : CommonObjectRef) (absent : Bool) (undecodable : Bool) (decoded : Ongoing -> StatefulState -> ClusterState -> Bool) (s : ClusterState) =>
+  optionFold Ongoing Bool absent (fun (o : Ongoing) => resultFold StatefulState Bool (fun (e : Error) => undecodable) (fun (st : StatefulState) => decoded o st s) (statefulStateDecode o.2)) (ongoingMapGet key (assuranceOngoing id s))
+def vstsPodBound : CommonObjectRef -> PodT -> Bool := fun (key : CommonObjectRef) (pod : PodT) =>
+  let md : ObjectMetaT := podTMetadata pod in boolAnd (optionFold Bytes Bool false (vstsPodNameMatches (commonObjectRefName key)) (objectMetaTName md))
+    (optionEqual Bytes bytesEqual (objectMetaTNamespace md) (some Bytes (commonObjectRefNamespace key)))
+def vstsBoundInLocal : CommonObjectRef -> StatefulState -> Bool := fun (key : CommonObjectRef) (st : StatefulState) =>
+  boolAnd (listOptionPodTEvery (vStatefulSetReconcilerSNeeded st) (fun (p : Option PodT) => optionFold PodT Bool true (vstsPodBound key) p))
+    (listPodTEvery (vStatefulSetReconcilerSCondemned st) (vstsPodBound key))
+def vstsLocalBindingWitness : StatefulState -> Bool := fun (st : StatefulState) => boolOr
+  (boolNot (listOptionPodTEvery (vStatefulSetReconcilerSNeeded st) (fun (p : Option PodT) => boolNot (optionIsSome PodT p))))
+  (natLt 0 (listPodTLength (vStatefulSetReconcilerSCondemned st)))
+def assuranceListRequest : Bytes -> Request -> Bool := fun (ns : Bytes) (req : Request) => match req as self in ApiMethodApiRequest return Bool with
+  | apiMethodApiRequestListRequest r => boolAnd (commonKindEqual (apiMethodListRequestKind r) commonKindPod) (bytesEqual (apiMethodListRequestNamespace r) ns)
+  | apiMethodApiRequestGetRequest r => false | apiMethodApiRequestCreateRequest r => false | apiMethodApiRequestDeleteRequest r => false
+  | apiMethodApiRequestUpdateRequest r => false | apiMethodApiRequestUpdateStatusRequest r => false | apiMethodApiRequestGetThenDeleteRequest r => false
+  | apiMethodApiRequestGetThenUpdateRequest r => false | apiMethodApiRequestGetThenUpdateStatusRequest r => false
+def assuranceListObjects : Message -> Option ListDynamicObjectT := fun (m : Message) => apiResponseOk ListDynamicObjectT (responseList (contentGetResponse m.3))
+def assuranceListResponseMatches : Message -> Message -> Bool := fun (req : Message) (m : Message) =>
+  boolAnd (hostEqual m.0 hostApi) (boolAnd (messageResponseMatches m req) (optionIsSome ListDynamicObjectT (assuranceListObjects m)))
+def assuranceListResponseEvery : ClusterState -> Message -> (ListDynamicObjectT -> Bool) -> Bool := fun (s : ClusterState) (req : Message) (p : ListDynamicObjectT -> Bool) =>
+  messagePoolEvery s.2 (fun (m : Message) => implies (assuranceListResponseMatches req m) (optionFold ListDynamicObjectT Bool false p (assuranceListObjects m)))
+def assuranceListResponseAny : ClusterState -> Message -> Bool := fun (s : ClusterState) (req : Message) => messagePoolAny s.2 (assuranceListResponseMatches req)
+def assuranceObjectsNamespace : Bytes -> ListDynamicObjectT -> Bool := fun (ns : Bytes) (xs : ListDynamicObjectT) => listDynamicObjectTEvery xs
+  (fun (obj : DynamicObjectT) => optionEqual Bytes bytesEqual (objectMetaTNamespace (dynamicObjectTMetadata obj)) (some Bytes ns))
+def vstsAfterListBound : Bytes -> Ongoing -> ClusterState -> Bool := fun (ns : Bytes) (o : Ongoing) (s : ClusterState) => optionFold Message Bool false
+  (fun (req : Message) => boolAnd (hostEqual req.1 hostApi) (boolAnd (optionFold Request Bool false (assuranceListRequest ns) (contentGetRequest req.3))
+    (assuranceListResponseEvery s req (assuranceObjectsNamespace ns)))) o.1
+def vstsIsAfterList : StatefulState -> Bool := fun (st : StatefulState) => vStatefulSetReconcilerStepEqual (vStatefulSetReconcilerSReconcileStep st) vStatefulSetReconcilerStepAfterListPod
+def vstsBindingAtKey : Int -> CommonObjectRef -> ClusterState -> Bool := fun (id : Int) (key : CommonObjectRef) => vstsAtReconcile id key true true
+  (fun (o : Ongoing) (st : StatefulState) (s : ClusterState) => boolAnd (vstsBoundInLocal key st) (implies (vstsIsAfterList st) (vstsAfterListBound (commonObjectRefNamespace key) o s)))
+def vstsSlotAt : ListOptionPodT -> Int -> Option (Option PodT) := fun (needed : ListOptionPodT) (i : Int) => optionBind Nat (Option PodT) (intToNat i) (listOptionPodTNth needed)
+def vstsSlotNone : ListOptionPodT -> Int -> Bool := fun (needed : ListOptionPodT) (i : Int) => optionFold (Option PodT) Bool true (fun (p : Option PodT) => boolNot (optionIsSome PodT p)) (vstsSlotAt needed i)
+def vstsSlotSome : ListOptionPodT -> Int -> Bool := fun (needed : ListOptionPodT) (i : Int) => optionFold (Option PodT) Bool true (optionIsSome PodT) (vstsSlotAt needed i)
+def vstsValidStep : StatefulStep -> Bool := fun (step : StatefulStep) => let n : Nat := vStatefulSetReconcilerStepRank step in boolAnd (natLt 1 n) (natLt n 16)
+def vstsPvcOrNeededStep : StatefulStep -> Bool := fun (step : StatefulStep) => let n : Nat := vStatefulSetReconcilerStepRank step in
+  boolAnd (boolAnd (natLt 1 n) (natLt n 10)) (boolNot (natEq n 8))
+def vstsAfterNeededStep : StatefulStep -> Bool := fun (step : StatefulStep) => let n : Nat := vStatefulSetReconcilerStepRank step in boolOr (natEq n 8) (natEq n 10)
+def vstsCondemnedOrLater : StatefulStep -> Bool := fun (step : StatefulStep) => let n : Nat := vStatefulSetReconcilerStepRank step in boolAnd (natLt 10 n) (natLt n 16)
+def rec vstsNeededIdentity : Bytes -> Bytes -> Nat -> ListOptionPodT -> Bool := fun (parent : Bytes) (ns : Bytes) (ord : Nat) (xs : ListOptionPodT) =>
+  match xs as self in ListOptionPodT return Bool with | listOptionPodTNil => true
+  | listOptionPodTCons p tail => boolAnd (optionFold PodT Bool true (fun (pod : PodT) => let md : ObjectMetaT := podTMetadata pod in
+      boolAnd (optionEqual Bytes bytesEqual (objectMetaTName md) (some Bytes (statefulPodName parent (nonnegative ord)))) (optionEqual Bytes bytesEqual (objectMetaTNamespace md) (some Bytes ns))) p)
+    (vstsNeededIdentity parent ns (natAdd ord 1) tail)
+def vstsLocalStateValid : Bytes -> Bytes -> Int -> StatefulState -> Bool := fun (parent : Bytes) (ns : Bytes) (replicas : Int) (st : StatefulState) =>
+  let step : StatefulStep := vStatefulSetReconcilerSReconcileStep st in
+  let needed : ListOptionPodT := vStatefulSetReconcilerSNeeded st in let condemned : ListPodT := vStatefulSetReconcilerSCondemned st in
+  let ni : Int := vStatefulSetReconcilerSNeededIndex st in let ci : Int := vStatefulSetReconcilerSCondemnedIndex st in
+  let nl : Int := nonnegative (listOptionPodTLength needed) in let cl : Int := nonnegative (listPodTLength condemned) in
+  let rank : Nat := vStatefulSetReconcilerStepRank step in
+  boolAnd (intEqual nl replicas) (boolAnd (intIsNonnegative ni) (boolAnd (boolNot (intLess nl ni))
+    (boolAnd (intIsNonnegative ci) (boolAnd (boolNot (intLess cl ci)) (boolAnd (vstsNeededIdentity parent ns 0 needed)
+    (boolAnd (listPodTEvery condemned (fun (pod : PodT) => let md : ObjectMetaT := podTMetadata pod in
+      boolAnd (optionFold Bytes Bool false (fun (name : Bytes) => optionFold Int Bool false (fun (o : Int) => boolNot (intLess o replicas)) (statefulOrdinal parent name)) (objectMetaTName md))
+        (optionEqual Bytes bytesEqual (objectMetaTNamespace md) (some Bytes ns))))
+    (boolAnd (implies (vstsPvcOrNeededStep step) (intLess ni nl))
+    (boolAnd (implies (natEq rank 7) (vstsSlotNone needed ni))
+    (boolAnd (implies (natEq rank 8) (vstsSlotNone needed (intSub ni (nonnegative 1))))
+    (boolAnd (implies (natEq rank 9) (vstsSlotSome needed ni))
+    (boolAnd (implies (natEq rank 10) (vstsSlotSome needed (intSub ni (nonnegative 1))))
+    (boolAnd (implies (natEq rank 11) (intLess ci cl))
+    (boolAnd (implies (natEq rank 12) (intPositiveFlag ci))
+    (boolAnd (implies (vstsAfterNeededStep step) (intPositiveFlag ni))
+      (boolOr (vstsCondemnedOrLater step) (intEqual ci (nonnegative 0)))))))))))))))))
+def assuranceDynamicRef : DynamicObjectT -> CommonObjectRef := fun (obj : DynamicObjectT) => assuranceRef (dynamicObjectTKind obj) (dynamicObjectTMetadata obj)
+def rec assuranceNoDuplicateRefs : ListDynamicObjectT -> Bool := fun (xs : ListDynamicObjectT) => match xs as self in ListDynamicObjectT return Bool with
+  | listDynamicObjectTNil => true | listDynamicObjectTCons o tail => boolAnd
+      (listDynamicObjectTEvery tail (fun (p : DynamicObjectT) => boolNot (commonObjectRefEqual (assuranceDynamicRef o) (assuranceDynamicRef p)))) (assuranceNoDuplicateRefs tail)
+def vstsListResponseShape : Bytes -> ListDynamicObjectT -> Bool := fun (ns : Bytes) (xs : ListDynamicObjectT) => boolAnd (assuranceNoDuplicateRefs xs)
+  (listDynamicObjectTEvery xs (fun (o : DynamicObjectT) => let md : ObjectMetaT := dynamicObjectTMetadata o in
+    boolAnd (commonKindEqual (dynamicObjectTKind o) commonKindPod) (boolAnd (resultIsOk PodT (podTUnmarshal o))
+      (boolAnd (optionIsSome Bytes (objectMetaTName md)) (optionEqual Bytes bytesEqual (objectMetaTNamespace md) (some Bytes ns))))))

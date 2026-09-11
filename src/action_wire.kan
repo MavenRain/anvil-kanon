@@ -1,0 +1,11 @@
+def actionFixture : Value -> Result Value := fun (j : Value) =>
+  resultBind Int Value (jsonField Int j b"state" jsonGetInt) (fun (s : Int) =>
+  resultBind Int Value (jsonField Int j b"input" jsonGetInt) (fun (i : Int) =>
+  resultMap Int Value (fun (next : Int) =>
+    let a : Action Int Int Int := tuple ((fun (input : Int) (state : Int) => boolAnd (intIsNonnegative input) (intLess state input)), (fun (input : Int) (state : Int) => tuple (intAdd state input, intSub state input))) in
+    let sm : StateMachine Int Int Int Int Int := tuple ((fun (s : Int) => intEqual s (nonnegative 0)), (fun (step : Int) => a), (fun (step : Int) (input : Int) => intAdd step input)) in
+    let steps : Sequence Int := sequencePush Int (sequencePush Int (sequenceSingleton Int (nonnegative 0)) (nonnegative 1)) (nonnegative 2) in
+    jsonObject (jsonObjectCons b"pre" (jsonBool (a.0 i s)) (jsonObjectCons b"forward" (jsonBool (actionForward Int Int Int intEqual a i s next))
+      (jsonObjectCons b"next" (jsonSequenceEncode (prod (Int, Int)) (fun (p : prod (Int, Int)) => jsonObject (jsonObjectCons b"state" (jsonInt p.0) (jsonObjectCons b"output" (jsonInt p.1) jsonObjectNil))) (stateMachineNext Int Int Int Int Int sm steps i s)) jsonObjectNil))))
+    (jsonField Int j b"next" jsonGetInt)))
+def actionRender : Value -> Bytes := fun (input : Value) => case (actionFixture input) with | 0 (e : Error) => bytesAppend b"error: " (errorText e) | 1 (j : Value) => valueRender j

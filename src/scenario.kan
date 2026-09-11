@@ -1,0 +1,97 @@
+-- Source scenarios keep their original controller IDs and admission policies.
+def scenarioMetadata : Bytes -> Int -> ObjectMetaT := fun (name : Bytes) (uid : Int) =>
+  objectMetaTSetResourceVersion (some Int (nonnegative 0)) (objectMetaTSetUid (some Int uid)
+    (objectMetaTSetNamespace (some Bytes b"ns") (objectMetaTSetName (some Bytes name) objectMetaDefault)))
+def scenarioLabels : StringMap := stringMapSet b"app" b"x" stringMapEmpty
+def scenarioSelector : LabelSelectorT := labelSelectorTMake (some StringMap scenarioLabels)
+def scenarioTemplate : PodTemplateSpecT := podTemplateSpecTMake (some ObjectMetaT (objectMetaTSetLabels (some StringMap scenarioLabels) objectMetaDefault)) (some PodSpecT podSpecDefault)
+def scenarioOwner : CommonKind -> Bytes -> Int -> OwnerReferenceT := fun (kind : CommonKind) (name : Bytes) (uid : Int) => ownerReferenceTMake (some Bool true) (some Bool true) kind name uid
+def scenarioVrsNamed : Bytes -> Int -> Int -> Vrs := fun (name : Bytes) (uid : Int) (desired : Int) =>
+  vreplicaSetTMake (objectMetaTSetOwnerReferences (some ListOwnerReferenceT (listOwnerReferenceTCons (scenarioOwner vreplicaSetTKind name uid) listOwnerReferenceTNil)) (scenarioMetadata name uid))
+    (vreplicaSetVrsSpecMake (some Int desired) scenarioSelector (some PodTemplateSpecT scenarioTemplate)) (none VreplicaSetVrsStatus)
+def scenarioVrs : Int -> Vrs := fun (desired : Int) => scenarioVrsNamed b"vrs1" (nonnegative 1) desired
+def scenarioVrsRef : CommonObjectRef := commonObjectRefMake vreplicaSetTKind b"vrs1" b"ns"
+def scenarioDeployment : Int -> Deployment := fun (desired : Int) => vDeploymentTMake (scenarioMetadata b"vd1" (nonnegative 1))
+  (vDeploymentVdSpecMake (some Int desired) scenarioSelector scenarioTemplate (none Int) (none Int) (none DeploymentStrategyT) (none Int) (none Bool)) ghost
+def scenarioDeploymentRef : CommonObjectRef := commonObjectRefMake vDeploymentTKind b"vd1" b"ns"
+def scenarioPvcTemplate : PersistentVolumeClaimT := persistentVolumeClaimTMake
+  (objectMetaTSetName (some Bytes b"data") (objectMetaTSetNamespace (some Bytes b"ns") objectMetaDefault))
+  (some PersistentVolumeClaimSpec (persistentVolumeClaimSpecMake (none Bytes) (none ListBytes) (none VolumeResourceRequirementsT))) (none PersistentVolumeClaimStatus)
+def scenarioStatefulNamed : Bytes -> Bool -> Int -> Stateful := fun (name : Bytes) (vct : Bool) (desired : Int) => vStatefulSetTMake (scenarioMetadata name (nonnegative 1))
+  (statefulSetSsSpecMake (none Int) (none StatefulSetOrdinals) (none StatefulSetRetentionPolicy) (none Bytes) (some Int desired) (none Int)
+    scenarioSelector name scenarioTemplate (none StatefulSetUpdateStrategy)
+    (select (Option ListPersistentVolumeClaimT) vct (some ListPersistentVolumeClaimT (listPersistentVolumeClaimTCons scenarioPvcTemplate listPersistentVolumeClaimTNil)) (none ListPersistentVolumeClaimT))) (none StatefulSetSsStatus)
+def scenarioStateful : Bool -> Int -> Stateful := scenarioStatefulNamed b"vsts1"
+def scenarioStatefulRef : CommonObjectRef := commonObjectRefMake vStatefulSetTKind b"vsts1" b"ns"
+def scenarioInstalledWith : (CommonKind -> Value) -> InstalledTypes := fun (status : CommonKind -> Value) => tuple (
+  (fun (kind : CommonKind) (v : Value) => true), (fun (kind : CommonKind) (v : Value) => true), (fun (o : DynamicObjectT) => true),
+  (fun (o : DynamicObjectT) (p : DynamicObjectT) => true), status)
+def scenarioVrsDefaultStatus : Value := vreplicaSetVrsStatusEncode (vreplicaSetVrsStatusMake (nonnegative 0))
+def scenarioVrsInstalled : InstalledTypes := scenarioInstalledWith (fun (kind : CommonKind) => scenarioVrsDefaultStatus)
+def scenarioStatefulInstalled : InstalledTypes := scenarioInstalledWith (fun (kind : CommonKind) => select Value (commonKindEqual kind vStatefulSetTKind) (statefulSetSsStatusEncode (statefulSetSsStatusMake (none Int))) jsonNull)
+def scenarioDeploymentInstalled : InstalledTypes := scenarioInstalledWith (fun (kind : CommonKind) => select Value (commonKindEqual kind vreplicaSetTKind) scenarioVrsDefaultStatus jsonNull)
+def scenarioVrsModels : ModelMap := modelMapCons (nonnegative 0) (tuple (vrsProgram, none ExternalProgram)) modelMapNil
+def scenarioStatefulModels : ModelMap := modelMapCons (nonnegative 0) (tuple (statefulProgram, none ExternalProgram)) modelMapNil
+def scenarioDeploymentModels : ModelMap := modelMapSet (nonnegative 1) (tuple (deploymentProgram, none ExternalProgram)) scenarioVrsModels
+def scenarioVrsCluster : ClusterConfig := tuple (scenarioVrsInstalled, scenarioVrsModels)
+def scenarioStatefulCluster : ClusterConfig := tuple (scenarioStatefulInstalled, scenarioStatefulModels)
+def scenarioDeploymentCluster : ClusterConfig := tuple (scenarioDeploymentInstalled, scenarioDeploymentModels)
+def scenarioActor : Bool -> Actor := fun (crash : Bool) => tuple (controllerInit, none Value, crash)
+def scenarioMakeState : Bool -> Bool -> Bool -> ApiState -> ClusterState := fun (crash : Bool) (drop : Bool) (monkey : Bool) (api : ApiState) =>
+  tuple (api, actorMapCons (nonnegative 0) (scenarioActor crash) actorMapNil, messagePoolNil, nonnegative 0, drop, monkey)
+def scenarioVrsSeed : Int -> Bool -> ClusterState := fun (desired : Int) (fair : Bool) =>
+  scenarioMakeState (boolNot fair) (boolNot fair) (boolNot fair)
+    (tuple (resourceStoreSet scenarioVrsRef (vreplicaSetTMarshal (scenarioVrs desired)) resourceStoreNil, nonnegative 2, nonnegative 1))
+def scenarioStatefulSeedFaults : Int -> Bool -> Bool -> Bool -> Bool -> ClusterState := fun (desired : Int) (crash : Bool) (drop : Bool) (monkey : Bool) (vct : Bool) =>
+  scenarioMakeState crash drop monkey (apiCreate scenarioStatefulInstalled b"ns" (vStatefulSetTMarshal (scenarioStateful vct desired)) (tuple (resourceStoreNil, nonnegative 1, nonnegative 0))).0
+def scenarioStatefulSeed : Int -> Bool -> ClusterState := fun (desired : Int) (fair : Bool) => scenarioStatefulSeedFaults desired (boolNot fair) (boolNot fair) (boolNot fair) false
+def scenarioStatefulSeedWithPods : Int -> Sequence Int -> Bool -> Bool -> Bool -> Bool -> ClusterState := fun (desired : Int) (ordinals : Sequence Int) (crash : Bool) (drop : Bool) (monkey : Bool) (vct : Bool) =>
+  let seed : ClusterState := scenarioStatefulSeedFaults desired crash drop monkey vct in
+  let owner : Option OwnerReferenceT := optionBind DynamicObjectT OwnerReferenceT (resourceStoreGet scenarioStatefulRef seed.0.0)
+    (fun (obj : DynamicObjectT) => optionBind Stateful OwnerReferenceT (resultToOption Stateful (vStatefulSetTUnmarshal obj)) vStatefulSetTControllerOwner) in
+  let api : ApiState := optionFold OwnerReferenceT ApiState seed.0 (fun (owner : OwnerReferenceT) => sequenceFold Int ApiState ordinals seed.0
+    (fun (api : ApiState) (ord : Int) => let md : ObjectMetaT := objectMetaTSetName (some Bytes (statefulPodName (ownerReferenceTName owner) ord))
+      (objectMetaTSetNamespace (some Bytes b"ns") (objectMetaTSetOwnerReferences (some ListOwnerReferenceT (listOwnerReferenceTCons owner listOwnerReferenceTNil)) objectMetaDefault)) in
+      (apiCreate scenarioStatefulInstalled b"ns" (podTMarshal (podTMake md (some PodSpecT podSpecDefault) (none Ghost))) api).0)) owner in
+  scenarioMakeState crash drop monkey api
+def scenarioStatefulSeedMultiFaults : Sequence Int -> Bool -> Bool -> Bool -> Bool -> ClusterState := fun (desireds : Sequence Int) (crash : Bool) (drop : Bool) (monkey : Bool) (vct : Bool) =>
+  let api : ApiState := (sequenceFold Int (prod (ApiState, Int)) desireds (tuple (tuple (resourceStoreNil, nonnegative 1, nonnegative 0), nonnegative 1))
+    (fun (acc : prod (ApiState, Int)) (desired : Int) => tuple ((apiCreate scenarioStatefulInstalled b"ns" (vStatefulSetTMarshal (scenarioStatefulNamed (bytesAppend b"vsts" (intText acc.1)) vct desired)) acc.0).0, intAdd acc.1 (nonnegative 1)))).0 in
+  scenarioMakeState crash drop monkey api
+def scenarioStatefulSeedMulti : Sequence Int -> Bool -> ClusterState := fun (desireds : Sequence Int) (fair : Bool) => scenarioStatefulSeedMultiFaults desireds (boolNot fair) (boolNot fair) (boolNot fair) false
+def scenarioVrsSeedMulti : Sequence Int -> Bool -> ClusterState := fun (desireds : Sequence Int) (fair : Bool) =>
+  let resources : ResourceStore := (sequenceFold Int (prod (ResourceStore, Int)) desireds (tuple (resourceStoreNil, nonnegative 1))
+    (fun (acc : prod (ResourceStore, Int)) (desired : Int) => let cr : Vrs := scenarioVrsNamed (bytesAppend b"vrs" (intText acc.1)) acc.1 desired in
+      tuple (resourceStoreSet (vrsRef cr) (objectWithResourceVersion (intSub acc.1 (nonnegative 1)) (vreplicaSetTMarshal cr)) acc.0, intAdd acc.1 (nonnegative 1)))).0 in
+  scenarioMakeState (boolNot fair) (boolNot fair) (boolNot fair) (tuple (resources, nonnegative (natAdd desireds.0 1), nonnegative desireds.0))
+def scenarioOwnedPod : Int -> Int -> PodT := fun (index : Int) (uid : Int) => podTMake
+  (objectMetaTSetLabels (some StringMap scenarioLabels) (objectMetaTSetOwnerReferences (some ListOwnerReferenceT
+    (listOwnerReferenceTCons (scenarioOwner vreplicaSetTKind b"vrs1" (nonnegative 1)) listOwnerReferenceTNil)) (scenarioMetadata (bytesAppend b"vreplicaset-vrs1-" (intText index)) uid)))
+  (some PodSpecT podSpecDefault) (none Ghost)
+def scenarioVrsSeedWithPods : Int -> Int -> Bool -> Result ClusterState := fun (desired : Int) (existing : Int) (fair : Bool) =>
+  optionFold Nat (Result ClusterState) (err ClusterState (decodeError b"Scenario.seed_with_pods" b"negative existing count")) (fun (n : Nat) =>
+    let base : ResourceStore := resourceStoreSet scenarioVrsRef (vreplicaSetTMarshal (scenarioVrs desired)) resourceStoreNil in
+    let resources : ResourceStore := countFold ResourceStore (natCount n) 0 base (fun (i : Nat) (acc : ResourceStore) =>
+      let pod : DynamicObjectT := objectWithResourceVersion (nonnegative (natAdd i 1)) (podTMarshal (scenarioOwnedPod (nonnegative i) (nonnegative (natAdd i 2)))) in
+      resourceStoreSet (assuranceDynamicRef pod) pod acc) in
+    ok ClusterState (scenarioMakeState (boolNot fair) (boolNot fair) (boolNot fair) (tuple (resources, intAdd existing (nonnegative 2), intAdd existing (nonnegative 1))))) (intToNat existing)
+def scenarioVrsSeedWithOrphan : Int -> Bool -> ClusterState := fun (desired : Int) (fair : Bool) =>
+  let md : ObjectMetaT := objectMetaTSetLabels (some StringMap scenarioLabels) (objectMetaTSetOwnerReferences (some ListOwnerReferenceT
+    (listOwnerReferenceTCons (scenarioOwner vreplicaSetTKind b"ghost" (nonnegative 999)) listOwnerReferenceTNil)) (scenarioMetadata b"vreplicaset-orphan-0" (nonnegative 2))) in
+  let pod : DynamicObjectT := objectWithResourceVersion (nonnegative 1) (podTMarshal (podTMake md (some PodSpecT podSpecDefault) (none Ghost))) in
+  let resources : ResourceStore := resourceStoreSet (assuranceDynamicRef pod) pod (resourceStoreSet scenarioVrsRef (vreplicaSetTMarshal (scenarioVrs desired)) resourceStoreNil) in
+  scenarioMakeState (boolNot fair) (boolNot fair) (boolNot fair) (tuple (resources, nonnegative 3, nonnegative 2))
+def scenarioDeploymentSeed : Int -> Bool -> ClusterState := fun (desired : Int) (fair : Bool) =>
+  let enabled : Bool := boolNot fair in
+  let api : ApiState := (apiCreate scenarioDeploymentInstalled b"ns" (vDeploymentTMarshal (scenarioDeployment desired)) (tuple (resourceStoreNil, nonnegative 1, nonnegative 0))).0 in
+  tuple (api, actorMapCons (nonnegative 0) (scenarioActor enabled) (actorMapCons (nonnegative 1) (scenarioActor enabled) actorMapNil), messagePoolNil, nonnegative 0, enabled, enabled)
+def scenarioStatefulPodsIntact : ClusterState -> Sequence Int -> Bool := fun (s : ClusterState) (ordinals : Sequence Int) =>
+  let unique : Bool := sequenceEvery Int ordinals (fun (ord : Int) => natEq (sequenceFold Int Nat ordinals 0 (fun (count : Nat) (x : Int) => natAdd count (boolNat (intEqual ord x)))) 1) in
+  boolAnd unique (optionFold DynamicObjectT Bool false (fun (obj : DynamicObjectT) => optionFold Stateful Bool false (fun (live : Stateful) =>
+    boolAnd (intIsNonnegative (vstsReplicas live)) (boolAnd (optionIsSome Bytes (objectMetaTName (vStatefulSetTMetadata live)))
+    (boolAnd (optionIsSome Bytes (objectMetaTNamespace (vStatefulSetTMetadata live))) (optionFold OwnerReferenceT Bool false (fun (owner : OwnerReferenceT) =>
+      sequenceEvery Int ordinals (fun (ord : Int) => let name : Bytes := statefulPodName (vstsName live) ord in
+        boolAnd (boolNot (intLess ord (vstsReplicas live))) (optionFold DynamicObjectT Bool false (fun (pod : DynamicObjectT) =>
+          boolAnd (assuranceExactlyOwner (ownerReferenceTEqual owner) (dynamicObjectTMetadata pod)) (optionFold Int Bool false (intEqual ord) (statefulOrdinal (vstsName live) name)))
+          (resourceStoreGet (commonObjectRefMake commonKindPod name (vstsNamespace live)) s.0.0)))) (vStatefulSetTControllerOwner live)))))
+    (resultToOption Stateful (vStatefulSetTUnmarshal obj))) (resourceStoreGet scenarioStatefulRef s.0.0))

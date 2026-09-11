@@ -1,0 +1,81 @@
+-- Bound caps apply after filtering, and garbage collection caps each kind.
+mu Keys : Type 0 := | keysNil : Keys | keysCons (key : CommonObjectRef) (tail : Keys) : Keys
+def rec keysAppend : Keys -> Keys -> Keys := fun (a : Keys) (b : Keys) => match a as self in Keys return Keys with
+  | keysNil => b | keysCons h t => keysCons h (keysAppend t b)
+def rec resourceKeys : ResourceStore -> Keys := fun (s : ResourceStore) => match s as self in ResourceStore return Keys with
+  | resourceStoreNil => keysNil | resourceStoreCons k v t => keysCons k (resourceKeys t)
+def rec ongoingKeys : OngoingMap -> Keys := fun (s : OngoingMap) => match s as self in OngoingMap return Keys with
+  | ongoingMapNil => keysNil | ongoingMapCons k v t => keysCons k (ongoingKeys t)
+def rec keysSelect : Keys -> Int -> (CommonObjectRef -> Bool) -> Keys := fun (xs : Keys) (count : Int) (p : CommonObjectRef -> Bool) =>
+  match xs as self in Keys return Keys with | keysNil => keysNil
+  | keysCons h t => (case (intPositiveFlag count) with | 0 (u : Unit) => keysNil
+    | 1 (u : Unit) => (case (p h) with | 1 (u : Unit) => keysCons h (keysSelect t (intSub count (nonnegative 1)) p)
+      | 0 (u : Unit) => keysSelect t count p))
+def rec keysSuccessors : Keys -> (CommonObjectRef -> Successors) -> Successors := fun (xs : Keys) (f : CommonObjectRef -> Successors) => match xs as self in Keys return Successors with
+  | keysNil => successorsNil | keysCons h t => successorsAppend (f h) (keysSuccessors t f)
+def rec messagePoolSelect : MessagePool -> Int -> (Message -> Bool) -> MessagePool := fun (xs : MessagePool) (count : Int) (p : Message -> Bool) =>
+  match xs as self in MessagePool return MessagePool with | messagePoolNil => messagePoolNil
+  | messagePoolCons h t => (case (intPositiveFlag count) with | 0 (u : Unit) => messagePoolNil
+    | 1 (u : Unit) => (case (p h) with | 1 (u : Unit) => messagePoolCons h (messagePoolSelect t (intSub count (nonnegative 1)) p)
+      | 0 (u : Unit) => messagePoolSelect t count p))
+def rec messagePoolSuccessors : MessagePool -> (Message -> Successors) -> Successors := fun (xs : MessagePool) (f : Message -> Successors) => match xs as self in MessagePool return Successors with
+  | messagePoolNil => successorsNil | messagePoolCons h t => successorsAppend (f h) (messagePoolSuccessors t f)
+def rec modelMapTake : ModelMap -> Int -> ModelMap := fun (xs : ModelMap) (count : Int) => match xs as self in ModelMap return ModelMap with
+  | modelMapNil => modelMapNil
+  | modelMapCons k v t => (case (intPositiveFlag count) with | 0 (u : Unit) => modelMapNil
+    | 1 (u : Unit) => modelMapCons k v (modelMapTake t (intSub count (nonnegative 1))))
+def rec modelMapSuccessors : ModelMap -> (Int -> ControllerBundle -> Successors) -> Successors := fun (xs : ModelMap) (f : Int -> ControllerBundle -> Successors) => match xs as self in ModelMap return Successors with
+  | modelMapNil => successorsNil | modelMapCons k v t => successorsAppend (f k v) (modelMapSuccessors t f)
+mu Kinds : Type 0 := | kindsNil : Kinds | kindsCons (kind : CommonKind) (tail : Kinds) : Kinds
+def rec kindsContains : CommonKind -> Kinds -> Bool := fun (kind : CommonKind) (xs : Kinds) => match xs as self in Kinds return Bool with
+  | kindsNil => false | kindsCons h t => boolOr (commonKindEqual kind h) (kindsContains kind t)
+def resourceKinds : ResourceStore -> Kinds := fun (s : ResourceStore) => resourceStoreFold Kinds s kindsNil
+  (fun (key : CommonObjectRef) (obj : DynamicObjectT) (acc : Kinds) =>
+    select Kinds (kindsContains (commonObjectRefKind key) acc) acc (kindsCons (commonObjectRefKind key) acc))
+def rec kindsGcKeys : Kinds -> Keys -> Int -> Keys := fun (kinds : Kinds) (keys : Keys) (count : Int) => match kinds as self in Kinds return Keys with
+  | kindsNil => keysNil | kindsCons h t => keysAppend (keysSelect keys count (fun (k : CommonObjectRef) => commonKindEqual (commonObjectRefKind k) h)) (kindsGcKeys t keys count)
+def rec storedPods : ResourceStore -> ListPodT := fun (s : ResourceStore) => match s as self in ResourceStore return ListPodT with
+  | resourceStoreNil => listPodTNil
+  | resourceStoreCons k v t =>
+    let rest : ListPodT := storedPods t in
+    (case (commonKindEqual (commonObjectRefKind k) commonKindPod) with | 0 (u : Unit) => rest
+    | 1 (u : Unit) => optionFold PodT ListPodT rest (fun (pod : PodT) => listPodTCons pod rest) (resultToOption PodT (podTUnmarshal v)))
+def rec podsTake : ListPodT -> Int -> ListPodT := fun (xs : ListPodT) (count : Int) => match xs as self in ListPodT return ListPodT with
+  | listPodTNil => listPodTNil | listPodTCons h t => (case (intPositiveFlag count) with | 0 (u : Unit) => listPodTNil
+    | 1 (u : Unit) => listPodTCons h (podsTake t (intSub count (nonnegative 1))))
+def rec podsSuccessors : ListPodT -> (PodT -> Successors) -> Successors := fun (xs : ListPodT) (f : PodT -> Successors) => match xs as self in ListPodT return Successors with
+  | listPodTNil => successorsNil | listPodTCons h t => successorsAppend (f h) (podsSuccessors t f)
+def clusterStepSuccessors : ClusterConfig -> ClusterState -> ClusterStep -> Successors := fun (config : ClusterConfig) (s : ClusterState) (step : ClusterStep) => successorsFor step (clusterNextStates config s step)
+def dropAllErrors : ClusterConfig -> ClusterState -> Message -> Successors := fun (config : ClusterConfig) (s : ClusterState) (msg : Message) =>
+  let f : ApiError -> Successors := fun (e : ApiError) => clusterStepSuccessors config s (stepDrop msg e) in
+  successorsAppend (f apiMethodApiErrorBadRequest) (successorsAppend (f apiMethodApiErrorConflict)
+  (successorsAppend (f apiMethodApiErrorForbidden) (successorsAppend (f apiMethodApiErrorInvalid)
+  (successorsAppend (f apiMethodApiErrorObjectNotFound) (successorsAppend (f apiMethodApiErrorObjectAlreadyExists)
+  (successorsAppend (f apiMethodApiErrorNotSupported) (successorsAppend (f apiMethodApiErrorInternalError)
+  (successorsAppend (f apiMethodApiErrorTimeout) (successorsAppend (f apiMethodApiErrorServerTimeout)
+  (successorsAppend (f apiMethodApiErrorTransactionAbort) (f apiMethodApiErrorOther)))))))))))
+def clusterEnabledSuccessors : Bound -> ClusterConfig -> ClusterState -> Successors := fun (bound : Bound) (config : ClusterConfig) (s : ClusterState) =>
+  let allMessages : MessagePool := messagePoolDistinct s.2 in
+  let apiMessages : MessagePool := messagePoolSelect allMessages bound.0 (fun (m : Message) => hostEqual m.1 hostApi) in
+  let step : ClusterStep -> Successors := clusterStepSuccessors config s in
+  let apiSteps : Successors := messagePoolSuccessors apiMessages (fun (m : Message) => step (stepApi (some Message m))) in
+  let dropSteps : Successors := messagePoolSuccessors apiMessages (dropAllErrors config s) in
+  let models : ModelMap := modelMapTake config.1 bound.2 in
+  let controllerSteps : Successors := modelMapSuccessors models (fun (id : Int) (bundle : ControllerBundle) =>
+    let keys : Keys := optionFold Actor Keys keysNil (fun (actor : Actor) => keysAppend (resourceKeys actor.0.1) (ongoingKeys actor.0.0)) (actorMapGet id s.1) in
+    let forRecv : Option Message -> Successors := fun (recv : Option Message) => keysSuccessors keys (fun (key : CommonObjectRef) => step (stepController id recv (some CommonObjectRef key))) in
+    successorsAppend (forRecv (none Message)) (messagePoolSuccessors (messagePoolSelect allMessages bound.0 (fun (m : Message) => hostIsController m.1 id))
+      (fun (m : Message) => forRecv (some Message m)))) in
+  let scheduleSteps : Successors := modelMapSuccessors models (fun (id : Int) (bundle : ControllerBundle) =>
+    keysSuccessors (keysSelect (resourceKeys s.0.0) bound.1 (fun (key : CommonObjectRef) => commonKindEqual (commonObjectRefKind key) bundle.0.0))
+      (fun (key : CommonObjectRef) => step (stepSchedule id key))) in
+  let restartSteps : Successors := modelMapSuccessors models (fun (id : Int) (bundle : ControllerBundle) => step (stepRestart id)) in
+  let disableCrashSteps : Successors := modelMapSuccessors models (fun (id : Int) (bundle : ControllerBundle) => step (stepDisableCrash id)) in
+  let externalSteps : Successors := modelMapSuccessors models (fun (id : Int) (bundle : ControllerBundle) =>
+    messagePoolSuccessors (messagePoolSelect allMessages bound.0 (fun (m : Message) => hostEqual m.1 (hostExternal id)))
+      (fun (m : Message) => step (stepExternal id (some Message m)))) in
+  let builtinSteps : Successors := keysSuccessors (kindsGcKeys (resourceKinds s.0.0) (resourceKeys s.0.0) bound.1) (fun (key : CommonObjectRef) => step (stepBuiltin key)) in
+  let podSteps : Successors := podsSuccessors (listPodTAppend (podsTake (storedPods s.0.0) bound.1) bound.7) (fun (pod : PodT) => step (stepMonkey pod)) in
+  let singletons : Successors := successorsAppend (step stepDisableDrop) (successorsAppend (step stepDisableMonkey) (step stepStutter)) in
+  successorsAppend apiSteps (successorsAppend dropSteps (successorsAppend builtinSteps (successorsAppend controllerSteps
+    (successorsAppend scheduleSteps (successorsAppend restartSteps (successorsAppend disableCrashSteps (successorsAppend externalSteps (successorsAppend podSteps singletons))))))))

@@ -1,0 +1,22 @@
+def Action : (0 S : Type 0) -> (0 I : Type 0) -> (0 O : Type 0) -> Type 0 := fun (0 S : Type 0) (0 I : Type 0) (0 O : Type 0) => prod ((I -> S -> Bool), (I -> S -> prod (S, O)))
+def actionForward : (0 S : Type 0) -> (0 I : Type 0) -> (0 O : Type 0) -> (S -> S -> Bool) -> Action S I O -> I -> S -> S -> Bool :=
+  fun (0 S : Type 0) (0 I : Type 0) (0 O : Type 0) (equal : S -> S -> Bool) (a : Action S I O) (i : I) (s : S) (next : S) => boolAnd (a.0 i s) (equal (a.1 i s).0 next)
+def actionNext : (0 S : Type 0) -> (0 I : Type 0) -> (0 O : Type 0) -> Action S I O -> I -> S -> Option (prod (S, O)) :=
+  fun (0 S : Type 0) (0 I : Type 0) (0 O : Type 0) (a : Action S I O) (i : I) (s : S) => case (a.0 i s) with | 0 (u : Unit) => none (prod (S, O)) | 1 (u : Unit) => some (prod (S, O)) (a.1 i s)
+def actionWeakFairness : (0 S : Type 0) -> (0 I : Type 0) -> (0 O : Type 0) -> (S -> S -> Bool) -> Bytes -> Action S I O -> I -> Formula S :=
+  fun (0 S : Type 0) (0 I : Type 0) (0 O : Type 0) (equal : S -> S -> Bool) (name : Bytes) (a : Action S I O) (i : I) => formulaWeakFairness S (bytesAppend name b".pre") (a.0 i) (bytesAppend name b".forward") (actionForward S I O equal a i)
+def StateMachine : (0 S : Type 0) -> (0 I : Type 0) -> (0 A : Type 0) -> (0 O : Type 0) -> (0 Step : Type 0) -> Type 0 :=
+  fun (0 S : Type 0) (0 I : Type 0) (0 A : Type 0) (0 O : Type 0) (0 Step : Type 0) => prod ((S -> Bool), (Step -> Action S A O), (Step -> I -> A))
+def stateMachineNext : (0 S : Type 0) -> (0 I : Type 0) -> (0 A : Type 0) -> (0 O : Type 0) -> (0 Step : Type 0) -> StateMachine S I A O Step -> Sequence Step -> I -> S -> Sequence (prod (S, O)) :=
+  fun (0 S : Type 0) (0 I : Type 0) (0 A : Type 0) (0 O : Type 0) (0 Step : Type 0) (machine : StateMachine S I A O Step) (steps : Sequence Step) (input : I) (s : S) =>
+  sequenceFold Step (Sequence (prod (S, O))) steps (sequenceEmpty (prod (S, O))) (fun (acc : Sequence (prod (S, O))) (step : Step) => optionFold (prod (S, O)) (Sequence (prod (S, O))) acc (sequencePush (prod (S, O)) acc) (actionNext S A O (machine.1 step) (machine.2 step input) s))
+def Net : (0 S : Type 0) -> (0 M : Type 0) -> Type 0 := fun (0 S : Type 0) (0 M : Type 0) => prod ((S -> Bool), Action S M Ghost)
+def netNext : (0 S : Type 0) -> (0 M : Type 0) -> Net S M -> M -> S -> Option (prod (S, Ghost)) := fun (0 S : Type 0) (0 M : Type 0) (n : Net S M) => actionNext S M Ghost n.1
+def directReturn : (0 A : Type 0) -> A -> A := fun (0 A : Type 0) (a : A) => a
+def directBind : (0 A : Type 0) -> (0 B : Type 0) -> A -> (A -> B) -> B := fun (0 A : Type 0) (0 B : Type 0) (a : A) (f : A -> B) => f a
+def directBoth : (0 A : Type 0) -> (0 B : Type 0) -> A -> B -> prod (A, B) := fun (0 A : Type 0) (0 B : Type 0) (a : A) (b : B) => tuple (a, b)
+def directSleep : Bytes -> Ghost := fun (seconds : Bytes) => ghost
+def nativeBackendDeferred : Error := malformedValue b"native_backend" b"native list-watch/auth/TLS backend deferred to Leg 3 (research-grade); use Exec_api_server for the deterministic core"
+def nativeBackendCreate : Bytes -> Bytes -> Result Ghost := fun (server : Bytes) (ns : Bytes) => err Ghost nativeBackendDeferred
+def nativeBackendRequest : Ghost -> Request -> Result Response := fun (client : Ghost) (req : Request) => err Response nativeBackendDeferred
+def nativeBackendWatch : Ghost -> CommonKind -> Bytes -> Result (Sequence DynamicObjectT) := fun (client : Ghost) (kind : CommonKind) (ns : Bytes) => err (Sequence DynamicObjectT) nativeBackendDeferred

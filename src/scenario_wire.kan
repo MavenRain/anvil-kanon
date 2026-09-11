@@ -1,0 +1,28 @@
+def scenarioFixtureSeed : Value -> Result ClusterState := fun (input : Value) =>
+  resultBind Bytes ClusterState (jsonField Bytes input b"mode" jsonGetString) (fun (mode : Bytes) =>
+  resultBind Int ClusterState (jsonField Int input b"desired" jsonGetInt) (fun (desired : Int) =>
+  resultBind Bool ClusterState (jsonField Bool input b"fair" jsonGetBool) (fun (fair : Bool) =>
+  resultBind Bool ClusterState (jsonField Bool input b"crash" jsonGetBool) (fun (crash : Bool) =>
+  resultBind Bool ClusterState (jsonField Bool input b"drop" jsonGetBool) (fun (drop : Bool) =>
+  resultBind Bool ClusterState (jsonField Bool input b"monkey" jsonGetBool) (fun (monkey : Bool) =>
+  resultBind Bool ClusterState (jsonField Bool input b"vct" jsonGetBool) (fun (vct : Bool) =>
+  resultBind Int ClusterState (jsonField Int input b"existing" jsonGetInt) (fun (existing : Int) =>
+  resultBind (Sequence Int) ClusterState (jsonField (Sequence Int) input b"desireds" (jsonSequenceDecode Int jsonGetInt)) (fun (desireds : Sequence Int) =>
+  resultBind (Sequence Int) ClusterState (jsonField (Sequence Int) input b"ordinals" (jsonSequenceDecode Int jsonGetInt)) (fun (ordinals : Sequence Int) =>
+    case (bytesEqual mode b"vrs") with | 1 (u : Unit) => ok ClusterState (scenarioVrsSeed desired fair)
+    | 0 (u : Unit) => (case (bytesEqual mode b"vrsMulti") with | 1 (u : Unit) => ok ClusterState (scenarioVrsSeedMulti desireds fair)
+    | 0 (u : Unit) => (case (bytesEqual mode b"vrsPods") with | 1 (u : Unit) => scenarioVrsSeedWithPods desired existing fair
+    | 0 (u : Unit) => (case (bytesEqual mode b"vrsOrphan") with | 1 (u : Unit) => ok ClusterState (scenarioVrsSeedWithOrphan desired fair)
+    | 0 (u : Unit) => (case (bytesEqual mode b"stateful") with | 1 (u : Unit) => ok ClusterState (scenarioStatefulSeed desired fair)
+    | 0 (u : Unit) => (case (bytesEqual mode b"statefulFaults") with | 1 (u : Unit) => ok ClusterState (scenarioStatefulSeedFaults desired crash drop monkey vct)
+    | 0 (u : Unit) => (case (bytesEqual mode b"statefulPods") with | 1 (u : Unit) => ok ClusterState (scenarioStatefulSeedWithPods desired ordinals crash drop monkey vct)
+    | 0 (u : Unit) => (case (bytesEqual mode b"statefulMulti") with | 1 (u : Unit) => ok ClusterState (scenarioStatefulSeedMulti desireds fair)
+    | 0 (u : Unit) => (case (bytesEqual mode b"statefulMultiFaults") with | 1 (u : Unit) => ok ClusterState (scenarioStatefulSeedMultiFaults desireds crash drop monkey vct)
+    | 0 (u : Unit) => (case (bytesEqual mode b"deployment") with | 1 (u : Unit) => ok ClusterState (scenarioDeploymentSeed desired fair)
+    | 0 (u : Unit) => err ClusterState (decodeError b"scenario" mode))))))))))))))))))))
+def scenarioFixtureRender : Value -> Bytes := fun (input : Value) => case (scenarioFixtureSeed input) with
+  | 0 (e : Error) => bytesAppend b"error: " (errorText e)
+  | 1 (s : ClusterState) => valueRender (clusterStateWireEncode s)
+def scenarioIntactRender : Value -> Bytes := fun (input : Value) => case (resultBind ClusterState Bool (jsonField ClusterState input b"state" clusterStateWireDecode)
+  (fun (s : ClusterState) => resultMap (Sequence Int) Bool (scenarioStatefulPodsIntact s) (jsonField (Sequence Int) input b"ordinals" (jsonSequenceDecode Int jsonGetInt)))) with
+  | 0 (e : Error) => bytesAppend b"error: " (errorText e) | 1 (b : Bool) => valueRender (jsonBool b)

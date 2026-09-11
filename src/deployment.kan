@@ -1,0 +1,113 @@
+-- VDeployment's incremental scaling protocol.
+def Deployment : Type 0 := VDeploymentT
+def DeploymentState : Type 0 := VDeploymentReconcilerS
+def DeploymentStep : Type 0 := VDeploymentReconcilerStep
+def DeploymentOutput : Type 0 := prod (DeploymentState, Option Request)
+def deploymentInit : DeploymentState := vDeploymentReconcilerSMake vDeploymentReconcilerStepInit (none VreplicaSetT) listVreplicaSetTNil (nonnegative 0)
+def deploymentAt : DeploymentStep -> DeploymentState -> DeploymentState := fun (step : DeploymentStep) (s : DeploymentState) => vDeploymentReconcilerSSetReconcileStep step s
+def deploymentError : DeploymentState -> DeploymentOutput := fun (s : DeploymentState) => tuple (deploymentAt vDeploymentReconcilerStepError s, none Request)
+def deploymentDone : DeploymentState -> Bool := fun (s : DeploymentState) => vDeploymentReconcilerStepEqual (vDeploymentReconcilerSReconcileStep s) vDeploymentReconcilerStepDone
+def deploymentFailed : DeploymentState -> Bool := fun (s : DeploymentState) => vDeploymentReconcilerStepEqual (vDeploymentReconcilerSReconcileStep s) vDeploymentReconcilerStepError
+def deploymentReplicas : Deployment -> Int := fun (cr : Deployment) => optionValue Int (nonnegative 1) (vDeploymentVdSpecReplicas (vDeploymentTSpec cr))
+def rec objectsToVrs : ListDynamicObjectT -> Option ListVreplicaSetT := fun (xs : ListDynamicObjectT) =>
+  match xs as self in ListDynamicObjectT return Option ListVreplicaSetT with
+  | listDynamicObjectTNil => some ListVreplicaSetT listVreplicaSetTNil
+  | listDynamicObjectTCons h t => optionBind VreplicaSetT ListVreplicaSetT (resultToOption VreplicaSetT (vreplicaSetTUnmarshal h)) (fun (cr : VreplicaSetT) =>
+      optionMap ListVreplicaSetT ListVreplicaSetT (fun (tail : ListVreplicaSetT) => listVreplicaSetTCons cr tail) (objectsToVrs t))
+def deploymentOwnsVrs : Deployment -> VreplicaSetT -> Bool := fun (cr : Deployment) (vrs : VreplicaSetT) =>
+  let m : ObjectMetaT := vreplicaSetTMetadata vrs in
+  boolAnd (optionIsSome Bytes (objectMetaTName m))
+  (boolAnd (optionIsSome Bytes (objectMetaTNamespace m))
+  (boolAnd (optionEqual Bytes bytesEqual (objectMetaTNamespace m) (objectMetaTNamespace (vDeploymentTMetadata cr)))
+  (boolAnd (vrsValid vrs) (boolAnd (boolNot (optionIsSome Bytes (objectMetaTDeletionTimestamp m)))
+    (optionFold OwnerReferenceT Bool false (objectMetaOwnersContain m) (vDeploymentTControllerOwner cr))))))
+def stripTemplateHash : PodTemplateSpecT -> PodTemplateSpecT := fun (tmpl : PodTemplateSpecT) =>
+  podTemplateSpecTSetMetadata (optionMap ObjectMetaT ObjectMetaT (objectMetaWithoutLabel b"pod-template-hash") (podTemplateSpecTMetadata tmpl)) tmpl
+def deploymentTemplateMatches : PodTemplateSpecT -> VreplicaSetT -> Bool := fun (tmpl : PodTemplateSpecT) (vrs : VreplicaSetT) =>
+  optionFold PodTemplateSpecT Bool false (fun (t : PodTemplateSpecT) => podTemplateSpecTEqual (stripTemplateHash tmpl) (stripTemplateHash t)) (vreplicaSetVrsSpecTemplate (vreplicaSetTSpec vrs))
+def deploymentNonemptyVrs : VreplicaSetT -> Bool := fun (cr : VreplicaSetT) => intPositiveFlag (vrsReplicas cr)
+def DeploymentPartition : Type 0 := prod (Option VreplicaSetT, ListVreplicaSetT)
+def deploymentPartition : Deployment -> ListVreplicaSetT -> DeploymentPartition := fun (cr : Deployment) (xs : ListVreplicaSetT) =>
+  let reusable : ListVreplicaSetT := listVreplicaSetTFilter xs (deploymentTemplateMatches (vDeploymentVdSpecTemplate (vDeploymentTSpec cr))) in
+  let chosen : Option VreplicaSetT := optionFold VreplicaSetT (Option VreplicaSetT) (listVreplicaSetTNth reusable 0)
+    (fun (v : VreplicaSetT) => some VreplicaSetT v) (listVreplicaSetTFind reusable deploymentNonemptyVrs) in
+  let old : ListVreplicaSetT := listVreplicaSetTFilter xs (fun (v : VreplicaSetT) =>
+    boolAnd (deploymentNonemptyVrs v) (optionFold VreplicaSetT Bool true (fun (r : VreplicaSetT) =>
+      boolNot (optionEqual Int intEqual (objectMetaTUid (vreplicaSetTMetadata v)) (objectMetaTUid (vreplicaSetTMetadata r)))) chosen)) in
+  tuple (chosen, old)
+def deploymentTemplateWithHash : Deployment -> Bytes -> PodTemplateSpecT := fun (cr : Deployment) (hash : Bytes) =>
+  let tmpl : PodTemplateSpecT := vDeploymentVdSpecTemplate (vDeploymentTSpec cr) in
+  podTemplateSpecTSetMetadata (optionMap ObjectMetaT ObjectMetaT (objectMetaAddLabel b"pod-template-hash" hash) (podTemplateSpecTMetadata tmpl)) tmpl
+def deploymentMakeVrs : Deployment -> Option VreplicaSetT := fun (cr : Deployment) =>
+  let md : ObjectMetaT := vDeploymentTMetadata cr in
+  let hash : Bytes := optionFold Int Bytes b"0" intText (objectMetaTResourceVersion md) in
+  optionBind Bytes VreplicaSetT (objectMetaTName md) (fun (name : Bytes) =>
+  optionMap OwnerReferenceT VreplicaSetT (fun (owner : OwnerReferenceT) =>
+    let tmpl : PodTemplateSpecT := vDeploymentVdSpecTemplate (vDeploymentTSpec cr) in
+    let labels : StringMap := optionFold ObjectMetaT StringMap stringMapEmpty (fun (m : ObjectMetaT) => optionValue StringMap stringMapEmpty (objectMetaTLabels m)) (podTemplateSpecTMetadata tmpl) in
+    let meta : ObjectMetaT := objectMetaTSetGenerateName (some Bytes (bytesAppend name (bytesCons 45 hash))) objectMetaDefault in
+    let meta : ObjectMetaT := objectMetaTSetNamespace (objectMetaTNamespace md) meta in
+    let meta : ObjectMetaT := objectMetaTSetLabels (objectMetaTLabels md) meta in
+    let meta : ObjectMetaT := objectMetaTSetOwnerReferences (some ListOwnerReferenceT (listOwnerReferenceTCons owner listOwnerReferenceTNil)) meta in
+    let meta : ObjectMetaT := objectMetaAddLabel b"pod-template-hash" hash meta in
+    let desired : Int := select Int (intPositiveFlag (deploymentReplicas cr)) (nonnegative 1) (nonnegative 0) in
+    vreplicaSetTMake meta (vreplicaSetVrsSpecMake (some Int desired) (labelSelectorTMake (some StringMap (stringMapSet b"pod-template-hash" hash labels)))
+      (some PodTemplateSpecT (deploymentTemplateWithHash cr hash))) (none VreplicaSetVrsStatus)) (vDeploymentTControllerOwner cr))
+def deploymentCreate : DeploymentState -> Deployment -> DeploymentOutput := fun (s : DeploymentState) (cr : Deployment) =>
+  optionFold Bytes DeploymentOutput (deploymentError s) (fun (ns : Bytes) =>
+    optionFold VreplicaSetT DeploymentOutput (deploymentError s) (fun (v : VreplicaSetT) =>
+      tuple (deploymentAt vDeploymentReconcilerStepAfterCreateNewVrs s, some Request (requestCreate ns (vreplicaSetTMarshal v))))
+      (deploymentMakeVrs cr)) (objectMetaTNamespace (vDeploymentTMetadata cr))
+def deploymentSendUpdate : DeploymentState -> DeploymentState -> Deployment -> VreplicaSetT -> DeploymentOutput := fun (original : DeploymentState) (s : DeploymentState) (cr : Deployment) (v : VreplicaSetT) =>
+  optionFold Bytes DeploymentOutput (deploymentError original) (fun (ns : Bytes) =>
+  optionFold Bytes DeploymentOutput (deploymentError original) (fun (name : Bytes) =>
+  optionFold OwnerReferenceT DeploymentOutput (deploymentError original) (fun (owner : OwnerReferenceT) =>
+    tuple (s, some Request (requestGetThenUpdate ns name owner (vreplicaSetTMarshal v)))) (vDeploymentTControllerOwner cr))
+    (objectMetaTName (vreplicaSetTMetadata v))) (objectMetaTNamespace (vDeploymentTMetadata cr))
+def deploymentScaleNew : DeploymentState -> Deployment -> DeploymentOutput := fun (s : DeploymentState) (cr : Deployment) =>
+  optionFold VreplicaSetT DeploymentOutput (deploymentError s) (fun (v : VreplicaSetT) =>
+    let current : Int := vrsReplicas v in
+    let desired : Int := select Int (intLess current (deploymentReplicas cr)) (intAdd current (nonnegative 1)) (intSub current (nonnegative 1)) in
+    let updated : VreplicaSetT := vreplicaSetTSetSpec (vreplicaSetVrsSpecSetReplicas (some Int desired) (vreplicaSetTSpec v)) v in
+    let next : DeploymentState := vDeploymentReconcilerSSetNewVrs (some VreplicaSetT updated) (deploymentAt vDeploymentReconcilerStepAfterScaleNewVrs s) in
+    deploymentSendUpdate s next cr updated) (vDeploymentReconcilerSNewVrs s)
+def deploymentScaleOld : DeploymentState -> Deployment -> DeploymentOutput := fun (s : DeploymentState) (cr : Deployment) =>
+  let index : Int := intSub (vDeploymentReconcilerSOldVrsIndex s) (nonnegative 1) in
+  optionFold Nat DeploymentOutput (deploymentError s) (fun (i : Nat) =>
+  optionFold VreplicaSetT DeploymentOutput (deploymentError s) (fun (v : VreplicaSetT) =>
+    let updated : VreplicaSetT := vreplicaSetTSetSpec (vreplicaSetVrsSpecSetReplicas (some Int (nonnegative 0)) (vreplicaSetTSpec v)) v in
+    let next : DeploymentState := vDeploymentReconcilerSSetOldVrsIndex index (deploymentAt vDeploymentReconcilerStepAfterScaleDownOldVrs s) in
+    deploymentSendUpdate s next cr updated) (listVreplicaSetTNth (vDeploymentReconcilerSOldVrsList s) i)) (intToNat index)
+def deploymentContinueOld : DeploymentState -> Deployment -> DeploymentOutput := fun (s : DeploymentState) (cr : Deployment) =>
+  case (intEqual (vDeploymentReconcilerSOldVrsIndex s) (nonnegative 0)) with
+  | 1 (u : Unit) => tuple (deploymentAt vDeploymentReconcilerStepDone s, none Request)
+  | 0 (u : Unit) => optionFold Nat DeploymentOutput (deploymentError s) (fun (i : Nat) =>
+      optionFold VreplicaSetT DeploymentOutput (deploymentError s) (fun (v : VreplicaSetT) =>
+        select DeploymentOutput (deploymentOwnsVrs cr v) (deploymentScaleOld s cr) (deploymentError s))
+        (listVreplicaSetTNth (vDeploymentReconcilerSOldVrsList s) i)) (intToNat (intSub (vDeploymentReconcilerSOldVrsIndex s) (nonnegative 1)))
+def deploymentMismatchReplicas : Deployment -> VreplicaSetT -> Bool := fun (cr : Deployment) (v : VreplicaSetT) =>
+  boolAnd (boolOr (optionEqual Int intEqual (vreplicaSetVrsSpecReplicas (vreplicaSetTSpec v)) (some Int (nonnegative 0)))
+    (optionFold VreplicaSetVrsStatus Bool false (fun (st : VreplicaSetVrsStatus) => intEqual (vreplicaSetVrsStatusReplicas st) (vrsReplicas v)) (vreplicaSetTStatus v)))
+    (boolNot (intEqual (deploymentReplicas cr) (vrsReplicas v)))
+def deploymentAfterList : DeploymentState -> Deployment -> ListDynamicObjectT -> DeploymentOutput := fun (s : DeploymentState) (cr : Deployment) (xs : ListDynamicObjectT) =>
+  optionFold ListVreplicaSetT DeploymentOutput (deploymentError s) (fun (objects : ListVreplicaSetT) =>
+    let partition : DeploymentPartition := deploymentPartition cr (listVreplicaSetTFilter objects (deploymentOwnsVrs cr)) in
+    let next : DeploymentState := vDeploymentReconcilerSMake vDeploymentReconcilerStepAfterEnsureNewVrs partition.0 partition.1 (nonnegative (listVreplicaSetTLength partition.1)) in
+    optionFold VreplicaSetT DeploymentOutput (deploymentCreate next cr) (fun (v : VreplicaSetT) =>
+      select DeploymentOutput (deploymentMismatchReplicas cr v) (deploymentScaleNew next cr) (tuple (next, none Request))) partition.0) (objectsToVrs xs)
+def deploymentCore : Deployment -> Option Response -> DeploymentState -> DeploymentOutput := fun (cr : Deployment) (response : Option Response) (s : DeploymentState) =>
+  optionFold Bytes DeploymentOutput (deploymentError s) (fun (ns : Bytes) =>
+  match (vDeploymentReconcilerSReconcileStep s) as self in VDeploymentReconcilerStep return DeploymentOutput with
+  | vDeploymentReconcilerStepInit => tuple (vDeploymentReconcilerSMake vDeploymentReconcilerStepAfterListVrs (none VreplicaSetT) listVreplicaSetTNil (nonnegative 0), some Request (requestList vreplicaSetTKind ns))
+  | vDeploymentReconcilerStepAfterListVrs => optionFold ListDynamicObjectT DeploymentOutput (deploymentError s) (deploymentAfterList s cr) (apiResponseOk ListDynamicObjectT (responseList response))
+  | vDeploymentReconcilerStepAfterCreateNewVrs => optionFold DynamicObjectT DeploymentOutput (deploymentError s) (fun (obj : DynamicObjectT) =>
+      optionFold VreplicaSetT DeploymentOutput (deploymentError s) (fun (v : VreplicaSetT) =>
+        tuple (vDeploymentReconcilerSSetNewVrs (some VreplicaSetT v) (deploymentAt vDeploymentReconcilerStepAfterEnsureNewVrs s), none Request))
+        (resultToOption VreplicaSetT (vreplicaSetTUnmarshal obj))) (apiResponseOk DynamicObjectT (responseCreate response))
+  | vDeploymentReconcilerStepAfterScaleNewVrs => optionFold DynamicObjectT DeploymentOutput (deploymentError s) (fun (obj : DynamicObjectT) =>
+      tuple (deploymentAt vDeploymentReconcilerStepAfterEnsureNewVrs s, none Request)) (apiResponseOk DynamicObjectT (responseGetThenUpdate response))
+  | vDeploymentReconcilerStepAfterEnsureNewVrs => deploymentContinueOld s cr
+  | vDeploymentReconcilerStepAfterScaleDownOldVrs => optionFold DynamicObjectT DeploymentOutput (deploymentError s) (fun (obj : DynamicObjectT) =>
+      deploymentContinueOld s cr) (apiResponseOk DynamicObjectT (responseGetThenUpdate response))
+  | vDeploymentReconcilerStepDone => tuple (s, none Request)
+  | vDeploymentReconcilerStepError => tuple (s, none Request)) (objectMetaTNamespace (vDeploymentTMetadata cr))

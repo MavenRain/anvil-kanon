@@ -1,0 +1,70 @@
+-- Named state predicates retain their independent non-vacuity witnesses.
+def Invariant : Type 0 := prod (Bytes, Bytes, (ClusterState -> Bool), (ClusterState -> Bool))
+def Invariants : Type 0 := Sequence Invariant
+def invariantConjunction : Invariants -> ClusterState -> Bool := fun (xs : Invariants) (s : ClusterState) => sequenceEvery Invariant xs (fun (i : Invariant) => i.2 s)
+def invariantFirstViolated : Invariants -> ClusterState -> Option Invariant := fun (xs : Invariants) (s : ClusterState) => sequenceFind Invariant xs (fun (i : Invariant) => boolNot (i.2 s))
+def implies : Bool -> Bool -> Bool := fun (a : Bool) (b : Bool) => boolOr (boolNot a) b
+def resultFold : (0 A : Type 0) -> (0 B : Type 0) -> (Error -> B) -> (A -> B) -> Result A -> B := fun (0 A : Type 0) (0 B : Type 0) (bad : Error -> B) (good : A -> B) (r : Result A) => case r with | 0 (e : Error) => bad e | 1 (a : A) => good a
+def assuranceOngoing : Int -> ClusterState -> OngoingMap := fun (id : Int) (s : ClusterState) => optionFold Actor OngoingMap ongoingMapNil (fun (a : Actor) => a.0.0) (actorMapGet id s.1)
+def assuranceScheduled : Int -> ClusterState -> ResourceStore := fun (id : Int) (s : ClusterState) => optionFold Actor ResourceStore resourceStoreNil (fun (a : Actor) => a.0.1) (actorMapGet id s.1)
+def storeEvery : ResourceStore -> (CommonObjectRef -> DynamicObjectT -> Bool) -> Bool := fun (xs : ResourceStore) (p : CommonObjectRef -> DynamicObjectT -> Bool) => resourceStoreFold Bool xs true (fun (k : CommonObjectRef) (o : DynamicObjectT) (acc : Bool) => boolAnd acc (p k o))
+def storeAny : ResourceStore -> (CommonObjectRef -> DynamicObjectT -> Bool) -> Bool := fun (xs : ResourceStore) (p : CommonObjectRef -> DynamicObjectT -> Bool) => boolNot (storeEvery xs (fun (k : CommonObjectRef) (o : DynamicObjectT) => boolNot (p k o)))
+def storeObjects : ResourceStore -> ListDynamicObjectT := fun (xs : ResourceStore) => listDynamicObjectTReverse (resourceStoreFold ListDynamicObjectT xs listDynamicObjectTNil (fun (k : CommonObjectRef) (o : DynamicObjectT) (acc : ListDynamicObjectT) => listDynamicObjectTCons o acc))
+def ongoingEvery : OngoingMap -> (CommonObjectRef -> Ongoing -> Bool) -> Bool := fun (xs : OngoingMap) (p : CommonObjectRef -> Ongoing -> Bool) => ongoingMapFold Bool xs true (fun (k : CommonObjectRef) (o : Ongoing) (acc : Bool) => boolAnd acc (p k o))
+def ongoingAny : OngoingMap -> (CommonObjectRef -> Ongoing -> Bool) -> Bool := fun (xs : OngoingMap) (p : CommonObjectRef -> Ongoing -> Bool) => boolNot (ongoingEvery xs (fun (k : CommonObjectRef) (o : Ongoing) => boolNot (p k o)))
+def messagePoolAny : MessagePool -> (Message -> Bool) -> Bool := fun (xs : MessagePool) (p : Message -> Bool) => boolNot (messagePoolEvery xs (fun (m : Message) => boolNot (p m)))
+def assuranceApiRequest : Message -> Bool := fun (m : Message) => optionIsSome Request (contentGetRequest m.3)
+def assuranceExternalRequest : Message -> Bool := fun (m : Message) => optionIsSome Value (contentGetExternalRequest m.3)
+def assuranceRequest : Message -> Bool := fun (m : Message) => boolOr (assuranceApiRequest m) (assuranceExternalRequest m)
+def assuranceSomePending : Int -> ClusterState -> Bool := fun (id : Int) (s : ClusterState) => ongoingAny (assuranceOngoing id s) (fun (k : CommonObjectRef) (o : Ongoing) => optionIsSome Message o.1)
+def assuranceHasPendingRequest : Ongoing -> Bool := fun (o : Ongoing) => optionFold Message Bool false assuranceRequest o.1
+def assuranceExpectedWitness : Int -> (Value -> Bool) -> ClusterState -> Bool := fun (id : Int) (p : Value -> Bool) (s : ClusterState) => ongoingAny (assuranceOngoing id s) (fun (k : CommonObjectRef) (o : Ongoing) => p o.2)
+def assuranceMatchingResponse : ClusterState -> Message -> Bool := fun (s : ClusterState) (req : Message) => messagePoolAny s.2 (fun (resp : Message) => messageResponseMatches resp req)
+def assuranceRequestFromKey : Int -> CommonObjectRef -> Message -> Bool := fun (id : Int) (key : CommonObjectRef) (msg : Message) =>
+  boolAnd (hostEqual msg.0 (hostController id key)) (boolOr (boolAnd (hostEqual msg.1 hostApi) (assuranceApiRequest msg)) (boolAnd (hostEqual msg.1 (hostExternal id)) (assuranceExternalRequest msg)))
+def assuranceUidBelow : Int -> DynamicObjectT -> Bool := fun (counter : Int) (obj : DynamicObjectT) => optionFold Int Bool false (fun (uid : Int) => intLess uid counter) (objectMetaTUid (dynamicObjectTMetadata obj))
+def assuranceUniqueUids : ClusterState -> Bool := fun (s : ClusterState) => storeEvery s.0.0 (fun (k : CommonObjectRef) (o : DynamicObjectT) =>
+  storeEvery s.0.0 (fun (l : CommonObjectRef) (p : DynamicObjectT) => boolOr (commonObjectRefEqual k l) (boolNot (intEqual
+    (optionValue Int (negative 0) (objectMetaTUid (dynamicObjectTMetadata o))) (optionValue Int (negative 0) (objectMetaTUid (dynamicObjectTMetadata p)))))))
+def assuranceStoreWellFormed : ClusterState -> Bool := fun (s : ClusterState) => storeEvery s.0.0 (fun (k : CommonObjectRef) (o : DynamicObjectT) =>
+  let md : ObjectMetaT := dynamicObjectTMetadata o in boolAnd (objectMetaWellFormed md) (boolAnd
+    (resultFold CommonObjectRef Bool (fun (e : Error) => false) (commonObjectRefEqual k) (objectRef o))
+    (boolAnd (optionFold Int Bool false (fun (rv : Int) => intLess rv s.0.2) (objectMetaTResourceVersion md)) (assuranceUidBelow s.0.1 o))))
+def assuranceOneOwner : ObjectMetaT -> Bool := fun (md : ObjectMetaT) => optionFold ListOwnerReferenceT Bool true (fun (xs : ListOwnerReferenceT) => boolNot (natLt 1 (ownersControllerCount xs))) (objectMetaTOwnerReferences md)
+def assuranceAnyOwner : ObjectMetaT -> Bool := fun (md : ObjectMetaT) => optionFold ListOwnerReferenceT Bool false (fun (xs : ListOwnerReferenceT) => natLt 0 (ownersControllerCount xs)) (objectMetaTOwnerReferences md)
+def assuranceUniqueReconcile : Int -> ClusterState -> Bool := fun (id : Int) (s : ClusterState) =>
+  let xs : OngoingMap := assuranceOngoing id s in ongoingEvery xs (fun (k : CommonObjectRef) (o : Ongoing) => ongoingEvery xs (fun (l : CommonObjectRef) (p : Ongoing) => boolOr (commonObjectRefEqual k l) (boolNot (intEqual o.3 p.3))))
+def assuranceUniquePending : Int -> ClusterState -> Bool := fun (id : Int) (s : ClusterState) =>
+  let xs : OngoingMap := assuranceOngoing id s in ongoingEvery xs (fun (k : CommonObjectRef) (o : Ongoing) => optionFold Message Bool true (fun (m : Message) =>
+    ongoingEvery xs (fun (l : CommonObjectRef) (p : Ongoing) => boolOr (commonObjectRefEqual k l) (optionFold Message Bool true (fun (n : Message) => boolNot (intEqual m.2 n.2)) p.1))) o.1)
+def assurancePendingCount : Int -> ClusterState -> Nat := fun (id : Int) (s : ClusterState) => ongoingMapFold Nat (assuranceOngoing id s) 0 (fun (k : CommonObjectRef) (o : Ongoing) (n : Nat) => natAdd n (boolNat (optionIsSome Message o.1)))
+def assurancePendingExpected : Int -> (Value -> Bool) -> ClusterState -> Bool := fun (id : Int) (p : Value -> Bool) (s : ClusterState) => ongoingEvery (assuranceOngoing id s) (fun (k : CommonObjectRef) (o : Ongoing) => implies (p o.2)
+  (optionFold Message Bool false (fun (m : Message) => boolAnd (assuranceRequest m) (boolAnd (assuranceRequestFromKey id k m) (boolOr (messagePoolContains m s.2) (assuranceMatchingResponse s m)))) o.1))
+def assurancePendingXor : Int -> ClusterState -> Bool := fun (id : Int) (s : ClusterState) => ongoingEvery (assuranceOngoing id s) (fun (k : CommonObjectRef) (o : Ongoing) =>
+  optionFold Message Bool true (fun (m : Message) => implies (assuranceRequest m) (boolAnd (assuranceRequestFromKey id k m) (boolNot (boolEqual (messagePoolContains m s.2) (assuranceMatchingResponse s m))))) o.1)
+def assuranceNoPendingExpected : Int -> (Value -> Bool) -> ClusterState -> Bool := fun (id : Int) (p : Value -> Bool) (s : ClusterState) => ongoingEvery (assuranceOngoing id s) (fun (k : CommonObjectRef) (o : Ongoing) => implies (p o.2) (boolNot (optionIsSome Message o.1)))
+def assurancePendingLower : Int -> ClusterState -> Bool := fun (id : Int) (s : ClusterState) => ongoingEvery (assuranceOngoing id s) (fun (k : CommonObjectRef) (o : Ongoing) => optionFold Message Bool true (fun (m : Message) => intLess m.2 s.3) o.1)
+def assuranceFlightPendingDistinct : Int -> ClusterState -> Bool := fun (id : Int) (s : ClusterState) => ongoingEvery (assuranceOngoing id s) (fun (k : CommonObjectRef) (o : Ongoing) =>
+  optionFold Message Bool true (fun (m : Message) => messagePoolEvery s.2 (fun (n : Message) => boolOr (boolNot (assuranceApiRequest n)) (boolOr (messageEqual m n) (boolNot (intEqual m.2 n.2))))) o.1)
+def assuranceValidControllerIds : ClusterConfig -> ClusterState -> Bool := fun (c : ClusterConfig) (s : ClusterState) => messagePoolEvery s.2 (fun (m : Message) => implies (assuranceApiRequest m)
+  (optionFold (prod (Int, CommonObjectRef)) Bool true (fun (a : prod (Int, CommonObjectRef)) => optionIsSome ControllerBundle (modelMapGet a.0 c.1)) (hostControllerData m.0)))
+def assuranceUniqueFlight : ClusterState -> Bool := fun (s : ClusterState) => messagePoolEvery s.2 (fun (m : Message) => boolAnd (natEq (messagePoolCount m s.2) 1)
+  (messagePoolEvery s.2 (fun (n : Message) => boolOr (messageEqual m n) (boolNot (intEqual m.2 n.2)))))
+def assuranceMonkeyRequest : Request -> Bool := fun (r : Request) => match r as self in ApiMethodApiRequest return Bool with
+  | apiMethodApiRequestCreateRequest x => commonKindEqual (dynamicObjectTKind (apiMethodCreateRequestObj x)) commonKindPod
+  | apiMethodApiRequestUpdateRequest x => commonKindEqual (dynamicObjectTKind (apiMethodUpdateRequestObj x)) commonKindPod
+  | apiMethodApiRequestUpdateStatusRequest x => commonKindEqual (dynamicObjectTKind (apiMethodUpdateStatusRequestObj x)) commonKindPod
+  | apiMethodApiRequestDeleteRequest x => commonKindEqual (commonObjectRefKind (apiMethodDeleteRequestKey x)) commonKindPod
+  | apiMethodApiRequestGetRequest x => false | apiMethodApiRequestListRequest x => false | apiMethodApiRequestGetThenDeleteRequest x => false
+  | apiMethodApiRequestGetThenUpdateRequest x => false | apiMethodApiRequestGetThenUpdateStatusRequest x => false
+def assuranceBuiltinRequest : Request -> Bool := fun (r : Request) => match r as self in ApiMethodApiRequest return Bool with
+  | apiMethodApiRequestDeleteRequest x => true
+  | apiMethodApiRequestCreateRequest x => false | apiMethodApiRequestUpdateRequest x => false | apiMethodApiRequestUpdateStatusRequest x => false
+  | apiMethodApiRequestGetRequest x => false | apiMethodApiRequestListRequest x => false | apiMethodApiRequestGetThenDeleteRequest x => false
+  | apiMethodApiRequestGetThenUpdateRequest x => false | apiMethodApiRequestGetThenUpdateStatusRequest x => false
+def assuranceForbiddenSource : Host -> Bool := fun (h : Host) => boolOr (hostEqual h hostApi) (optionIsSome Int (hostExternalData h))
+def TransitionSample : Type 0 := prod (DynamicObjectT, Option ResponseView, Value)
+def assuranceStateComesWithPending : ControllerProgram -> (Value -> Bool) -> Sequence TransitionSample -> Bool := fun (model : ControllerProgram) (p : Value -> Bool) (xs : Sequence TransitionSample) =>
+  boolAnd (boolNot (p model.1)) (sequenceEvery TransitionSample xs (fun (x : TransitionSample) => let post : prod (Value, Option RequestView) := model.2 x.0 x.1 x.2 in implies (p post.0) (optionIsSome RequestView post.1)))
+def assuranceStateComesWithoutPending : ControllerProgram -> (Value -> Bool) -> Sequence TransitionSample -> Bool := fun (model : ControllerProgram) (p : Value -> Bool) (xs : Sequence TransitionSample) =>
+  sequenceEvery TransitionSample xs (fun (x : TransitionSample) => let post : prod (Value, Option RequestView) := model.2 x.0 x.1 x.2 in implies (p post.0) (boolNot (optionIsSome RequestView post.1)))

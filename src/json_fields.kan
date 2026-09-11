@@ -1,0 +1,64 @@
+def jsonMember : Value -> Bytes -> Result Value := fun (j : Value) (key : Bytes) =>
+  resultBind Members Value (jsonGetObject j) (fun (members : Members) =>
+    optionFold Value (Result Value) (err Value (missingField b"json" key))
+      (fun (v : Value) => ok Value v) (jsonMemberOption members key))
+def jsonField : (0 A : Type 0) -> Value -> Bytes -> (Value -> Result A) -> Result A :=
+  fun (0 A : Type 0) (j : Value) (key : Bytes) (decode : Value -> Result A) =>
+  resultBind Value A (jsonMember j key) decode
+def jsonOptional : (0 A : Type 0) -> (Value -> Result A) -> Value -> Result (Option A) :=
+  fun (0 A : Type 0) (decode : Value -> Result A) (j : Value) =>
+  case (jsonIsNull j) with
+  | 1 (u : Unit) => ok (Option A) (none A)
+  | 0 (u : Unit) => resultMap A (Option A) (fun (x : A) => some A x) (decode j)
+def jsonOptionalField : (0 A : Type 0) -> Value -> Bytes -> (Value -> Result A) -> Result (Option A) :=
+  fun (0 A : Type 0) (j : Value) (key : Bytes) (decode : Value -> Result A) =>
+  resultBind Members (Option A) (jsonGetObject j) (fun (members : Members) =>
+    optionFold Value (Result (Option A)) (ok (Option A) (none A))
+      (fun (v : Value) => jsonOptional A decode v) (jsonMemberOption members key))
+def jsonEncodeOption : (0 A : Type 0) -> (A -> Value) -> Option A -> Value :=
+  fun (0 A : Type 0) (encode : A -> Value) (o : Option A) => optionFold A Value jsonNull encode o
+def jsonOptionalMember : (0 A : Type 0) -> Bytes -> (A -> Value) -> Option A -> Members -> Members :=
+  fun (0 A : Type 0) (key : Bytes) (encode : A -> Value) (value : Option A) (tail : Members) =>
+  optionFold A Members tail (fun (x : A) => jsonObjectCons key (encode x) tail) value
+def jsonEncodeBytes : Bytes -> Value := fun (x : Bytes) => jsonString x
+def jsonEncodeInt : Int -> Value := fun (x : Int) => jsonInt x
+def jsonEncodeBool : Bool -> Value := fun (x : Bool) => jsonBool x
+def jsonEncodeUnit : Unit -> Value := fun (x : Unit) => jsonObject jsonObjectNil
+def jsonDecodeUnit : Value -> Result Unit := fun (j : Value) =>
+  resultMap Members Unit (fun (members : Members) => ()) (jsonGetObject j)
+def jsonEncodeGhost : Ghost -> Value := fun (x : Ghost) => jsonObject jsonObjectNil
+def jsonDecodeGhost : Value -> Result Ghost := fun (j : Value) =>
+  resultMap Members Ghost (fun (members : Members) => ghost) (jsonGetObject j)
+def jsonEncodeValue : Value -> Value := fun (x : Value) => x
+def jsonDecodeValue : Value -> Result Value := fun (x : Value) => ok Value x
+def jsonEncodeEither : (0 A : Type 0) -> (0 B : Type 0) -> (A -> Value) -> (B -> Value) -> Either A B -> Value :=
+  fun (0 A : Type 0) (0 B : Type 0) (left : A -> Value) (right : B -> Value) (x : Either A B) =>
+  case x with | 0 (a : A) => jsonObject (jsonObjectCons b"error" (left a) jsonObjectNil)
+  | 1 (b : B) => jsonObject (jsonObjectCons b"ok" (right b) jsonObjectNil)
+def jsonDecodeEither : (0 A : Type 0) -> (0 B : Type 0) -> (Value -> Result A) -> (Value -> Result B) -> Value -> Result (Either A B) :=
+  fun (0 A : Type 0) (0 B : Type 0) (left : Value -> Result A) (right : Value -> Result B) (j : Value) =>
+  resultBind Members (Either A B) (jsonGetObject j) (fun (m : Members) =>
+    optionFold Value (Result (Either A B))
+      (resultMap B (Either A B) (fun (b : B) => inj 1 of 2 b) (jsonField B j b"ok" right))
+      (fun (v : Value) => resultMap A (Either A B) (fun (a : A) => inj 0 of 2 a) (left v)) (jsonMemberOption m b"error"))
+def rec jsonEncodeMapMembers : StringMap -> Members := fun (m : StringMap) =>
+  match m as self in StringMap return Members with
+  | stringMapNil => jsonObjectNil
+  | stringMapCons k v t => jsonObjectCons k (jsonString v) (jsonEncodeMapMembers t)
+def jsonEncodeMap : StringMap -> Value := fun (m : StringMap) => jsonObject (jsonEncodeMapMembers m)
+def rec jsonDecodeMapMembers : Members -> StringMap -> Result StringMap := fun (m : Members) (acc : StringMap) =>
+  match m as self in JsonTree sort return Result StringMap with
+  | jsonNull => err StringMap (decodeError b"object" b"expected a JSON object")
+  | jsonBool x => err StringMap (decodeError b"object" b"expected a JSON object")
+  | jsonInt x => err StringMap (decodeError b"object" b"expected a JSON object")
+  | jsonIntLiteral x => err StringMap (decodeError b"object" b"expected a JSON object")
+  | jsonFloat x => err StringMap (decodeError b"object" b"expected a JSON object")
+  | jsonString x => err StringMap (decodeError b"object" b"expected a JSON object")
+  | jsonArray x => err StringMap (decodeError b"object" b"expected a JSON object")
+  | jsonObject x => err StringMap (decodeError b"object" b"expected a JSON object")
+  | jsonArrayNil => err StringMap (decodeError b"object" b"expected a JSON object")
+  | jsonArrayCons h t => err StringMap (decodeError b"object" b"expected a JSON object")
+  | jsonObjectNil => ok StringMap acc
+  | jsonObjectCons k v t => resultBind Bytes StringMap (jsonGetString v) (fun (x : Bytes) => jsonDecodeMapMembers t (stringMapSet k x acc))
+def jsonDecodeMap : Value -> Result StringMap := fun (j : Value) =>
+  resultBind Members StringMap (jsonGetObject j) (fun (m : Members) => jsonDecodeMapMembers m stringMapEmpty)
